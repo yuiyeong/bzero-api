@@ -1,0 +1,36 @@
+[project]
+name = "bzero-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.17.1",
+    "celery[redis]>=5.5.3",
+    "fastapi>=0.121.0",
+    "passlib[bcrypt]>=1.7.4",
+    "psycopg[binary]>=3.2.12",
+    "py-ulid>=1.0.3",
+    "pydantic-settings>=2.11.0",
+    "python-dotenv>=1.2.1",
+    "redis>=5.2.1",
+    "sqlalchemy[postgresql-asyncpg]>=2.0.44",
+    "uvicorn[standard]>=0.38.0",
+]
+
+[project.scripts]
+dev = "bzero.main:dev"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "ruff>=0.14.3",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bzero"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
