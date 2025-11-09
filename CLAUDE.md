@@ -13,7 +13,7 @@ bzero-api는 FastAPI 기반의 비동기 웹 API 프로젝트입니다. PostgreS
 - **마이그레이션**: Alembic
 - **백그라운드 작업**: Celery + Redis
 - **인증**: Passlib (bcrypt)
-- **ID 생성**: py-ulid
+- **ID 생성**: UUID v7 (uuid-utils 또는 uuid6 라이브러리)
 - **설정 관리**: Pydantic Settings + python-dotenv
 - **패키지 관리**: uv
 
@@ -98,7 +98,7 @@ migrations/          # Alembic 마이그레이션 파일
 - 비동기 I/O 우선 사용 (SQLAlchemy async, FastAPI async endpoints)
 - 의존성 주입을 통한 데이터베이스 세션 관리
 - Pydantic을 활용한 타입 안정성 및 검증
-- ULID를 기본 ID로 사용 (UUID 대신)
+- UUID v7을 기본 ID로 사용 (RFC 9562 표준)
 
 ## 코드 스타일 및 컨벤션
 
