@@ -1,150 +1,316 @@
-# CLAUDE.md
+# bzero-api (B0 Backend API)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+B0 프로젝트의 백엔드 API 서버입니다. FastAPI와 Clean Architecture를 기반으로 구축되었습니다.
+
+---
 
 ## 프로젝트 개요
 
-bzero-api는 FastAPI 기반의 비동기 웹 API 프로젝트입니다. PostgreSQL 데이터베이스와 Redis를 사용하며, Celery를 통한 백그라운드 작업 처리를 지원합니다.
+**bzero-api**는 B0 프로젝트의 백엔드 API 서버로, 사용자 인증, 포인트 시스템, 도시 관리, 실시간 채팅, 일기/문답지 저장, 비행선 티켓 시스템을 담당합니다.
+
+**핵심 아키텍처**: Clean Architecture + Domain-Driven Design (DDD)
+
+---
 
 ## 기술 스택
 
-- **웹 프레임워크**: FastAPI (비동기)
-- **데이터베이스**: PostgreSQL + SQLAlchemy (비동기 postgresql-asyncpg)
-- **마이그레이션**: Alembic
-- **백그라운드 작업**: Celery + Redis
-- **인증**: Passlib (bcrypt)
-- **ID 생성**: UUID v7 (uuid-utils 또는 uuid6 라이브러리)
-- **설정 관리**: Pydantic Settings + python-dotenv
-- **패키지 관리**: uv
+- **FastAPI** 0.115.x - 비동기 웹 프레임워크
+- **Python** 3.12+, **uv** - 패키지 관리
+- **PostgreSQL** 16+ - 메인 데이터베이스
+- **SQLAlchemy** 2.0+ - 비동기 ORM
+- **Alembic** - 데이터베이스 마이그레이션
+- **pytest** + **ruff** - 테스트 및 린팅
 
-## 개발 명령어
+---
 
-### 개발 서버 실행
-```bash
-uv run dev
+## 프로젝트 구조
+
 ```
-개발 서버는 `0.0.0.0:8000`에서 실행되며 코드 변경 시 자동 재시작됩니다.
+bzero-api/
+├── app/
+│   ├── domain/              # 도메인 계층 (순수 비즈니스 로직)
+│   │   ├── entities/        # User, City, Room 등
+│   │   ├── value_objects/   # Email, Nickname 등
+│   │   ├── repositories/    # 리포지토리 인터페이스 (추상 클래스)
+│   │   ├── services/        # 도메인 서비스
+│   │   └── exceptions/      # 도메인 예외
+│   │
+│   ├── application/         # 애플리케이션 계층 (유스케이스)
+│   │   ├── use_cases/       # RegisterUser, PurchaseTicket 등
+│   │   └── dtos/
+│   │
+│   ├── infrastructure/      # 인프라 계층 (외부 시스템 연동)
+│   │   ├── db/
+│   │   │   ├── models/      # SQLAlchemy ORM 모델
+│   │   │   └── session.py
+│   │   └── repositories/    # 리포지토리 구현체
+│   │
+│   ├── presentation/        # 프레젠테이션 계층 (API)
+│   │   ├── api/v1/          # API 엔드포인트
+│   │   └── schemas/         # Pydantic 스키마
+│   │
+│   ├── core/                # 공통 설정
+│   │   ├── config.py
+│   │   ├── dependencies.py
+│   │   └── security.py
+│   │
+│   └── main.py
+│
+├── alembic/                 # DB 마이그레이션
+├── tests/                   # 테스트
+├── .env                     # 환경 변수
+└── pyproject.toml
+```
 
-### 린팅 및 포매팅
+### Clean Architecture 계층별 역할
+
+```
+Presentation → Application → Domain ← Infrastructure
+```
+
+- **Domain**: 순수 비즈니스 로직 (외부 의존성 없음)
+- **Application**: 유스케이스 (도메인 엔티티 조합)
+- **Infrastructure**: DB, 외부 API 연동 (Domain 인터페이스 구현)
+- **Presentation**: HTTP 요청/응답 처리
+
+---
+
+## 개발 환경 설정
+
 ```bash
-# 린팅 (자동 수정 포함)
+# 의존성 설치
+uv sync
+
+# 환경 변수 설정
+cp .env.example .env
+# .env 파일 수정 (DATABASE_URL, SECRET_KEY 등)
+
+# 데이터베이스 초기화
+createdb bzero_dev
+uv run alembic upgrade head
+```
+
+---
+
+## 개발 워크플로우
+
+각 기능(`docs/01-mvp.md` 참고)마다 다음 순서로 개발:
+
+```
+1. 도메인 엔티티/값 객체 작성 (Domain)
+2. 리포지토리 인터페이스 작성 (Domain)
+3. 유스케이스 작성 (Application)
+4. ORM 모델 작성 (Infrastructure)
+5. 리포지토리 구현체 작성 (Infrastructure)
+6. API 엔드포인트 작성 (Presentation)
+7. Pydantic 스키마 작성 (Presentation)
+8. 의존성 주입 설정
+9. 마이그레이션 생성 및 적용
+10. 테스트 작성
+```
+
+### 개발 예시: 회원가입 기능
+
+#### 1. Domain Layer
+
+```python
+# app/domain/entities/user.py
+@dataclass
+class User:
+    id: str  # ULID
+    email: Email  # 값 객체
+    nickname: Nickname  # 값 객체
+    points: int
+
+    def add_points(self, amount: int) -> None:
+        """비즈니스 로직"""
+        if self.points + amount < 0:
+            raise InsufficientPointsException()
+        self.points += amount
+```
+
+```python
+# app/domain/repositories/user_repository.py (인터페이스)
+class UserRepository(ABC):
+    @abstractmethod
+    async def create(self, user: User) -> User: pass
+
+    @abstractmethod
+    async def get_by_email(self, email: Email) -> User | None: pass
+```
+
+#### 2. Application Layer
+
+```python
+# app/application/use_cases/register_user.py
+class RegisterUserUseCase:
+    def __init__(self, user_repository: UserRepository, password_service: PasswordService):
+        self.user_repository = user_repository
+        self.password_service = password_service
+
+    async def execute(self, email: str, password: str, nickname: str, emoji: str) -> User:
+        # 1. 값 객체 생성 (검증)
+        email_vo = Email(email)
+        nickname_vo = Nickname(nickname)
+
+        # 2. 중복 확인
+        if await self.user_repository.get_by_email(email_vo):
+            raise DuplicateEmailException()
+
+        # 3. User 엔티티 생성 및 저장
+        user = User(id=str(ulid.ULID()), email=email_vo, ...)
+        return await self.user_repository.create(user)
+```
+
+#### 3. Infrastructure Layer
+
+```python
+# app/infrastructure/db/models/user_model.py (ORM)
+class UserModel(Base):
+    __tablename__ = "users"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    points: Mapped[int] = mapped_column(Integer, default=1000)
+```
+
+```python
+# app/infrastructure/repositories/user_repository_impl.py
+class UserRepositoryImpl(UserRepository):
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create(self, user: User) -> User:
+        user_model = self._to_model(user)  # 엔티티 → ORM 변환
+        self.session.add(user_model)
+        await self.session.commit()
+        return self._to_entity(user_model)  # ORM → 엔티티 변환
+```
+
+#### 4. Presentation Layer
+
+```python
+# app/presentation/api/v1/auth.py
+@router.post("/register", status_code=201)
+async def register(
+        request: RegisterRequest,
+        use_case: RegisterUserUseCase = Depends(get_register_user_use_case)
+):
+    try:
+        user = await use_case.execute(...)
+        return UserResponse.from_entity(user)
+    except DuplicateEmailException:
+        raise HTTPException(status_code=409, detail="Email already exists")
+```
+
+---
+
+## 코딩 가이드라인
+
+### Clean Architecture 원칙
+
+- **의존성 방향**: Presentation → Application → Domain ← Infrastructure
+- **Domain**: 외부 프레임워크 의존성 없음 (순수 Python)
+- **Application**: Domain 인터페이스만 사용 (구현체 사용 금지)
+- **Infrastructure**: Domain 인터페이스 구현
+- **Presentation**: 비즈니스 로직은 유스케이스에 위임
+
+### 주요 규칙
+
+- **비동기 처리**: 모든 DB 작업은 `async/await` 사용
+- **ID 생성**: ULID 사용 (`str(ulid.ULID())`)
+- **값 객체**: 불변 객체로 작성 (`@dataclass(frozen=True)`)
+- **예외 처리**: 도메인 예외 → HTTP 예외 변환 (Presentation Layer에서)
+- **보안**: 비밀번호는 bcrypt 해싱, JWT 토큰 사용, 환경 변수로 민감 정보 관리
+
+### 네이밍 컨벤션
+
+- 클래스: `PascalCase` (예: `User`, `UserRepository`)
+- 함수/변수: `snake_case` (예: `get_user`, `user_id`)
+- 상수: `UPPER_SNAKE_CASE` (예: `MAX_RETRY_COUNT`)
+
+---
+
+## 자주 사용하는 명령어
+
+### 개발 서버
+
+```bash
+# 개발 서버 실행 (http://0.0.0.0:8000)
+uv run dev
+
+# Swagger UI: http://0.0.0.0:8000/docs
+```
+
+### 린팅 및 테스트
+
+```bash
+# 포매팅 + 린팅
+uv run ruff format .
 uv run ruff check --fix .
 
-# 포매팅
-uv run ruff format .
-```
-
-### 테스트
-```bash
-# 전체 테스트 실행
+# 테스트
 uv run pytest
-
-# 특정 테스트 파일 실행
-uv run pytest tests/test_example.py
-
-# 특정 테스트 함수 실행
-uv run pytest tests/test_example.py::test_function_name
+uv run pytest --cov=app --cov-report=html
 ```
 
-### 데이터베이스 마이그레이션
-```bash
-# 마이그레이션 파일 생성 (autogenerate)
-uv run alembic revision --autogenerate -m "migration message"
+### 마이그레이션
 
-# 마이그레이션 적용
+```bash
+# 생성
+uv run alembic revision --autogenerate -m "Add User model"
+
+# 적용
 uv run alembic upgrade head
 
-# 마이그레이션 롤백
+# 롤백
 uv run alembic downgrade -1
+
+# 히스토리 확인
+uv run alembic history
 ```
 
-### Pre-commit
+---
+
+## 문제 해결
+
+### 마이그레이션 충돌
+
 ```bash
-# pre-commit 훅 설치
-uv run pre-commit install
-
-# 모든 파일에 대해 수동 실행
-uv run pre-commit run --all-files
+uv run alembic heads  # 헤드 확인
+uv run alembic merge -m "Merge heads" <rev1> <rev2>
 ```
 
-## 코드 구조 및 아키텍처
+### 비동기 세션 에러
 
-### 프로젝트 레이아웃
-```
-src/bzero/           # 메인 애플리케이션 패키지
-├── main.py          # FastAPI 애플리케이션 엔트리포인트
-├── config.py        # 설정 관리 (Pydantic Settings)
-├── database.py      # 데이터베이스 연결 및 세션 관리
-├── celery_app.py    # Celery 애플리케이션 설정
-├── models/          # SQLAlchemy 모델
-├── schemas/         # Pydantic 스키마 (요청/응답 DTO)
-├── routers/         # FastAPI 라우터 (API 엔드포인트)
-├── services/        # 비즈니스 로직
-├── auth/            # 인증/인가 관련 코드
-└── tasks/           # Celery 백그라운드 작업
+- 모든 DB 쿼리 앞에 `await` 사용
+- `AsyncSession`을 컨텍스트 매니저로 사용
 
-migrations/          # Alembic 마이그레이션 파일
-```
+### CORS 에러
 
-### 아키텍처 패턴
-
-**레이어드 아키텍처**:
-- **Router Layer** (`routers/`): API 엔드포인트 정의, 요청/응답 처리
-- **Service Layer** (`services/`): 비즈니스 로직 구현
-- **Model Layer** (`models/`): 데이터베이스 모델 정의
-- **Schema Layer** (`schemas/`): 요청/응답 검증 및 직렬화
-
-**주요 원칙**:
-- 비동기 I/O 우선 사용 (SQLAlchemy async, FastAPI async endpoints)
-- 의존성 주입을 통한 데이터베이스 세션 관리
-- Pydantic을 활용한 타입 안정성 및 검증
-- UUID v7을 기본 ID로 사용 (RFC 9562 표준)
-
-## 코드 스타일 및 컨벤션
-
-### Ruff 설정
-- **Python 버전**: 3.12
-- **라인 길이**: 120자
-- **Import 정렬**: isort 규칙 적용
-  - 섹션 순서: future → standard-library → third-party → first-party → local-folder
-  - imports 후 2줄 공백
-- **활성화된 규칙**: flake8-builtins, flake8-bugbear, flake8-comprehensions, pycodestyle, pyflakes, isort, pep8-naming, pylint 등
-
-### 특별히 허용된 패턴
-- **전역 변수 사용** (PLW0603 무시): 데이터베이스 연결 관리 등에서 필요
-- **5개 이상의 함수 인자** (PLR0913 무시): 복잡한 함수 시그니처 허용
-
-### Import 컨벤션
 ```python
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+# app/main.py
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
 
-## 데이터베이스 관련 주의사항
+### 데이터베이스 연결 실패
 
-### 비동기 SQLAlchemy 사용
-- `AsyncSession`을 사용하여 비동기 데이터베이스 작업 수행
-- 모든 데이터베이스 쿼리는 `await` 키워드와 함께 사용
-- `select()`, `insert()`, `update()`, `delete()` 등의 SQLAlchemy 2.0 스타일 사용
+- PostgreSQL 실행 확인: `pg_ctl status`
+- `.env`의 `DATABASE_URL` 확인
+- DB 생성: `createdb bzero_dev`
 
-### Alembic 마이그레이션
-- `migrations/env.py`에서 모델 메타데이터를 올바르게 설정해야 autogenerate가 작동
-- 마이그레이션 파일은 항상 검토 후 커밋
-- 마이그레이션 메시지는 명확하고 설명적으로 작성
+---
 
-## 환경 변수 및 설정
+## 참고 자료
 
-프로젝트는 `.env` 파일을 통해 환경 변수를 관리합니다. `config.py`에서 Pydantic Settings를 사용하여 타입 안전한 설정 관리를 구현합니다.
-
-필요한 환경 변수 예시:
-- `DATABASE_URL`: PostgreSQL 연결 문자열
-- `REDIS_URL`: Redis 연결 문자열
-- `SECRET_KEY`: JWT 등 암호화에 사용할 비밀 키
-
-## 인증 및 보안
-
-- Passlib의 bcrypt를 사용한 비밀번호 해싱
-- JWT 또는 세션 기반 인증 구현 권장
-- 민감한 정보(API 키, 토큰, 비밀번호 등)는 절대 코드에 하드코딩하지 않음
+- **프로젝트 문서**: `../docs/01-mvp.md`, `../docs/workflow.md`
+- **FastAPI**: https://fastapi.tiangolo.com/
+- **SQLAlchemy 2.0**: https://docs.sqlalchemy.org/en/20/
+- **Clean Architecture**: https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
