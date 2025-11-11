@@ -133,27 +133,63 @@ uv run alembic history
 
 ## 프로젝트 구조
 
+이 프로젝트는 **Clean Architecture + Domain-Driven Design (DDD)** 원칙을 따릅니다.
+
 ```
 bzero-api/
 ├── src/
-│   └── bzero/              # 메인 애플리케이션 패키지
-│       ├── main.py         # FastAPI 앱 엔트리포인트
-│       ├── config.py       # 설정 관리
-│       ├── database.py     # DB 연결 관리
-│       ├── celery_app.py   # Celery 설정
-│       ├── models/         # SQLAlchemy 모델
-│       ├── schemas/        # Pydantic 스키마
-│       ├── routers/        # API 엔드포인트
-│       ├── services/       # 비즈니스 로직
-│       ├── auth/           # 인증/인가
-│       └── tasks/          # Celery 작업
-├── migrations/             # Alembic 마이그레이션
-├── tests/                  # 테스트 코드
-├── pyproject.toml          # 프로젝트 설정 및 의존성
-├── alembic.ini             # Alembic 설정
-├── ruff.toml               # Ruff 설정
-└── .pre-commit-config.yaml # Pre-commit 설정
+│   └── bzero/                # 메인 애플리케이션 패키지
+│       ├── domain/           # 도메인 계층 (순수 비즈니스 로직)
+│       │   ├── entities/     # 도메인 엔티티 (User, City, Room 등)
+│       │   ├── value_objects/# 값 객체 (Email, Nickname 등)
+│       │   ├── repositories/ # 리포지토리 인터페이스 (추상 클래스)
+│       │   ├── services/     # 도메인 서비스
+│       │   └── exceptions/   # 도메인 예외
+│       │
+│       ├── application/      # 애플리케이션 계층 (유스케이스)
+│       │   ├── use_cases/    # 유스케이스 (RegisterUser, PurchaseTicket 등)
+│       │   └── dtos/         # 데이터 전송 객체
+│       │
+│       ├── infrastructure/   # 인프라 계층 (외부 시스템 연동)
+│       │   ├── db/
+│       │   │   ├── models/   # SQLAlchemy ORM 모델
+│       │   │   └── session.py# DB 세션 관리
+│       │   ├── repositories/ # 리포지토리 구현체
+│       │   └── celery/       # Celery 설정 및 작업
+│       │
+│       ├── presentation/     # 프레젠테이션 계층 (API)
+│       │   ├── api/          # API 엔드포인트 (라우터)
+│       │   ├── middleware/   # API 엔드포인트 (라우터)
+│       │   └── schemas/      # Pydantic 스키마 (요청/응답)
+│       │
+│       ├── core/             # 공통 설정
+│       │
+│       └── main.py           # FastAPI 앱 엔트리포인트
+│
+├── alembic/                  # Alembic 마이그레이션
+│   └── versions/             # 마이그레이션 파일
+├── tests/                    # 테스트 코드
+│   ├── unit/                 # 단위 테스트
+│   ├── integration/          # 통합 테스트
+│   └── conftest.py           # 테스트 설정
+├── .env                      # 환경 변수 (git 무시)
+├── .env.example              # 환경 변수 예시
+├── pyproject.toml            # 프로젝트 설정 및 의존성
+├── alembic.ini               # Alembic 설정
+├── ruff.toml                 # Ruff 설정
+└── .pre-commit-config.yaml   # Pre-commit 설정
 ```
+
+### Clean Architecture 계층별 역할
+
+```
+Presentation → Application → Domain ← Infrastructure
+```
+
+- **Domain**: 순수 비즈니스 로직 (외부 의존성 없음)
+- **Application**: 유스케이스 (도메인 엔티티 조합)
+- **Infrastructure**: DB, 외부 API 연동 (Domain 인터페이스 구현)
+- **Presentation**: HTTP 요청/응답 처리
 
 ## 주요 기능
 
