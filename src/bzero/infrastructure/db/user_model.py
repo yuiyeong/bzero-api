@@ -13,4 +13,4 @@ class UserModel(Base, AuditMixin, SoftDeleteMixin):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     nickname: Mapped[str] = mapped_column(String(50), nullable=False)
     profile_emoji: Mapped[str] = mapped_column(String(10), nullable=False)
-    current_points: Mapped[int] = mapped_column(nullable=False, default=1000)
+    current_points: Mapped[int] = mapped_column(nullable=False, default=0)

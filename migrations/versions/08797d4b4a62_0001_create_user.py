@@ -29,7 +29,7 @@ def upgrade() -> None:
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column("nickname", sa.String(length=50), nullable=False),
         sa.Column("profile_emoji", sa.String(length=10), nullable=False),
-        sa.Column("current_points", sa.Integer(), nullable=False, server_default=sa.text("1000")),
+        sa.Column("current_points", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False
         ),

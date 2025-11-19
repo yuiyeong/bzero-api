@@ -11,14 +11,14 @@ class User:
     password_hash: str
     nickname: Nickname
     profile: Profile
-    current_point: Balance
+    current_points: Balance
 
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
 
     def add_points(self, amount: int) -> None:
-        self.current_point = self.current_point.add(amount)
+        self.current_points = self.current_points.add(amount)
 
     def deduct_points(self, amount: int) -> None:
-        self.current_point = self.current_point.deduct(amount)
+        self.current_points = self.current_points.deduct(amount)
