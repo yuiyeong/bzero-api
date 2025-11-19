@@ -2,7 +2,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from dotenv import load_dotenv
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 from bzero.core.settings import get_settings
 from bzero.infrastructure.db.base import Base
@@ -67,9 +67,8 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_engine(
+        settings.database.sync_url,
         poolclass=pool.NullPool,
     )
 
