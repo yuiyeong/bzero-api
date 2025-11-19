@@ -64,16 +64,16 @@ def setup_loggers(settings: Settings) -> None:
     Args:
         settings: 애플리케이션 설정
     """
-    log_dir = Path(settings.log_dir)
+    log_dir = Path(settings.log.dir)
     for logger_type in (LoggerType.APP, LoggerType.ACCESS, LoggerType.BACKGROUND, LoggerType.ERROR):
         log_file_path = _get_log_path(logger_type, log_dir)
         logger = logging.getLogger(logger_type.value)
         _setup_logger(
             logger=logger,
-            log_level=settings.log_level,
+            log_level=settings.log.level,
             log_file_path=log_file_path,
-            log_file_max_bytes=settings.log_file_max_bytes,
-            log_file_backup_count=settings.log_file_backup_count,
+            log_file_max_bytes=settings.log.file_max_bytes,
+            log_file_backup_count=settings.log.file_backup_count,
         )
 
 
