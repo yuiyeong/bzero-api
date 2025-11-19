@@ -23,13 +23,31 @@ dev = "bzero.main:dev"
 
 [project.optional-dependencies]
 dev = [
+    "httpx>=0.28.1",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
+    "pytest-asyncio>=0.25.2",
+    "pytest-cov>=6.0.0",
     "ruff>=0.14.3",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bzero"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=src/bzero",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
 
 [build-system]
 requires = ["hatchling"]
