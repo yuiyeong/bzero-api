@@ -1,8 +1,17 @@
 from logging.config import fileConfig
 
 from alembic import context
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 
+from bzero.core.settings import get_settings
+from bzero.infrastructure.db.base import Base
+
+# Import all models here for autogenerate to detect them
+from bzero.infrastructure.db.user_model import UserModel  # noqa: F401
+
+
+load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -15,9 +24,11 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
+
+# Override sqlalchemy.url from settings (alembic uses sync engine)
+settings = get_settings()
+config.set_main_option("sqlalchemy.url", settings.database.sync_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
