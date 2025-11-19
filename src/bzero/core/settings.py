@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     environment: Environment = Environment.LOCAL
 
     log: LogSettings = LogSettings()
-    db: DatabaseSettings = DatabaseSettings()
+    database: DatabaseSettings = DatabaseSettings()
     redis: RedisSettings = RedisSettings()
     cors: CorsSettings = CorsSettings()
 
