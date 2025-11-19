@@ -10,11 +10,11 @@ dependencies = [
     "fastapi>=0.121.0",
     "passlib[bcrypt]>=1.7.4",
     "psycopg[binary]>=3.2.12",
-    "py-ulid>=1.0.3",
     "pydantic-settings>=2.11.0",
     "python-dotenv>=1.2.1",
     "redis>=5.2.1",
     "sqlalchemy[postgresql-asyncpg]>=2.0.44",
+    "uuid-utils>=0.11.1",
     "uvicorn[standard]>=0.38.0",
 ]
 
