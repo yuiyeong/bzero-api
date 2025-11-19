@@ -1,13 +1,29 @@
 import uvicorn
 from fastapi import FastAPI
 
+from bzero.core.loggers import setup_loggers
+from bzero.core.settings import Environment, get_settings
+from bzero.presentation.middleware.logging import LoggingMiddleware
 
-app = FastAPI()
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+
+    b0 = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.is_debug)
+
+    if settings.environment != Environment.TEST:
+        # 테스트 때는 로깅 X
+        setup_loggers(settings)
+        b0.add_middleware(LoggingMiddleware)
+
+    @b0.get("/")
+    def check_health():
+        return {"status": "ok"}
+
+    return b0
 
 
-@app.get("/")
-def check_health():
-    return {"status": "ok"}
+app = create_app()
 
 
 def dev():
