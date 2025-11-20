@@ -24,44 +24,68 @@
 
 ## 1. 온보딩 & 회원가입
 
-### User 모델 구현
-- [ ] User 엔티티 생성 (user_id, email, password_hash, nickname, profile_emoji, current_points, is_active)
-- [ ] 값 객체 생성 (Email, Nickname, ProfileEmoji, PointBalance)
-- [ ] User 테이블 마이그레이션
+### User 모델 구현 ✅
+- [x] User 엔티티 생성 (domain/entities/user.py)
+- [x] 값 객체 생성 (Email, Nickname, Profile, Balance)
+- [x] User 테이블 마이그레이션
 
-### UserRepository 구현
-- [ ] 이메일로 사용자 조회
-- [ ] 닉네임으로 사용자 조회
-- [ ] 사용자 생성
-- [ ] 이메일 중복 검사
-- [ ] 닉네임 중복 검사
+### UserRepository 구현 ✅
+- [x] UserRepository 인터페이스 (domain/repositories/user.py)
+- [x] SqlAlchemyUserRepository 구현체 (infrastructure/repositories/user.py)
+- [x] UUID로 사용자 조회
+- [x] 이메일로 사용자 조회
+- [x] 닉네임으로 사용자 조회
+- [x] 사용자 생성
+- [x] 이메일 중복 검사
+- [x] 닉네임 중복 검사
 
-### 인증 서비스 구현
-- [ ] 비밀번호 해싱 (bcrypt)
-- [ ] JWT 토큰 생성/검증
-- [ ] 회원가입 로직 (1000P 자동 지급)
-- [ ] 로그인 로직
+### PointTransaction 시스템 구현
+- [ ] PointTransaction 엔티티 생성 (domain/entities/point_transaction.py)
+- [ ] 값 객체 생성 (TransactionType, TransactionReason, TransactionStatus)
+- [ ] PointTransactionRepository 인터페이스 (domain/repositories/point_transaction.py)
+- [ ] PointTransaction ORM 모델 (infrastructure/db/point_transaction_model.py)
+- [ ] SqlAlchemyPointTransactionRepository 구현체 (infrastructure/repositories/point_transaction.py)
+- [ ] PointTransactionService 도메인 서비스 (domain/services/point_transaction_service.py)
+  - [ ] earn_points() 메서드 (포인트 획득 + 거래 기록)
+  - [ ] spend_points() 메서드 (포인트 차감 + 거래 기록)
+- [ ] PointTransaction 테이블 마이그레이션
+
+### 보안 인프라 구현 (Clean Architecture)
+- [ ] PasswordHasher 인터페이스 (domain/services/password_hasher.py)
+- [ ] BcryptPasswordHasher 구현체 (infrastructure/security/bcrypt_password_hasher.py)
+- [ ] 도메인 에러 추가 (DuplicateEmailError, DuplicateNicknameError, InvalidPasswordError)
+
+### 회원가입 UseCase 구현
+- [ ] RegisterUserCommand DTO (application/dtos/user_dto.py)
+- [ ] RegisterUserUseCase 구현 (application/use_cases/register_user.py)
+  - [ ] 비밀번호 8자 이상 검증
+  - [ ] Value Object 생성 및 검증
+  - [ ] 이메일/닉네임 중복 확인
+  - [ ] 비밀번호 해싱 (PasswordHasher 사용)
+  - [ ] User 엔티티 생성 및 저장
+  - [ ] PointTransactionService로 1000P 지급
 
 ### API 엔드포인트 구현
-- [ ] POST /api/auth/register (회원가입)
-- [ ] POST /api/auth/login (로그인)
-- [ ] GET /api/auth/check-email (이메일 중복 확인)
-- [ ] GET /api/auth/check-nickname (닉네임 중복 확인)
-- [ ] GET /api/auth/me (현재 사용자 정보)
+- [ ] RegisterRequest/UserResponse 스키마 (presentation/schemas/auth.py)
+- [ ] POST /api/v1/auth/register 엔드포인트 (presentation/api/v1/auth.py)
+- [ ] 의존성 주입 설정 (core/dependencies.py)
+- [ ] 라우터 등록 (main.py)
 
-### 입력 검증
-- [ ] 이메일 형식 검증 (최대 255자)
-- [ ] 비밀번호 검증 (8자 이상)
-- [ ] 닉네임 검증 (2-10자, 욕설 필터링)
-- [ ] 프로필 이모지 검증 (10종 중 선택)
+### 테스트 작성
+- [ ] PointTransactionService 단위 테스트
+- [ ] PointTransactionRepository 통합 테스트
+- [ ] BcryptPasswordHasher 단위 테스트
+- [ ] RegisterUserUseCase 단위 테스트
+- [ ] 회원가입 API 통합 테스트
 
 ### 완료 조건
 - [ ] 회원가입이 정상적으로 완료됨
-- [ ] 로그인이 정상적으로 작동함
-- [ ] 가입 후 1000포인트가 자동 지급됨
+- [ ] 가입 후 1000포인트가 자동 지급됨 (PointTransaction 기록 포함)
 - [ ] 이메일 중복 검사가 작동함
 - [ ] 닉네임 중복 검사가 작동함
+- [ ] 비밀번호가 안전하게 해싱되어 저장됨
 - [ ] 프로필 이모지가 저장됨
+- [ ] 모든 테스트가 통과함
 
 ---
 
