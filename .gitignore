@@ -119,3 +119,4 @@ Thumbs.db
 .ruff_cache/
 .claude
 .env
+.serena
