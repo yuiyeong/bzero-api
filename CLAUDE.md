@@ -1,6 +1,6 @@
 # bzero-api (B0 Backend API)
 
-B0 프로젝트의 백엔드 API 서버입니다. FastAPI와 Clean Architecture를 기반으로 구축되었습니다.
+B0 프로젝트의 Backend API 서버입니다. FastAPI와 Clean Architecture를 기반으로 구축되었습니다.
 
 ---
 
