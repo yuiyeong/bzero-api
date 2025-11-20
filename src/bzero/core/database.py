@@ -22,7 +22,7 @@ def setup_db_connection(settings: Settings) -> None:
         return
 
     _async_engine = create_async_engine(
-        settings.db.async_url,
+        settings.database.async_url,
         echo=settings.is_debug,
         pool_pre_ping=True,
         pool_size=10,
