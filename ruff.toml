@@ -91,3 +91,9 @@ force-wrap-aliases = false
 combine-as-imports = true
 lines-after-imports = 2
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+# 파일별 규칙 무시 설정
+[lint.per-file-ignores]
+"tests/**/*.py" = [
+    "PLR2004",  # Magic value used in comparison (테스트에서는 허용)
+]
