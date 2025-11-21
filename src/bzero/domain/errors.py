@@ -8,6 +8,11 @@ class ErrorCode(str, Enum):
     INVALID_EMAIL = "이메일 형식이 잘못되었습니다."
     INVALID_NICKNAME = "닉네임 형식이 잘못되었습니다."
     INVALID_PROFILE = "프로필 형식이 잘못되었습니다."
+    INVALID_POINT_TRANSACTION_STATUS = "트랜잭션 상태가 잘못되었습니다."
+
+    NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
+
+    DUPLICATED_REWARD = "이미 지급된 보상입니다."
 
 
 class BeZeroError(Exception):
@@ -50,3 +55,18 @@ class InvalidNicknameError(BadRequestError):
 class InvalidProfileError(BadRequestError):
     def __init__(self):
         super().__init__(ErrorCode.INVALID_PROFILE)
+
+
+class InvalidPointTransactionStatusError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_POINT_TRANSACTION_STATUS)
+
+
+class NotFoundUserError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_USER)
+
+
+class DuplicatedRewardError(DuplicatedError):
+    def __init__(self):
+        super().__init__(ErrorCode.DUPLICATED_REWARD)
