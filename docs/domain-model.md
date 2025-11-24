@@ -49,7 +49,6 @@ B0는 "지하 0층에서 출발하는 비행선을 타고 가상 세계를 여�
 - **메시지 길이 제한**: 채팅 메시지 300자, 일기 500자, 문답지 답변 200자
 - **메시지 전송 제한 (스팸 방지)**: 2초에 1회 전송 제한 (Redis Rate Limiting)
 - **대화 카드 사용**: 무제한 사용 가능 (동일 카드 중복 선택 가능)
-- **게스트하우스 타입**: Phase 1에서는 기본값(MIXED) 사용, Phase 2에서 타입별 구분
 
 ---
 
@@ -478,7 +477,6 @@ graph TB
 - description: Text
 - image_url: String
 - is_active: Boolean
-- phase: Integer (1=MVP, 2=확장)
 - display_order: Integer (도시 표시 순서)
 
 **책임**:
@@ -615,7 +613,6 @@ graph TB
 - city_id: UUID (FK, nullable)
 - question: Text
 - category: String
-- phase: Integer
 - is_active: Boolean
 
 **책임**:
@@ -1031,7 +1028,6 @@ graph TB
   2. "나만의 휴식 방법이 있다면?"
   3. "회복이 필요할 때 가장 먼저 하고 싶은 일은?"
 - 질문은 코드에서 관리 (DB 저장 불필요)
-- Phase 2에서 나머지 4개 도시 질문 추가
 
 ---
 
@@ -1055,7 +1051,6 @@ graph TB
 **주요 기능**:
 - ID로 도시 조회
 - 활성 도시 목록 조회
-- Phase별 도시 조회 (MVP/확장)
 
 ### TicketRepository
 

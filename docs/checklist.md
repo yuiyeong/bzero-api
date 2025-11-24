@@ -92,18 +92,17 @@
 ## 2. B0 비행선 터미널 & 도시 선택
 
 ### City 모델 구현
-- [ ] City 엔티티 생성 (city_id, name, theme, description, image_url, is_active, phase, display_order)
+- [ ] City 엔티티 생성 (city_id, name, theme, description, image_url, is_active, display_order)
 - [ ] City 테이블 마이그레이션
 
 ### CityRepository 구현
 - [ ] ID로 도시 조회
 - [ ] 활성 도시 목록 조회
-- [ ] Phase별 도시 조회
 
 ### 도시 시드 데이터 생성
-- [ ] 세렌시아 (관계의 도시) - Phase 1
-- [ ] 로렌시아 (회복의 도시) - Phase 1
-- [ ] 나머지 4개 도시 (Phase 2, is_active=false)
+- [ ] 세렌시아 (관계의 도시)
+- [ ] 로렌시아 (회복의 도시)
+- [ ] 나머지 4개 도시 (is_active=false)
 
 ### API 엔드포인트 구현
 - [ ] GET /api/cities (활성 도시 목록)
