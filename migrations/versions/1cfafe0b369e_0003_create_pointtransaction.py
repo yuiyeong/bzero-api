@@ -1,8 +1,8 @@
-"""0002 Create PointTransaction
+"""0003 Create PointTransaction
 
-Revision ID: 228808d53917
-Revises: 08797d4b4a62
-Create Date: 2025-11-20 21:57:08.318503
+Revision ID: 1cfafe0b369e
+Revises: 019aa594c20e
+Create Date: 2025-11-24 13:50:23.690464
 
 """
 
@@ -13,15 +13,14 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision: str = "228808d53917"
-down_revision: str | Sequence[str] | None = "08797d4b4a62"
+revision: str = "1cfafe0b369e"
+down_revision: str | Sequence[str] | None = "019aa594c20e"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     """Upgrade schema."""
-
     op.create_table(
         "point_transactions",
         sa.Column("point_transaction_id", sa.UUID(), nullable=False),
@@ -50,24 +49,32 @@ def upgrade() -> None:
     )
     op.create_index("idx_transactions_user_created", "point_transactions", ["user_id", "created_at"], unique=False)
     op.create_index("idx_transactions_user_type", "point_transactions", ["user_id", "transaction_type"], unique=False)
-
-    # Create trigger for users table
+    op.drop_index(
+        op.f("idx_cities_is_active_display_order"), table_name="cities", postgresql_where="(deleted_at IS NULL)"
+    )
+    # Create trigger for point transaction table
     op.execute("""
-        CREATE TRIGGER update_point_transactions_updated_at
-           BEFORE UPDATE ON point_transactions
-           FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column();
+    CREATE TRIGGER update_point_transactions_updated_at
+       BEFORE UPDATE ON point_transactions
+       FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
     """)
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-
-    # Drop trigger first (depends on table and function)
     op.execute("DROP TRIGGER IF EXISTS update_point_transactions_updated_at ON point_transactions;")
 
+    op.create_index(
+        op.f("idx_cities_is_active_display_order"),
+        "cities",
+        ["is_active", "display_order"],
+        unique=False,
+        postgresql_where="(deleted_at IS NULL)",
+    )
     op.drop_index("idx_transactions_user_type", table_name="point_transactions")
     op.drop_index("idx_transactions_user_created", table_name="point_transactions")
     op.drop_index("idx_transactions_reference", table_name="point_transactions")
     op.drop_index("idx_transaction_user_status", table_name="point_transactions")
     op.drop_table("point_transactions")
+    # ### end Alembic commands ###
