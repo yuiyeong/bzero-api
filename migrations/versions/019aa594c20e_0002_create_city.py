@@ -30,7 +30,6 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("image_url", sa.String(length=500), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("phase", sa.Integer(), nullable=False, server_default=sa.text("1")),
         sa.Column("display_order", sa.Integer(), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False
@@ -51,14 +50,6 @@ def upgrade() -> None:
         postgresql_where=sa.text("deleted_at IS NULL"),
     )
 
-    # Phase별 도시 조회 최적화
-    op.create_index(
-        index_name="idx_cities_phase",
-        table_name="cities",
-        columns=["phase"],
-        postgresql_where=sa.text("deleted_at IS NULL"),
-    )
-
     # Create trigger for cities table (updated_at 자동 업데이트)
     # update_updated_at_column() 함수는 0001_create_user.py에서 이미 생성됨
     op.execute("""
@@ -75,7 +66,6 @@ def downgrade() -> None:
     op.execute("DROP TRIGGER IF EXISTS update_cities_updated_at ON cities;")
 
     # Drop indexes
-    op.drop_index("idx_cities_phase", table_name="cities")
     op.drop_index("idx_cities_is_active_display_order", table_name="cities")
 
     # Drop table
