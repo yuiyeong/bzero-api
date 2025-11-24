@@ -331,7 +331,6 @@ graph TB
 - PointTransaction (포인트 거래)
 
 **값 객체**:
-- PointAmount
 - TransactionType (EARN, SPEND)
 - TransactionReason (SIGNUP, DIARY, QUESTIONNAIRE, TICKET, EXTENSION)
 - TransactionStatus (PENDING, COMPLETED, FAILED)

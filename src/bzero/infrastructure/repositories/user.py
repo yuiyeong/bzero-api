@@ -1,7 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.domain.entities.user import User
+from bzero.domain.errors import NotFoundUserError
 from bzero.domain.repositories.user import UserRepository
 from bzero.domain.value_objects import Balance, Email, Id, Nickname, Profile
 from bzero.infrastructure.db.user_model import UserModel
@@ -46,6 +47,28 @@ class SqlAlchemyUserRepository(UserRepository):
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
+
+    async def update(self, user: User) -> User:
+        stmt = (
+            update(UserModel)
+            .where(
+                UserModel.user_id == user.user_id.value,
+                UserModel.deleted_at.is_(None),
+            )
+            .values(
+                nickname=user.nickname.value,
+                profile_emoji=user.profile.value,
+                current_points=user.current_points.value,
+            )
+            .returning(UserModel)
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+
+        if model is None:
+            raise NotFoundUserError
+
+        return self._to_entity(model)
 
     @staticmethod
     def _to_model(user: User) -> UserModel:

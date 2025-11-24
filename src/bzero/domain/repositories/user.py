@@ -20,3 +20,7 @@ class UserRepository(ABC):
     @abstractmethod
     async def find_by_nickname(self, nickname: Nickname) -> User | None:
         """닉네임으로 사용자를 조회합니다. 없으면 None을 반환합니다."""
+
+    @abstractmethod
+    async def update(self, user: User) -> User:
+        """사용자 정보 업데이트"""

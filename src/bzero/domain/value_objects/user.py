@@ -1,19 +1,13 @@
 import re
-from dataclasses import dataclass, field
-from uuid import UUID
-
-from uuid_utils import uuid7
+from dataclasses import dataclass
 
 from bzero.domain.errors import InvalidAmountError, InvalidEmailError, InvalidNicknameError, InvalidProfileError
 
 
 @dataclass(frozen=True)
-class Id:
-    value: UUID = field(default_factory=uuid7)
-
-
-@dataclass(frozen=True)
 class Email:
+    """이메일 값 객체"""
+
     PATTERN = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     value: str
 
@@ -24,6 +18,8 @@ class Email:
 
 @dataclass(frozen=True)
 class Nickname:
+    """닉네임 값 객체 (2-20자)"""
+
     MIN_LENGTH = 2
     MAX_LENGTH = 20
 
@@ -36,6 +32,8 @@ class Nickname:
 
 @dataclass(frozen=True)
 class Profile:
+    """프로필 이모지 값 객체 (1-10자)"""
+
     MIN_LENGTH = 1
     MAX_LENGTH = 10
 
@@ -48,6 +46,8 @@ class Profile:
 
 @dataclass(frozen=True)
 class Balance:
+    """포인트 잔액 값 객체 (음수 불가)"""
+
     value: int
 
     def __post_init__(self):
@@ -55,12 +55,14 @@ class Balance:
             raise InvalidAmountError
 
     def add(self, amount: int) -> "Balance":
+        """포인트 추가"""
         if amount < 0:
             raise InvalidAmountError
 
         return Balance(self.value + amount)
 
     def deduct(self, amount: int) -> "Balance":
+        """포인트 차감"""
         if self.value - amount < 0:
             raise InvalidAmountError
 

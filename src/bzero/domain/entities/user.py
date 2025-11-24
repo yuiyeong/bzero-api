@@ -16,9 +16,3 @@ class User:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
-
-    def add_points(self, amount: int) -> None:
-        self.current_points = self.current_points.add(amount)
-
-    def deduct_points(self, amount: int) -> None:
-        self.current_points = self.current_points.deduct(amount)

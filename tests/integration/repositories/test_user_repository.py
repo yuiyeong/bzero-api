@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.domain.entities.user import User
+from bzero.domain.errors import NotFoundUserError
 from bzero.domain.value_objects import Balance, Email, Id, Nickname, Profile
 from bzero.infrastructure.db.user_model import UserModel
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
@@ -237,3 +238,124 @@ class TestUserRepositoryFindByNickname:
 
         # Then: None이 반환됨
         assert found_user is None
+
+
+class TestUserRepositoryUpdate:
+    """UserRepository.update() 메서드 테스트."""
+
+    async def test_update_user_points_success(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+    ):
+        """사용자의 포인트를 성공적으로 업데이트할 수 있어야 합니다."""
+        # Given: 사용자를 생성
+        created_user = await user_repository.create(sample_user)
+        assert created_user.current_points.value == 1000
+
+        # When: 포인트를 2000으로 변경
+        created_user.current_points = Balance(2000)
+        updated_user = await user_repository.update(created_user)
+
+        # Then: 포인트가 업데이트됨
+        assert updated_user.current_points.value == 2000
+        assert updated_user.user_id == created_user.user_id
+
+    async def test_update_user_nickname_and_profile(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+    ):
+        """사용자의 닉네임과 프로필을 업데이트할 수 있어야 합니다."""
+        # Given: 사용자를 생성
+        created_user = await user_repository.create(sample_user)
+
+        # When: 닉네임과 프로필 변경
+        created_user.nickname = Nickname("새닉네임")
+        created_user.profile = Profile("🎈")
+        updated_user = await user_repository.update(created_user)
+
+        # Then: 닉네임과 프로필이 업데이트됨
+        assert updated_user.nickname.value == "새닉네임"
+        assert updated_user.profile.value == "🎈"
+        assert updated_user.user_id == created_user.user_id
+
+    async def test_update_user_multiple_fields(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+    ):
+        """여러 필드를 동시에 업데이트할 수 있어야 합니다."""
+        # Given: 사용자를 생성
+        created_user = await user_repository.create(sample_user)
+
+        # When: 여러 필드를 동시에 변경
+        created_user.nickname = Nickname("변경닉네임")
+        created_user.profile = Profile("🌟")
+        created_user.current_points = Balance(5000)
+        updated_user = await user_repository.update(created_user)
+
+        # Then: 모든 필드가 업데이트됨
+        assert updated_user.nickname.value == "변경닉네임"
+        assert updated_user.profile.value == "🌟"
+        assert updated_user.current_points.value == 5000
+
+    async def test_update_user_not_found(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+    ):
+        """존재하지 않는 사용자를 업데이트하면 NotFoundUserError가 발생해야 합니다."""
+        # Given: 존재하지 않는 사용자 엔티티
+        nonexistent_user = User(
+            user_id=Id(),
+            email=Email("ghost@example.com"),
+            password_hash="hashed",
+            nickname=Nickname("유령"),
+            profile=Profile("👻"),
+            current_points=Balance(0),
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+            deleted_at=None,
+        )
+
+        # When & Then: 업데이트 시도 시 NotFoundUserError 발생
+        with pytest.raises(NotFoundUserError):
+            await user_repository.update(nonexistent_user)
+
+    async def test_update_soft_deleted_user_raises_error(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+        test_session: AsyncSession,
+    ):
+        """소프트 삭제된 사용자를 업데이트하면 NotFoundUserError가 발생해야 합니다."""
+        # Given: 사용자를 생성하고 소프트 삭제
+        created_user = await user_repository.create(sample_user)
+
+        # 직접 DB에서 소프트 삭제
+        user_model = await test_session.get(UserModel, created_user.user_id.value)
+        user_model.soft_delete()
+        await test_session.flush()
+
+        # When & Then: 삭제된 사용자 업데이트 시도 시 NotFoundUserError 발생
+        created_user.current_points = Balance(9999)
+        with pytest.raises(NotFoundUserError):
+            await user_repository.update(created_user)
+
+    async def test_update_user_persists_to_database(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+    ):
+        """업데이트된 사용자 정보가 데이터베이스에 반영되어야 합니다."""
+        # Given: 사용자를 생성
+        created_user = await user_repository.create(sample_user)
+
+        # When: 사용자 정보를 업데이트
+        created_user.current_points = Balance(7777)
+        await user_repository.update(created_user)
+
+        # Then: DB에서 조회 시 업데이트된 값이 조회됨
+        found_user = await user_repository.find_by_user_id(created_user.user_id)
+        assert found_user is not None
+        assert found_user.current_points.value == 7777
