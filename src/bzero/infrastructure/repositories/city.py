@@ -35,19 +35,6 @@ class SqlAlchemyCityRepository(CityRepository):
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
-    async def find_cities_by_phase(self, phase: int) -> list[City]:
-        stmt = (
-            select(CityModel)
-            .where(
-                CityModel.phase == phase,
-                CityModel.deleted_at.is_(None),
-            )
-            .order_by(CityModel.display_order.asc())
-        )
-        result = await self._session.execute(stmt)
-        models = result.scalars().all()
-        return [self._to_entity(model) for model in models]
-
     @staticmethod
     def _to_entity(model: CityModel) -> City:
         """ORM 모델을 도메인 엔티티로 변환합니다."""
@@ -58,7 +45,6 @@ class SqlAlchemyCityRepository(CityRepository):
             description=model.description,
             image_url=model.image_url,
             is_active=model.is_active,
-            phase=model.phase,
             display_order=model.display_order,
             created_at=model.created_at,
             updated_at=model.updated_at,

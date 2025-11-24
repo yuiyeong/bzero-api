@@ -38,7 +38,6 @@ erDiagram
         text description "NULL"
         varchar_500 image_url "NULL"
         boolean is_active "NOT NULL, DEFAULT FALSE"
-        int phase "NOT NULL, DEFAULT 1, 1=MVP 2=확장"
         int display_order "NOT NULL"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
@@ -121,7 +120,6 @@ erDiagram
         uuid city_id FK "NULL, CITY, NULL=공용"
         text question "NOT NULL"
         varchar_100 category "NULL"
-        int phase "NOT NULL, DEFAULT 1"
         boolean is_active "NOT NULL, DEFAULT TRUE"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
@@ -232,8 +230,7 @@ erDiagram
 - 인덱스: `email`, `nickname`, `(is_active, created_at)`
 
 ### 2. CITY
-- 인덱스: `(is_active, display_order)`, `phase`
-- Phase 1 데이터: 세렌시아(관계), 로렌시아(회복)
+- 인덱스: `(is_active, display_order)`
 
 ### 3. TICKET
 - 인덱스: `(user_id, created_at)`, `(status, arrival_time)`, `ticket_number` UK
@@ -255,8 +252,7 @@ erDiagram
 - 인덱스: `(room_id, created_at)`, `expires_at`
 
 ### 8. CONVERSATION_CARD
-- 인덱스: `(city_id, is_active)`, `(phase, is_active)`
-- Phase 1 데이터: 도시별 10장, 공용 10장
+- 인덱스: `(city_id, is_active)`
 
 ### 9. DIRECT_MESSAGE_ROOM
 - 인덱스: `(room_id, status)`, `(guesthouse_id, status)`, `(user2_id, status)`
@@ -337,7 +333,7 @@ erDiagram
 
 ---
 
-## Phase 1 구현 참고사항
+## 구현 참고사항
 
 ### 메시지 전송 제한 (스팸 방지)
 - Redis를 이용한 Rate Limiting 구현
@@ -349,11 +345,11 @@ erDiagram
 - Celery 태스크로 구현
 - 체크인 시 알림 태스크 예약 (eta = checkout_time - 1hour)
 - 연장 시 기존 태스크 취소 후 재예약
-- Phase 1: 인앱 알림, Phase 2: 푸시/이메일
+- 알림 채널: 인앱 알림
 
 ### 게스트하우스 타입
-- Phase 1: 모든 게스트하우스는 MIXED 타입으로 설정
-- Phase 2: QUIET 타입 추가
+- 현재: 모든 게스트하우스는 MIXED 타입으로 설정
+- 향후: QUIET 타입 추가 예정
 
 ### 도시별 문답지 질문
 - 세렌시아(관계): 관계 관련 질문 3개
@@ -361,5 +357,5 @@ erDiagram
 - 질문은 애플리케이션 코드에서 관리
 
 ### 대화 카드 사용
-- MVP에서는 무제한 사용 가능
+- 무제한 사용 가능
 - 동일 카드 중복 선택 가능

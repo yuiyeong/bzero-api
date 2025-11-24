@@ -27,14 +27,3 @@ class CityRepository(ABC):
         Returns:
             활성화된 도시 목록 (display_order 오름차순)
         """
-
-    @abstractmethod
-    async def find_cities_by_phase(self, phase: int) -> list[City]:
-        """Phase별 도시 목록을 조회합니다.
-
-        Args:
-            phase: 조회할 Phase (1=MVP, 2=확장)
-
-        Returns:
-            해당 Phase의 도시 목록 (display_order 오름차순)
-        """

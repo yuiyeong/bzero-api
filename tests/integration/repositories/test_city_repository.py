@@ -29,7 +29,6 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             description="사람과의 연결을 회복하는 공간",
             image_url="https://example.com/serencia.jpg",
             is_active=True,
-            phase=1,
             display_order=1,
             created_at=now,
             updated_at=now,
@@ -41,7 +40,6 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             description="지친 마음을 회복하는 공간",
             image_url="https://example.com/lorencia.jpg",
             is_active=True,
-            phase=1,
             display_order=2,
             created_at=now,
             updated_at=now,
@@ -53,7 +51,6 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             description="꿈과 희망을 찾는 공간",
             image_url="https://example.com/etheria.jpg",
             is_active=False,
-            phase=2,
             display_order=3,
             created_at=now,
             updated_at=now,
@@ -65,7 +62,6 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             description="상상력을 펼치는 공간",
             image_url="https://example.com/drimos.jpg",
             is_active=False,
-            phase=2,
             display_order=4,
             created_at=now,
             updated_at=now,
@@ -96,11 +92,10 @@ class TestCityRepositoryFindById:
 
         # Then: 도시가 조회됨
         assert city is not None
-        assert city.city_id.value == city_model.city_id
+        assert str(city.city_id.value) == str(city_model.city_id)
         assert city.name == "세렌시아"
         assert city.theme == "관계의 도시"
         assert city.is_active is True
-        assert city.phase == 1
 
     async def test_find_by_id_not_found(
         self,
@@ -178,59 +173,3 @@ class TestCityRepositoryFindActiveCities:
         assert cities == []
 
 
-class TestCityRepositoryFindCitiesByPhase:
-    """CityRepository.find_cities_by_phase() 메서드 테스트."""
-
-    async def test_find_cities_by_phase_1(
-        self,
-        city_repository: SqlAlchemyCityRepository,
-        sample_cities: list[CityModel],
-    ):
-        """Phase 1 도시 목록을 조회할 수 있어야 합니다."""
-        # When: Phase 1 도시 조회
-        cities = await city_repository.find_cities_by_phase(1)
-
-        # Then: 2개의 Phase 1 도시가 조회됨
-        assert len(cities) == 2
-        assert all(city.phase == 1 for city in cities)
-        assert cities[0].name == "세렌시아"
-        assert cities[1].name == "로렌시아"
-
-    async def test_find_cities_by_phase_2(
-        self,
-        city_repository: SqlAlchemyCityRepository,
-        sample_cities: list[CityModel],
-    ):
-        """Phase 2 도시 목록을 조회할 수 있어야 합니다."""
-        # When: Phase 2 도시 조회
-        cities = await city_repository.find_cities_by_phase(2)
-
-        # Then: 2개의 Phase 2 도시가 조회됨
-        assert len(cities) == 2
-        assert all(city.phase == 2 for city in cities)
-        assert cities[0].name == "에테리아"
-        assert cities[1].name == "드리모스"
-
-    async def test_find_cities_by_phase_ordered_by_display_order(
-        self,
-        city_repository: SqlAlchemyCityRepository,
-        sample_cities: list[CityModel],
-    ):
-        """Phase별 도시는 display_order 순으로 정렬되어야 합니다."""
-        # When: Phase 2 도시 조회
-        cities = await city_repository.find_cities_by_phase(2)
-
-        # Then: display_order 순으로 정렬됨
-        assert cities[0].display_order == 3
-        assert cities[1].display_order == 4
-
-    async def test_find_cities_by_phase_empty(
-        self,
-        city_repository: SqlAlchemyCityRepository,
-    ):
-        """해당 Phase 도시가 없으면 빈 리스트를 반환해야 합니다."""
-        # When: Phase 3 도시 조회 (존재하지 않음)
-        cities = await city_repository.find_cities_by_phase(3)
-
-        # Then: 빈 리스트 반환
-        assert cities == []

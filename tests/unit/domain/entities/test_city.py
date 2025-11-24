@@ -19,7 +19,6 @@ class TestCity:
         description = "사람과의 연결을 회복하는 공간"
         image_url = "https://example.com/serencia.jpg"
         is_active = True
-        phase = 1
         display_order = 1
         now = datetime.now()
 
@@ -31,7 +30,6 @@ class TestCity:
             description=description,
             image_url=image_url,
             is_active=is_active,
-            phase=phase,
             display_order=display_order,
             created_at=now,
             updated_at=now,
@@ -44,7 +42,6 @@ class TestCity:
         assert city.description == description
         assert city.image_url == image_url
         assert city.is_active is True
-        assert city.phase == phase
         assert city.display_order == display_order
         assert city.deleted_at is None
 
@@ -58,7 +55,6 @@ class TestCity:
             description=None,
             image_url=None,
             is_active=False,
-            phase=1,
             display_order=1,
             created_at=datetime.now(),
             updated_at=datetime.now(),
@@ -80,7 +76,6 @@ class TestCity:
             description=None,
             image_url=None,
             is_active=True,
-            phase=1,
             display_order=1,
             created_at=datetime.now(),
             updated_at=datetime.now(),
@@ -102,7 +97,6 @@ class TestCity:
             description=None,
             image_url=None,
             is_active=False,
-            phase=2,
             display_order=2,
             created_at=datetime.now(),
             updated_at=datetime.now(),

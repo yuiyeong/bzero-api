@@ -9,8 +9,6 @@ class City:
     """도시 엔티티
 
     B0 프로젝트의 6개 테마별 도시를 나타냅니다.
-    Phase 1: 세렌시아(관계), 로렌시아(회복)
-    Phase 2: 나머지 4개 도시
     """
 
     city_id: Id
@@ -19,7 +17,6 @@ class City:
     description: str | None  # 도시 설명
     image_url: str | None  # 도시 이미지 URL
     is_active: bool  # 활성화 여부
-    phase: int  # 1=MVP, 2=확장
     display_order: int  # 도시 표시 순서
 
     created_at: datetime
