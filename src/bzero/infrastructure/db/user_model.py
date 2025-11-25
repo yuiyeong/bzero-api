@@ -10,9 +10,8 @@ class UserModel(Base, AuditMixin, SoftDeleteMixin):
 
     user_id: Mapped[UUID] = mapped_column(UUID, primary_key=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    nickname: Mapped[str] = mapped_column(String(50), nullable=False)
-    profile_emoji: Mapped[str] = mapped_column(String(10), nullable=False)
+    nickname: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    profile_emoji: Mapped[str | None] = mapped_column(String(10), nullable=True)
     current_points: Mapped[int] = mapped_column(nullable=False, default=0)
 
     # Partial unique indexes for soft delete support

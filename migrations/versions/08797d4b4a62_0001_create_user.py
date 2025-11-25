@@ -26,9 +26,8 @@ def upgrade() -> None:
         # UUID v7은 애플리케이션 레벨에서 생성 (uuid7 라이브러리)
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=False),
-        sa.Column("password_hash", sa.String(length=255), nullable=False),
-        sa.Column("nickname", sa.String(length=50), nullable=False),
-        sa.Column("profile_emoji", sa.String(length=10), nullable=False),
+        sa.Column("nickname", sa.String(length=50), nullable=True),
+        sa.Column("profile_emoji", sa.String(length=10), nullable=True),
         sa.Column("current_points", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False

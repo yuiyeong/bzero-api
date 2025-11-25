@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bzero.domain.entities.user import User
 from bzero.domain.errors import NotFoundUserError
 from bzero.domain.repositories.user import UserRepository
-from bzero.domain.value_objects import Balance, Email, Id, Nickname, Profile
+from bzero.domain.value_objects import AuthProvider, Balance, Email, Id, Nickname, Profile
+from bzero.infrastructure.db.user_identity_model import UserIdentityModel
 from bzero.infrastructure.db.user_model import UserModel
 
 
@@ -48,6 +49,21 @@ class SqlAlchemyUserRepository(UserRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
+    async def find_by_provider_and_provider_user_id(self, provider: AuthProvider, provider_user_id: str) -> User | None:
+        stmt = (
+            select(UserModel)
+            .join(UserIdentityModel, UserModel.user_id == UserIdentityModel.user_id)
+            .where(
+                UserIdentityModel.provider == provider.value,
+                UserIdentityModel.provider_user_id == provider_user_id,
+                UserIdentityModel.deleted_at.is_(None),
+                UserModel.deleted_at.is_(None),
+            )
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return self._to_entity(model) if model else None
+
     async def update(self, user: User) -> User:
         stmt = (
             update(UserModel)
@@ -56,8 +72,8 @@ class SqlAlchemyUserRepository(UserRepository):
                 UserModel.deleted_at.is_(None),
             )
             .values(
-                nickname=user.nickname.value,
-                profile_emoji=user.profile.value,
+                nickname=user.nickname.value if user.nickname else None,
+                profile_emoji=user.profile.value if user.profile else None,
                 current_points=user.current_points.value,
             )
             .returning(UserModel)
@@ -75,9 +91,8 @@ class SqlAlchemyUserRepository(UserRepository):
         return UserModel(
             user_id=user.user_id.value,
             email=user.email.value,
-            password_hash=user.password_hash,
-            nickname=user.nickname.value,
-            profile_emoji=user.profile.value,
+            nickname=user.nickname.value if user.nickname else None,
+            profile_emoji=user.profile.value if user.profile else None,
             current_points=user.current_points.value,
         )
 
@@ -86,9 +101,8 @@ class SqlAlchemyUserRepository(UserRepository):
         return User(
             user_id=Id(model.user_id),
             email=Email(model.email),
-            password_hash=model.password_hash,
-            nickname=Nickname(model.nickname),
-            profile=Profile(model.profile_emoji),
+            nickname=Nickname(model.nickname) if model.nickname else None,
+            profile=Profile(model.profile_emoji) if model.profile_emoji else None,
             current_points=Balance(model.current_points),
             created_at=model.created_at,
             updated_at=model.updated_at,
