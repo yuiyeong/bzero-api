@@ -8,9 +8,8 @@ from bzero.domain.value_objects import Balance, Email, Id, Nickname, Profile
 class User:
     user_id: Id
     email: Email
-    password_hash: str
-    nickname: Nickname
-    profile: Profile
+    nickname: Nickname | None
+    profile: Profile | None
     current_points: Balance
 
     created_at: datetime

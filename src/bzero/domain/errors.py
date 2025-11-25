@@ -4,15 +4,21 @@ from enum import Enum
 class ErrorCode(str, Enum):
     INTERNAL_ERROR = "예상하지 못한 에러가 발생했습니다."
 
+    INVALID_PARAMETER = "파라미터를 확인해주세요."
     INVALID_AMOUNT = "금액이 잘못되었습니다."
     INVALID_EMAIL = "이메일 형식이 잘못되었습니다."
     INVALID_NICKNAME = "닉네임 형식이 잘못되었습니다."
     INVALID_PROFILE = "프로필 형식이 잘못되었습니다."
     INVALID_POINT_TRANSACTION_STATUS = "트랜잭션 상태가 잘못되었습니다."
 
+    UNAUTHORIZED = "인증되지 않은 요청입니다."
+
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
+    DUPLICATED_USER = "이미 존재하는 사용자입니다."
+
+    PROFILE_INCOMPLETE = "프로필이 완료되지 않았습니다."
 
 
 class BeZeroError(Exception):
@@ -70,3 +76,18 @@ class NotFoundUserError(NotFoundError):
 class DuplicatedRewardError(DuplicatedError):
     def __init__(self):
         super().__init__(ErrorCode.DUPLICATED_REWARD)
+
+
+class UnauthorizedError(AuthError):
+    def __init__(self):
+        super().__init__(ErrorCode.UNAUTHORIZED)
+
+
+class DuplicatedUserError(DuplicatedError):
+    def __init__(self):
+        super().__init__(ErrorCode.DUPLICATED_USER)
+
+
+class ProfileIncompleteError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.PROFILE_INCOMPLETE)
