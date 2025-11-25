@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from bzero.core.database import close_db_connection, setup_db_connection
 from bzero.core.loggers import setup_loggers
 from bzero.core.settings import Environment, get_settings
+from bzero.presentation.api.user import router as user_router
+from bzero.presentation.middleware.error_handler import setup_error_handlers
 from bzero.presentation.middleware.logging import LoggingMiddleware
 
 
@@ -47,6 +49,11 @@ def create_app() -> FastAPI:
         # 테스트 때는 로깅 X
         setup_loggers(settings)
         b0.add_middleware(LoggingMiddleware)
+
+    setup_error_handlers(b0, debug=settings.is_debug)
+
+    # 라우터 등록
+    b0.include_router(user_router)
 
     @b0.get("/")
     def check_health():
