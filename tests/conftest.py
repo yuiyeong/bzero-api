@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 
 import pytest_asyncio
 from dotenv import load_dotenv
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from bzero.core.settings import Settings
@@ -11,6 +12,7 @@ from bzero.infrastructure.db.base import Base
 
 # 모든 모델을 import하여 Base.metadata.create_all()이 모든 테이블을 생성하도록 함
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel  # noqa: F401
+from bzero.infrastructure.db.user_identity_model import UserIdentityModel  # noqa: F401
 from bzero.infrastructure.db.user_model import UserModel  # noqa: F401
 
 
@@ -18,10 +20,42 @@ from bzero.infrastructure.db.user_model import UserModel  # noqa: F401
 load_dotenv(".env.test", override=True)
 
 
+async def ensure_test_database_exists(settings: Settings) -> None:
+    """테스트 데이터베이스가 존재하지 않으면 생성합니다."""
+    db_name = settings.database.db
+
+    # 기본 postgres DB에 연결하여 테스트 DB 존재 여부 확인
+    admin_url = (
+        f"postgresql+asyncpg://{settings.database.user}:"
+        f"{settings.database.password.get_secret_value()}@"
+        f"{settings.database.host}:{settings.database.port}/postgres"
+    )
+
+    admin_engine = create_async_engine(admin_url, isolation_level="AUTOCOMMIT")
+
+    try:
+        async with admin_engine.connect() as conn:
+            # 데이터베이스 존재 여부 확인
+            result = await conn.execute(
+                text("SELECT 1 FROM pg_database WHERE datname = :db_name"),
+                {"db_name": db_name},
+            )
+            exists = result.scalar() is not None
+
+            if not exists:
+                await conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+    finally:
+        await admin_engine.dispose()
+
+
 @pytest_asyncio.fixture
 async def test_engine() -> AsyncIterator[AsyncEngine]:
     """테스트 데이터베이스 엔진을 생성합니다."""
     settings = Settings()
+
+    # 테스트 DB가 없으면 생성
+    await ensure_test_database_exists(settings)
+
     engine = create_async_engine(
         settings.database.async_url,
         echo=False,

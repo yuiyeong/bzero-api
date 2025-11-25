@@ -171,5 +171,3 @@ class TestCityRepositoryFindActiveCities:
 
         # Then: 빈 리스트 반환
         assert cities == []
-
-

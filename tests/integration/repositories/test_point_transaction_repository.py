@@ -38,7 +38,6 @@ async def test_user(user_repository: SqlAlchemyUserRepository) -> User:
     user = User(
         user_id=Id(),
         email=Email("test@example.com"),
-        password_hash="hashed_password",
         nickname=Nickname("테스트유저"),
         profile=Profile("🎉"),
         current_points=Balance(1000),
@@ -195,7 +194,6 @@ class TestPointTransactionRepositoryFindByFilter:
         user1 = User(
             user_id=Id(),
             email=Email("user1@example.com"),
-            password_hash="hashed_password",
             nickname=Nickname("유저1"),
             profile=Profile("🎉"),
             current_points=Balance(1000),
@@ -206,7 +204,6 @@ class TestPointTransactionRepositoryFindByFilter:
         user2 = User(
             user_id=Id(),
             email=Email("user2@example.com"),
-            password_hash="hashed_password",
             nickname=Nickname("유저2"),
             profile=Profile("🎊"),
             current_points=Balance(1000),
@@ -598,7 +595,6 @@ class TestPointTransactionRepositoryCountByFilter:
         user = User(
             user_id=Id(),
             email=Email("counter@example.com"),
-            password_hash="hashed_password",
             nickname=Nickname("카운터"),
             profile=Profile("🎯"),
             current_points=Balance(1000),

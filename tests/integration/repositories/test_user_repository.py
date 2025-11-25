@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.domain.entities.user import User
 from bzero.domain.errors import NotFoundUserError
-from bzero.domain.value_objects import Balance, Email, Id, Nickname, Profile
+from bzero.domain.value_objects import AuthProvider, Balance, Email, Id, Nickname, Profile
+from bzero.infrastructure.db.user_identity_model import UserIdentityModel
 from bzero.infrastructure.db.user_model import UserModel
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 
@@ -24,7 +25,6 @@ def sample_user() -> User:
     return User(
         user_id=Id(),
         email=Email("test@example.com"),
-        password_hash="hashed_password_123",
         nickname=Nickname("테스트유저"),
         profile=Profile("🎉"),
         current_points=Balance(1000),
@@ -309,7 +309,6 @@ class TestUserRepositoryUpdate:
         nonexistent_user = User(
             user_id=Id(),
             email=Email("ghost@example.com"),
-            password_hash="hashed",
             nickname=Nickname("유령"),
             profile=Profile("👻"),
             current_points=Balance(0),
@@ -359,3 +358,148 @@ class TestUserRepositoryUpdate:
         found_user = await user_repository.find_by_user_id(created_user.user_id)
         assert found_user is not None
         assert found_user.current_points.value == 7777
+
+
+class TestUserRepositoryFindByProviderAndProviderUserId:
+    """UserRepository.find_by_provider_and_provider_user_id() 메서드 테스트."""
+
+    async def test_find_by_provider_and_provider_user_id_success(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+        test_session: AsyncSession,
+    ):
+        """provider와 provider_user_id로 사용자를 조회할 수 있어야 합니다."""
+        # Given: 사용자를 생성하고 UserIdentity 연결
+        created_user = await user_repository.create(sample_user)
+
+        user_identity = UserIdentityModel(
+            identity_id=Id().value,
+            user_id=created_user.user_id.value,
+            provider=AuthProvider.GOOGLE.value,
+            provider_user_id="google_user_123",
+            provider_email="test@gmail.com",
+        )
+        test_session.add(user_identity)
+        await test_session.flush()
+
+        # When: provider와 provider_user_id로 조회
+        found_user = await user_repository.find_by_provider_and_provider_user_id(
+            provider=AuthProvider.GOOGLE,
+            provider_user_id="google_user_123",
+        )
+
+        # Then: 사용자가 조회됨
+        assert found_user is not None
+        assert found_user.user_id == created_user.user_id
+        assert found_user.email == created_user.email
+
+    async def test_find_by_provider_and_provider_user_id_not_found(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+    ):
+        """존재하지 않는 provider_user_id로 조회하면 None을 반환해야 합니다."""
+        # When: 존재하지 않는 provider_user_id로 조회
+        found_user = await user_repository.find_by_provider_and_provider_user_id(
+            provider=AuthProvider.GOOGLE,
+            provider_user_id="nonexistent_user_id",
+        )
+
+        # Then: None이 반환됨
+        assert found_user is None
+
+    async def test_find_by_provider_and_provider_user_id_different_provider(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+        test_session: AsyncSession,
+    ):
+        """다른 provider로 조회하면 None을 반환해야 합니다."""
+        # Given: Google provider로 UserIdentity 생성
+        created_user = await user_repository.create(sample_user)
+
+        user_identity = UserIdentityModel(
+            identity_id=Id().value,
+            user_id=created_user.user_id.value,
+            provider=AuthProvider.GOOGLE.value,
+            provider_user_id="google_user_123",
+            provider_email="test@gmail.com",
+        )
+        test_session.add(user_identity)
+        await test_session.flush()
+
+        # When: Apple provider로 조회
+        found_user = await user_repository.find_by_provider_and_provider_user_id(
+            provider=AuthProvider.APPLE,
+            provider_user_id="google_user_123",
+        )
+
+        # Then: None이 반환됨
+        assert found_user is None
+
+    async def test_find_by_provider_and_provider_user_id_ignores_soft_deleted_user(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+        test_session: AsyncSession,
+    ):
+        """소프트 삭제된 사용자는 조회되지 않아야 합니다."""
+        # Given: 사용자를 생성하고 UserIdentity 연결 후 사용자 소프트 삭제
+        created_user = await user_repository.create(sample_user)
+
+        user_identity = UserIdentityModel(
+            identity_id=Id().value,
+            user_id=created_user.user_id.value,
+            provider=AuthProvider.GOOGLE.value,
+            provider_user_id="google_user_456",
+            provider_email="deleted@gmail.com",
+        )
+        test_session.add(user_identity)
+        await test_session.flush()
+
+        # 사용자 소프트 삭제
+        user_model = await test_session.get(UserModel, created_user.user_id.value)
+        user_model.soft_delete()
+        await test_session.flush()
+
+        # When: provider와 provider_user_id로 조회
+        found_user = await user_repository.find_by_provider_and_provider_user_id(
+            provider=AuthProvider.GOOGLE,
+            provider_user_id="google_user_456",
+        )
+
+        # Then: None이 반환됨
+        assert found_user is None
+
+    async def test_find_by_provider_and_provider_user_id_ignores_soft_deleted_identity(
+        self,
+        user_repository: SqlAlchemyUserRepository,
+        sample_user: User,
+        test_session: AsyncSession,
+    ):
+        """소프트 삭제된 UserIdentity는 조회되지 않아야 합니다."""
+        # Given: 사용자를 생성하고 UserIdentity 연결 후 Identity 소프트 삭제
+        created_user = await user_repository.create(sample_user)
+
+        user_identity = UserIdentityModel(
+            identity_id=Id().value,
+            user_id=created_user.user_id.value,
+            provider=AuthProvider.KAKAO.value,
+            provider_user_id="kakao_user_789",
+            provider_email="deleted@kakao.com",
+        )
+        test_session.add(user_identity)
+        await test_session.flush()
+
+        # UserIdentity 소프트 삭제
+        user_identity.soft_delete()
+        await test_session.flush()
+
+        # When: provider와 provider_user_id로 조회
+        found_user = await user_repository.find_by_provider_and_provider_user_id(
+            provider=AuthProvider.KAKAO,
+            provider_user_id="kakao_user_789",
+        )
+
+        # Then: None이 반환됨
+        assert found_user is None
