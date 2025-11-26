@@ -42,7 +42,6 @@ async def test_user(user_repository: SqlAlchemyUserRepository) -> User:
     user = User(
         user_id=Id(),
         email=Email("test@example.com"),
-        password_hash="hashed_password",
         nickname=Nickname("테스트유저"),
         profile=Profile("🎉"),
         current_points=Balance(0),

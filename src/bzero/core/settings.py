@@ -63,6 +63,13 @@ class CorsSettings(BaseModel):
     allow_credentials: bool = True
 
 
+class AuthSettings(BaseModel):
+    """Supabase JWT 인증 설정"""
+
+    supabase_jwt_secret: SecretStr = SecretStr("default-jwt-secret-replace-in-production")
+    jwt_algorithm: str = "HS256"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -82,6 +89,7 @@ class Settings(BaseSettings):
     database: DatabaseSettings = DatabaseSettings()
     redis: RedisSettings = RedisSettings()
     cors: CorsSettings = CorsSettings()
+    auth: AuthSettings = AuthSettings()
 
     timezone: ZoneInfo = ZoneInfo("Asia/Seoul")
 

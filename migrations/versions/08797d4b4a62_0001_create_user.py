@@ -25,10 +25,9 @@ def upgrade() -> None:
         "users",
         # UUID v7은 애플리케이션 레벨에서 생성 (uuid7 라이브러리)
         sa.Column("user_id", sa.UUID(), nullable=False),
-        sa.Column("email", sa.String(length=255), nullable=False),
-        sa.Column("password_hash", sa.String(length=255), nullable=False),
-        sa.Column("nickname", sa.String(length=50), nullable=False),
-        sa.Column("profile_emoji", sa.String(length=10), nullable=False),
+        sa.Column("email", sa.String(length=255), nullable=True),
+        sa.Column("nickname", sa.String(length=50), nullable=True),
+        sa.Column("profile_emoji", sa.String(length=10), nullable=True),
         sa.Column("current_points", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False
@@ -40,20 +39,21 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("user_id"),
     )
 
-    # Partial indexes with deleted_at IS NULL condition for soft delete
+    # Partial indexes with deleted_at IS NULL and NOT NULL condition for soft delete
+    # NULL 값은 unique 제약에서 제외 (여러 사용자가 email/nickname 없이 가입 가능)
     op.create_index(
         index_name="idx_users_email",
         table_name="users",
         columns=["email"],
         unique=True,
-        postgresql_where=sa.text("deleted_at IS NULL"),
+        postgresql_where=sa.text("deleted_at IS NULL AND email IS NOT NULL"),
     )
     op.create_index(
         index_name="idx_users_nickname",
         table_name="users",
         columns=["nickname"],
         unique=True,
-        postgresql_where=sa.text("deleted_at IS NULL"),
+        postgresql_where=sa.text("deleted_at IS NULL AND nickname IS NOT NULL"),
     )
 
     # Create updated_at trigger function

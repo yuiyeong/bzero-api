@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import pytest
 from uuid_utils import uuid7
 
 from bzero.domain.entities.city import City

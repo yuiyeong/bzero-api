@@ -1,7 +1,17 @@
 import re
 from dataclasses import dataclass
+from enum import Enum
 
 from bzero.domain.errors import InvalidAmountError, InvalidEmailError, InvalidNicknameError, InvalidProfileError
+
+
+class AuthProvider(str, Enum):
+    """인증 제공자"""
+
+    EMAIL = "email"
+    GOOGLE = "google"
+    APPLE = "apple"
+    KAKAO = "kakao"
 
 
 @dataclass(frozen=True)
