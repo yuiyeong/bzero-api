@@ -21,8 +21,8 @@ B0 프로젝트의 Backend API 서버입니다. FastAPI와 Clean Architecture를
 - **Alembic** 1.17.x - 데이터베이스 마이그레이션
 - **Celery** 5.5.x + **Redis** 5.2.x - 백그라운드 작업 및 캐싱
 - **uuid-utils** 0.11.x - UUID v7 지원
-- **pytest** 8.4.x + **ruff** 0.14.x - 테스트 및 린팅
-- **passlib[bcrypt]** - 비밀번호 해싱
+- **pytest** 9.0.x + **ruff** 0.14.x - 테스트 및 린팅
+- **Supabase Auth** - 사용자 인증 (JWT 기반)
 
 ---
 
@@ -32,26 +32,25 @@ B0 프로젝트의 Backend API 서버입니다. FastAPI와 Clean Architecture를
 bzero-api/
 ├── src/bzero/               # 메인 소스 디렉토리
 │   ├── domain/              # 도메인 계층 (순수 비즈니스 로직)
-│   │   ├── entities/        # User, City, Room 등
-│   │   ├── value_objects.py # Email, Nickname, Profile, Balance 등
+│   │   ├── entities/        # User, UserIdentity, City, PointTransaction
+│   │   ├── value_objects/   # Id, Email, Nickname, Profile, Balance, AuthProvider, TransactionType 등
 │   │   ├── repositories/    # 리포지토리 인터페이스 (추상 클래스)
+│   │   ├── services/        # 도메인 서비스 (UserService, PointTransactionService)
 │   │   └── errors.py        # 도메인 예외
 │   │
 │   ├── application/         # 애플리케이션 계층 (유스케이스)
-│   │   ├── use_cases/       # RegisterUser, PurchaseTicket 등
+│   │   ├── use_cases/       # CreateUser, GetMe, UpdateUser 등
 │   │   └── results/         # 유스케이스 결과 객체
 │   │
 │   ├── infrastructure/      # 인프라 계층 (외부 시스템 연동)
-│   │   ├── db/
-│   │   │   ├── base.py      # SQLAlchemy Base 설정
-│   │   │   └── user_model.py # User ORM 모델
+│   │   ├── auth/            # JWT 유틸리티 (Supabase JWT 검증)
+│   │   ├── db/              # ORM 모델 (UserModel, CityModel, PointTransactionModel, UserIdentityModel)
 │   │   └── repositories/    # 리포지토리 구현체
-│   │       └── user.py      # UserRepository 구현
 │   │
 │   ├── presentation/        # 프레젠테이션 계층 (API)
-│   │   ├── api/             # API 엔드포인트
+│   │   ├── api/             # API 엔드포인트 및 의존성 주입
 │   │   ├── schemas/         # Pydantic 스키마
-│   │   └── middleware/      # 미들웨어 (로깅 등)
+│   │   └── middleware/      # 미들웨어 (로깅, 에러 핸들링)
 │   │
 │   ├── core/                # 공통 설정
 │   │   ├── settings.py      # 환경 설정
@@ -61,10 +60,15 @@ bzero-api/
 │   └── main.py              # FastAPI 앱 진입점
 │
 ├── migrations/              # Alembic 마이그레이션
-│   └── versions/            # 마이그레이션 파일들
+│   └── versions/            # 마이그레이션 파일들 (4개)
 ├── tests/                   # 테스트
+│   ├── unit/                # 단위 테스트
+│   │   └── domain/          # 도메인 서비스 테스트
 │   ├── integration/         # 통합 테스트
-│   │   └── repositories/    # 리포지토리 테스트
+│   │   ├── repositories/    # 리포지토리 테스트
+│   │   └── services/        # 서비스 통합 테스트
+│   ├── e2e/                 # E2E 테스트
+│   │   └── presentation/api/# API 엔드포인트 테스트
 │   └── conftest.py          # pytest 설정
 ├── docs/                    # 프로젝트 문서
 │   ├── domain-model.md      # 도메인 모델 설명
@@ -121,160 +125,169 @@ uv run alembic upgrade head
 10. 테스트 작성
 ```
 
-### 현재 구현 상태 (2025-01-20 기준)
+### 현재 구현 상태 (2025-11-26 기준)
 
 #### ✅ 완료된 기능
-- **환경 설정**: FastAPI, PostgreSQL, SQLAlchemy (비동기), Alembic, UUID v7
-- **User 도메인**: User 엔티티, 값 객체 (Id, Email, Nickname, Profile, Balance)
-- **User 리포지토리**: 인터페이스 및 구현체 (SqlAlchemyUserRepository)
-- **테스트**: User 리포지토리 통합 테스트
-- **마이그레이션**: User 테이블 생성 (0001_create_user.py)
 
-#### 🚧 진행 중
-- 회원가입 UseCase 및 API 엔드포인트 구현 예정
-- PointTransaction 시스템 구현 예정
+**환경 설정**
+- FastAPI, PostgreSQL, SQLAlchemy (비동기), Alembic, UUID v7
+- Supabase Auth 연동 (JWT 검증)
+
+**도메인 계층**
+- **엔티티**: User, UserIdentity, City, PointTransaction
+- **값 객체**:
+  - 공통: Id (UUID v7)
+  - User: Email, Nickname, Profile, Balance, AuthProvider
+  - PointTransaction: TransactionType, TransactionStatus, TransactionReason, TransactionReference
+- **도메인 서비스**: UserService, PointTransactionService
+- **리포지토리 인터페이스**: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository
+
+**인프라 계층**
+- **ORM 모델**: UserModel, UserIdentityModel, CityModel, PointTransactionModel
+- **리포지토리 구현체**: SqlAlchemyUserRepository, SqlAlchemyUserIdentityRepository, SqlAlchemyCityRepository, SqlAlchemyPointTransactionRepository
+- **인증**: Supabase JWT 검증 (verify_supabase_jwt, extract_user_id_from_jwt)
+
+**애플리케이션 계층**
+- **유스케이스**: CreateUserUseCase, GetMeUseCase, UpdateUserUseCase
+
+**프레젠테이션 계층**
+- **API 엔드포인트**:
+  - `POST /api/v1/users` - 사용자 생성
+  - `GET /api/v1/users/me` - 내 정보 조회
+  - `PATCH /api/v1/users/me` - 내 정보 수정
+- **의존성 주입**: DBSession, CurrentJWTPayload, CurrentUserService, CurrentPointTransactionService
+- **미들웨어**: 로깅, 에러 핸들링
+
+**마이그레이션** (4개)
+- 0001_create_user.py
+- 0002_create_city.py
+- 0003_create_pointtransaction.py
+- 0004_create_useridentity.py
+
+**테스트**
+- 단위 테스트: UserService, PointTransactionService, City 엔티티
+- 통합 테스트: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository, PointTransactionService
+- E2E 테스트: User API 엔드포인트
+
+#### 🚧 진행 예정
+- 비행선 티켓 시스템
+- 게스트하우스 및 룸 시스템
+- 채팅 시스템
 
 자세한 진행 상황은 `docs/checklist.md` 참조
 
-### 코드 예시: User 엔티티 및 리포지토리
+### 코드 예시: 주요 도메인 모델
 
-#### 1. Domain Layer
+#### 1. Domain Layer - 엔티티
 
 ```python
 # src/bzero/domain/entities/user.py
 @dataclass
 class User:
-    id: Id                    # 값 객체
-    email: Email              # 값 객체
-    nickname: Nickname        # 값 객체
-    profile: Profile          # 값 객체 (이모지)
-    password_hash: str
-    balance: Balance          # 값 객체 (포인트)
-    is_active: bool
+    user_id: Id
+    email: Email | None        # nullable (소셜 로그인 시)
+    nickname: Nickname | None  # nullable (온보딩 전)
+    profile: Profile | None    # nullable (온보딩 전)
+    current_points: Balance
+
     created_at: datetime
     updated_at: datetime
+    deleted_at: datetime | None = None
 ```
 
 ```python
-# src/bzero/domain/value_objects.py
+# src/bzero/domain/entities/user_identity.py
+@dataclass
+class UserIdentity:
+    identity_id: Id
+    user_id: Id
+    provider: AuthProvider      # SUPABASE
+    provider_user_id: str       # Supabase UUID
+
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+```
+
+```python
+# src/bzero/domain/entities/point_transaction.py
+@dataclass
+class PointTransaction:
+    point_transaction_id: Id
+    user_id: Id
+    transaction_type: TransactionType   # EARN, SPEND
+    amount: int
+    reason: TransactionReason           # SIGN_UP, DIARY, QUESTIONNAIRE, TICKET, EXTEND
+    balance_before: Balance
+    balance_after: Balance
+    status: TransactionStatus           # PENDING, COMPLETED, FAILED
+
+    created_at: datetime
+    updated_at: datetime
+
+    reference_type: TransactionReference | None = None
+    reference_id: Id | None = None
+    description: str | None = None
+```
+
+#### 2. Domain Layer - 값 객체
+
+```python
+# src/bzero/domain/value_objects/common.py
 @dataclass(frozen=True)
 class Id:
     value: str
 
+    def __init__(self, value: str | None = None):
+        object.__setattr__(self, "value", value or str(uuid7()))
+```
+
+```python
+# src/bzero/domain/value_objects/user.py
+class AuthProvider(Enum):
+    SUPABASE = "supabase"
+
 @dataclass(frozen=True)
 class Email:
     value: str
-
-    def __post_init__(self):
-        # 이메일 형식 검증
-        if not re.match(r"^[^@]+@[^@]+\.[^@]+$", self.value):
-            raise ValueError("Invalid email format")
+    # 이메일 형식 검증
 
 @dataclass(frozen=True)
 class Nickname:
     value: str
+    # 2-10자 검증
 
-    def __post_init__(self):
-        # 2-10자 검증
-        if not (2 <= len(self.value) <= 10):
-            raise ValueError("Nickname must be 2-10 characters")
+@dataclass(frozen=True)
+class Profile:
+    value: str
+    # 이모지 프로필
 
 @dataclass(frozen=True)
 class Balance:
     value: int
+    # 음수 방지
+```
 
-    def __post_init__(self):
-        # 음수 방지
-        if self.value < 0:
-            raise ValueError("Balance cannot be negative")
+#### 3. Domain Layer - 서비스
+
+```python
+# src/bzero/domain/services/user.py
+class UserService:
+    def __init__(self, user_repo, user_identity_repo):
+        self._user_repo = user_repo
+        self._user_identity_repo = user_identity_repo
+
+    async def get_or_create_user_by_provider(...) -> User: ...
+    async def get_user_by_id(user_id: Id) -> User | None: ...
+    async def update_user(user_id: Id, nickname, profile) -> User: ...
 ```
 
 ```python
-# src/bzero/domain/repositories/user.py (인터페이스)
-class UserRepository(ABC):
-    @abstractmethod
-    async def create(self, user: User) -> User: ...
-
-    @abstractmethod
-    async def get_by_id(self, user_id: Id) -> User | None: ...
-
-    @abstractmethod
-    async def get_by_email(self, email: Email) -> User | None: ...
-
-    @abstractmethod
-    async def get_by_nickname(self, nickname: Nickname) -> User | None: ...
-
-    @abstractmethod
-    async def exists_by_email(self, email: Email) -> bool: ...
-
-    @abstractmethod
-    async def exists_by_nickname(self, nickname: Nickname) -> bool: ...
-```
-
-#### 2. Infrastructure Layer
-
-```python
-# src/bzero/infrastructure/db/user_model.py (ORM)
-class UserModel(Base):
-    __tablename__ = "users"
-
-    id: Mapped[str] = mapped_column(String(26), primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    nickname: Mapped[str] = mapped_column(String(10), unique=True, index=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    profile_emoji: Mapped[str] = mapped_column(String(10), nullable=False)
-    current_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-```
-
-```python
-# src/bzero/infrastructure/repositories/user.py
-class SqlAlchemyUserRepository(UserRepository):
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def create(self, user: User) -> User:
-        user_model = self._to_model(user)  # 엔티티 → ORM 변환
-        self.session.add(user_model)
-        await self.session.flush()
-        await self.session.refresh(user_model)
-        return self._to_entity(user_model)  # ORM → 엔티티 변환
-
-    async def get_by_id(self, user_id: Id) -> User | None:
-        stmt = select(UserModel).where(UserModel.id == user_id.value)
-        result = await self.session.execute(stmt)
-        user_model = result.scalar_one_or_none()
-        return self._to_entity(user_model) if user_model else None
-
-    def _to_entity(self, model: UserModel) -> User:
-        """ORM 모델을 도메인 엔티티로 변환"""
-        return User(
-            id=Id(model.id),
-            email=Email(model.email),
-            nickname=Nickname(model.nickname),
-            profile=Profile(model.profile_emoji),
-            password_hash=model.password_hash,
-            balance=Balance(model.current_points),
-            is_active=model.is_active,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-        )
-
-    def _to_model(self, entity: User) -> UserModel:
-        """도메인 엔티티를 ORM 모델로 변환"""
-        return UserModel(
-            id=entity.id.value,
-            email=entity.email.value,
-            nickname=entity.nickname.value,
-            profile_emoji=entity.profile.value,
-            password_hash=entity.password_hash,
-            current_points=entity.balance.value,
-            is_active=entity.is_active,
-            created_at=entity.created_at,
-            updated_at=entity.updated_at,
-        )
+# src/bzero/domain/services/point_transaction.py
+class PointTransactionService:
+    async def earn_points(user_id, amount, reason, ...) -> PointTransaction: ...
+    async def spend_points(user_id, amount, reason, ...) -> PointTransaction: ...
+    async def get_transactions(user_id, filter) -> list[PointTransaction]: ...
 ```
 
 ---
@@ -295,7 +308,7 @@ class SqlAlchemyUserRepository(UserRepository):
 - **ID 생성**: UUID v7 사용 (`uuid_utils.uuid7()`)
 - **값 객체**: 불변 객체로 작성 (`@dataclass(frozen=True)`)
 - **예외 처리**: 도메인 예외 → HTTP 예외 변환 (Presentation Layer에서)
-- **보안**: 비밀번호는 bcrypt 해싱, JWT 토큰 사용, 환경 변수로 민감 정보 관리
+- **인증**: Supabase Auth (JWT), 환경 변수로 민감 정보 관리
 - **타입 힌트**: 모든 함수와 메서드에 타입 힌트 필수
 
 ### 네이밍 컨벤션
