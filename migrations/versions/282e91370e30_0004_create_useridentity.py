@@ -27,7 +27,6 @@ def upgrade() -> None:
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("provider", sa.String(length=50), nullable=False),
         sa.Column("provider_user_id", sa.String(length=255), nullable=False),
-        sa.Column("provider_email", sa.String(length=255), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False
         ),

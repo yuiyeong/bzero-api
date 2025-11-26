@@ -68,7 +68,6 @@ class TestUserServiceCreateUserWithIdentity:
             user_id=created_user.user_id,
             provider=provider,
             provider_user_id=provider_user_id,
-            provider_email=Email(email),
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
@@ -114,7 +113,6 @@ class TestUserServiceCreateUserWithIdentity:
             user_id=Id(),
             provider=provider,
             provider_user_id=provider_user_id,
-            provider_email=Email(email),
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )

@@ -50,7 +50,6 @@ def sample_user_identity(test_user: User) -> UserIdentity:
         user_id=test_user.user_id,
         provider=AuthProvider.GOOGLE,
         provider_user_id="google_12345",
-        provider_email=Email("test@gmail.com"),
         created_at=datetime.now(get_settings().timezone),
         updated_at=datetime.now(get_settings().timezone),
         deleted_at=None,
@@ -75,7 +74,6 @@ class TestUserIdentityRepositoryCreate:
         assert created_identity.user_id == sample_user_identity.user_id
         assert created_identity.provider == sample_user_identity.provider
         assert created_identity.provider_user_id == sample_user_identity.provider_user_id
-        assert created_identity.provider_email == sample_user_identity.provider_email
 
     async def test_create_user_identity_persists_to_database(
         self,
@@ -111,7 +109,6 @@ class TestUserIdentityRepositoryCreate:
             user_id=test_user.user_id,
             provider=AuthProvider.GOOGLE,
             provider_user_id="google_12345",
-            provider_email=Email("test@gmail.com"),
             created_at=datetime.now(get_settings().timezone),
             updated_at=datetime.now(get_settings().timezone),
             deleted_at=None,
@@ -124,7 +121,6 @@ class TestUserIdentityRepositoryCreate:
             user_id=test_user.user_id,
             provider=AuthProvider.KAKAO,
             provider_user_id="kakao_67890",
-            provider_email=Email("test@kakao.com"),
             created_at=datetime.now(get_settings().timezone),
             updated_at=datetime.now(get_settings().timezone),
             deleted_at=None,
@@ -166,7 +162,6 @@ class TestUserIdentityRepositoryFindByProviderUserId:
         assert found_identity.user_id == created_identity.user_id
         assert found_identity.provider == created_identity.provider
         assert found_identity.provider_user_id == created_identity.provider_user_id
-        assert found_identity.provider_email == created_identity.provider_email
 
     async def test_find_by_provider_user_id_not_found_wrong_provider(
         self,
@@ -279,7 +274,6 @@ class TestUserIdentityRepositoryFindByProviderUserId:
             user_id=user1.user_id,
             provider=AuthProvider.GOOGLE,
             provider_user_id="google_user1",
-            provider_email=Email("user1@gmail.com"),
             created_at=datetime.now(get_settings().timezone),
             updated_at=datetime.now(get_settings().timezone),
             deleted_at=None,
@@ -289,7 +283,6 @@ class TestUserIdentityRepositoryFindByProviderUserId:
             user_id=user2.user_id,
             provider=AuthProvider.GOOGLE,
             provider_user_id="google_user2",
-            provider_email=Email("user2@gmail.com"),
             created_at=datetime.now(get_settings().timezone),
             updated_at=datetime.now(get_settings().timezone),
             deleted_at=None,
@@ -307,4 +300,3 @@ class TestUserIdentityRepositoryFindByProviderUserId:
         assert found_identity is not None
         assert found_identity.user_id == user1.user_id
         assert found_identity.provider_user_id == "google_user1"
-        assert found_identity.provider_email.value == "user1@gmail.com"

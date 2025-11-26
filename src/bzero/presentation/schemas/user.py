@@ -71,7 +71,7 @@ class UserResponse(BaseModel):
     """사용자 정보 응답 스키마"""
 
     user_id: str = Field(..., description="사용자 ID (UUID v7 hex)")
-    email: str = Field(..., description="이메일")
+    email: str | None = Field(None, description="이메일")
     nickname: str | None = Field(None, description="닉네임 (2-10자)")
     profile_emoji: str | None = Field(None, description="프로필 이모지")
     current_points: int = Field(..., description="현재 포인트")

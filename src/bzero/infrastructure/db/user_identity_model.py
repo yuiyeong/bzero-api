@@ -12,7 +12,6 @@ class UserIdentityModel(Base, AuditMixin, SoftDeleteMixin):
     user_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("users.user_id"), nullable=False)
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    provider_email: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Partial unique index for soft delete support
     __table_args__ = (

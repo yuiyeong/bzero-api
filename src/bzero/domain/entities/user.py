@@ -7,7 +7,7 @@ from bzero.domain.value_objects import Balance, Email, Id, Nickname, Profile
 @dataclass
 class User:
     user_id: Id
-    email: Email
+    email: Email | None
     nickname: Nickname | None
     profile: Profile | None
     current_points: Balance

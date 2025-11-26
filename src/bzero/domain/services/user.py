@@ -27,14 +27,14 @@ class UserService:
         self,
         provider: AuthProvider,
         provider_user_id: str,
-        email: Email,
+        email: Email | None = None,
     ) -> tuple[User, UserIdentity]:
         """User와 UserIdentity를 함께 생성합니다.
 
         Args:
             provider: 인증 제공자 (예: AuthProvider.EMAIL)
             provider_user_id: 제공자의 user_id (예: Supabase user_id)
-            email: 사용자 이메일
+            email: 사용자 이메일 (선택사항, 소셜 로그인 시 제공되지 않을 수 있음)
 
         Returns:
             생성된 User와 UserIdentity 튜플
@@ -67,7 +67,6 @@ class UserService:
             user_id=created_user.user_id,
             provider=provider,
             provider_user_id=provider_user_id,
-            provider_email=email,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )

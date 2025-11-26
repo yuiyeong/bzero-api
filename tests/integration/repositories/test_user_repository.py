@@ -378,7 +378,6 @@ class TestUserRepositoryFindByProviderAndProviderUserId:
             user_id=created_user.user_id.value,
             provider=AuthProvider.GOOGLE.value,
             provider_user_id="google_user_123",
-            provider_email="test@gmail.com",
         )
         test_session.add(user_identity)
         await test_session.flush()
@@ -423,7 +422,6 @@ class TestUserRepositoryFindByProviderAndProviderUserId:
             user_id=created_user.user_id.value,
             provider=AuthProvider.GOOGLE.value,
             provider_user_id="google_user_123",
-            provider_email="test@gmail.com",
         )
         test_session.add(user_identity)
         await test_session.flush()
@@ -452,7 +450,6 @@ class TestUserRepositoryFindByProviderAndProviderUserId:
             user_id=created_user.user_id.value,
             provider=AuthProvider.GOOGLE.value,
             provider_user_id="google_user_456",
-            provider_email="deleted@gmail.com",
         )
         test_session.add(user_identity)
         await test_session.flush()
@@ -486,7 +483,6 @@ class TestUserRepositoryFindByProviderAndProviderUserId:
             user_id=created_user.user_id.value,
             provider=AuthProvider.KAKAO.value,
             provider_user_id="kakao_user_789",
-            provider_email="deleted@kakao.com",
         )
         test_session.add(user_identity)
         await test_session.flush()

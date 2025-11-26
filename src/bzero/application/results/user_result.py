@@ -9,7 +9,7 @@ class UserResult:
     """UseCase에서 반환하는 User 결과 객체"""
 
     user_id: str
-    email: str
+    email: str | None
     nickname: str | None
     profile_emoji: str | None
     current_points: int
@@ -25,7 +25,7 @@ class UserResult:
     def create_from(cls, entity: User) -> "UserResult":
         return cls(
             user_id=entity.user_id.value.hex,
-            email=entity.email.value,
+            email=entity.email.value if entity.email else None,
             nickname=entity.nickname.value if entity.nickname else None,
             profile_emoji=entity.profile.value if entity.profile else None,
             current_points=entity.current_points.value,

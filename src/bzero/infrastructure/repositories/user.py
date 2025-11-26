@@ -90,7 +90,7 @@ class SqlAlchemyUserRepository(UserRepository):
     def _to_model(user: User) -> UserModel:
         return UserModel(
             user_id=user.user_id.value,
-            email=user.email.value,
+            email=user.email.value if user.email else None,
             nickname=user.nickname.value if user.nickname else None,
             profile_emoji=user.profile.value if user.profile else None,
             current_points=user.current_points.value,
@@ -100,7 +100,7 @@ class SqlAlchemyUserRepository(UserRepository):
     def _to_entity(model: UserModel) -> User:
         return User(
             user_id=Id(model.user_id),
-            email=Email(model.email),
+            email=Email(model.email) if model.email else None,
             nickname=Nickname(model.nickname) if model.nickname else None,
             profile=Profile(model.profile_emoji) if model.profile_emoji else None,
             current_points=Balance(model.current_points),

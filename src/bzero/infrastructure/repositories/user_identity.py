@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.domain.entities.user_identity import UserIdentity
 from bzero.domain.repositories.user_identity import UserIdentityRepository
-from bzero.domain.value_objects import AuthProvider, Email, Id
+from bzero.domain.value_objects import AuthProvider, Id
 from bzero.infrastructure.db.user_identity_model import UserIdentityModel
 
 
@@ -37,7 +37,6 @@ class SqlAlchemyUserIdentityRepository(UserIdentityRepository):
             user_id=identity.user_id.value,
             provider=identity.provider.value,
             provider_user_id=identity.provider_user_id,
-            provider_email=identity.provider_email.value,
         )
 
     @staticmethod
@@ -47,7 +46,6 @@ class SqlAlchemyUserIdentityRepository(UserIdentityRepository):
             user_id=Id(model.user_id),
             provider=AuthProvider(model.provider),
             provider_user_id=model.provider_user_id,
-            provider_email=Email(model.provider_email),
             created_at=model.created_at,
             updated_at=model.updated_at,
             deleted_at=model.deleted_at,

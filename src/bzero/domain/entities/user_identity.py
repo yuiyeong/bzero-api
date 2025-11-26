@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from bzero.domain.value_objects import AuthProvider, Email, Id
+from bzero.domain.value_objects import AuthProvider, Id
 
 
 @dataclass
@@ -10,7 +10,6 @@ class UserIdentity:
     user_id: Id
     provider: AuthProvider
     provider_user_id: str
-    provider_email: Email
 
     created_at: datetime
     updated_at: datetime
