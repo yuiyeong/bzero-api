@@ -10,13 +10,13 @@ from bzero.application.use_cases.cities.get_active_cities import (
 )
 from bzero.application.use_cases.cities.get_city_by_id import GetCityByIdUseCase
 from bzero.domain.entities.city import City
-from bzero.domain.errors import NotFoundError
+from bzero.domain.errors import ErrorCode, NotFoundError
 from bzero.domain.value_objects import Id
 
 
 @pytest.fixture
-def mock_city_repository():
-    """Mock CityRepository fixture"""
+def mock_city_service():
+    """Mock CityService fixture"""
     return AsyncMock()
 
 
@@ -71,12 +71,12 @@ class TestGetActiveCitiesUseCase:
     """GetActiveCitiesUseCase 테스트"""
 
     async def test_execute_returns_active_cities(
-        self, mock_city_repository, sample_cities
+        self, mock_city_service, sample_cities
     ):
         """활성 도시 목록을 반환한다"""
         # Given
-        mock_city_repository.find_active_cities.return_value = sample_cities
-        use_case = GetActiveCitiesUseCase(mock_city_repository)
+        mock_city_service.get_active_cities.return_value = sample_cities
+        use_case = GetActiveCitiesUseCase(mock_city_service)
 
         # When
         results = await use_case.execute()
@@ -87,35 +87,35 @@ class TestGetActiveCitiesUseCase:
         assert results[0].is_active is True
         assert results[1].name == "플로라"
         assert results[1].display_order == 2
-        mock_city_repository.find_active_cities.assert_called_once()
+        mock_city_service.get_active_cities.assert_called_once()
 
     async def test_execute_returns_empty_list_when_no_cities(
-        self, mock_city_repository
+        self, mock_city_service
     ):
         """활성 도시가 없을 때 빈 리스트를 반환한다"""
         # Given
-        mock_city_repository.find_active_cities.return_value = []
-        use_case = GetActiveCitiesUseCase(mock_city_repository)
+        mock_city_service.get_active_cities.return_value = []
+        use_case = GetActiveCitiesUseCase(mock_city_service)
 
         # When
         results = await use_case.execute()
 
         # Then
         assert results == []
-        mock_city_repository.find_active_cities.assert_called_once()
+        mock_city_service.get_active_cities.assert_called_once()
 
 
 class TestGetCityByIdUseCase:
     """GetCityByIdUseCase 테스트"""
 
     async def test_execute_returns_city_when_found(
-        self, mock_city_repository, sample_city
+        self, mock_city_service, sample_city
     ):
         """도시 ID로 도시를 찾으면 반환한다"""
         # Given
         city_id = "01936d9d7c6f70008000000000000001"
-        mock_city_repository.find_by_id.return_value = sample_city
-        use_case = GetCityByIdUseCase(mock_city_repository)
+        mock_city_service.get_city_by_id.return_value = sample_city
+        use_case = GetCityByIdUseCase(mock_city_service)
 
         # When
         result = await use_case.execute(city_id)
@@ -124,21 +124,21 @@ class TestGetCityByIdUseCase:
         assert result.city_id == sample_city.city_id.value.hex
         assert result.name == "세렌시아"
         assert result.theme == "관계의 도시"
-        mock_city_repository.find_by_id.assert_called_once()
-        call_args = mock_city_repository.find_by_id.call_args[0][0]
+        mock_city_service.get_city_by_id.assert_called_once()
+        call_args = mock_city_service.get_city_by_id.call_args[0][0]
         assert call_args.value.hex == city_id
 
     async def test_execute_raises_not_found_error_when_city_not_exists(
-        self, mock_city_repository
+        self, mock_city_service
     ):
         """도시를 찾을 수 없으면 NotFoundError를 발생시킨다"""
         # Given
         city_id = "01936d9d7c6f70008000000000000099"
-        mock_city_repository.find_by_id.return_value = None
-        use_case = GetCityByIdUseCase(mock_city_repository)
+        mock_city_service.get_city_by_id.side_effect = NotFoundError(ErrorCode.NOT_FOUND)
+        use_case = GetCityByIdUseCase(mock_city_service)
 
         # When & Then
         with pytest.raises(NotFoundError):
             await use_case.execute(city_id)
 
-        mock_city_repository.find_by_id.assert_called_once()
+        mock_city_service.get_city_by_id.assert_called_once()

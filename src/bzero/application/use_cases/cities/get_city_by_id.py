@@ -1,6 +1,5 @@
 from bzero.application.results.city_result import CityResult
-from bzero.domain.errors import NotFoundError
-from bzero.domain.repositories.city import CityRepository
+from bzero.domain.services.city import CityService
 from bzero.domain.value_objects import Id
 
 
@@ -9,8 +8,8 @@ class GetCityByIdUseCase:
     도시 ID로 도시 상세 정보 조회 UseCase
     """
 
-    def __init__(self, city_repository: CityRepository):
-        self._city_repository = city_repository
+    def __init__(self, city_service: CityService):
+        self._city_service = city_service
 
     async def execute(self, city_id: str) -> CityResult:
         """
@@ -31,8 +30,5 @@ class GetCityByIdUseCase:
         except (ValueError, AttributeError):
             raise BadRequestError(ErrorCode.INVALID_PARAMETER)
 
-        city = await self._city_repository.find_by_id(city_id_obj)
-        if city is None:
-            raise NotFoundError(ErrorCode.NOT_FOUND)
-
+        city = await self._city_service.get_city_by_id(city_id_obj)
         return CityResult.create_from(city)
