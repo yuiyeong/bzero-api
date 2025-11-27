@@ -11,6 +11,7 @@ from bzero.core.settings import Settings
 from bzero.infrastructure.db.base import Base
 
 # 모든 모델을 import하여 Base.metadata.create_all()이 모든 테이블을 생성하도록 함
+from bzero.infrastructure.db.city_model import CityModel  # noqa: F401
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel  # noqa: F401
 from bzero.infrastructure.db.user_identity_model import UserIdentityModel  # noqa: F401
 from bzero.infrastructure.db.user_model import UserModel  # noqa: F401

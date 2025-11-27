@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.domain.entities.city import City
@@ -22,7 +22,9 @@ class SqlAlchemyCityRepository(CityRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
-    async def find_active_cities(self) -> list[City]:
+    async def find_active_cities(
+        self, offset: int = 0, limit: int = 20
+    ) -> list[City]:
         stmt = (
             select(CityModel)
             .where(
@@ -30,10 +32,20 @@ class SqlAlchemyCityRepository(CityRepository):
                 CityModel.deleted_at.is_(None),
             )
             .order_by(CityModel.display_order.asc())
+            .offset(offset)
+            .limit(limit)
         )
         result = await self._session.execute(stmt)
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
+
+    async def count_active_cities(self) -> int:
+        stmt = select(func.count()).select_from(CityModel).where(
+            CityModel.is_active.is_(True),
+            CityModel.deleted_at.is_(None),
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one()
 
     @staticmethod
     def _to_entity(model: CityModel) -> City:

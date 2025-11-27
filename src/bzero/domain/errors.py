@@ -13,6 +13,7 @@ class ErrorCode(str, Enum):
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
 
+    CITY_NOT_FOUND = "찾을 수 없는 도시입니다."
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
@@ -66,6 +67,11 @@ class InvalidProfileError(BadRequestError):
 class InvalidPointTransactionStatusError(BadRequestError):
     def __init__(self):
         super().__init__(ErrorCode.INVALID_POINT_TRANSACTION_STATUS)
+
+
+class CityNotFoundError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.CITY_NOT_FOUND)
 
 
 class NotFoundUserError(NotFoundError):

@@ -161,6 +161,44 @@ class TestCityRepositoryFindActiveCities:
         assert cities[0].display_order == 1
         assert cities[1].display_order == 2
 
+    async def test_find_active_cities_with_pagination(
+        self,
+        city_repository: SqlAlchemyCityRepository,
+        sample_cities: list[CityModel],
+    ):
+        """pagination 파라미터로 도시 목록을 조회할 수 있어야 합니다."""
+        # When: offset=0, limit=1로 조회
+        cities = await city_repository.find_active_cities(offset=0, limit=1)
+
+        # Then: 1개만 조회됨
+        assert len(cities) == 1
+        assert cities[0].name == "세렌시아"
+
+    async def test_find_active_cities_with_offset(
+        self,
+        city_repository: SqlAlchemyCityRepository,
+        sample_cities: list[CityModel],
+    ):
+        """offset 파라미터로 시작 위치를 지정할 수 있어야 합니다."""
+        # When: offset=1로 조회
+        cities = await city_repository.find_active_cities(offset=1, limit=10)
+
+        # Then: 두 번째 도시부터 조회됨
+        assert len(cities) == 1
+        assert cities[0].name == "로렌시아"
+
+    async def test_count_active_cities(
+        self,
+        city_repository: SqlAlchemyCityRepository,
+        sample_cities: list[CityModel],
+    ):
+        """활성화된 도시의 총 개수를 조회할 수 있어야 합니다."""
+        # When: 활성화된 도시 개수 조회
+        count = await city_repository.count_active_cities()
+
+        # Then: 2개가 반환됨
+        assert count == 2
+
     async def test_find_active_cities_empty(
         self,
         city_repository: SqlAlchemyCityRepository,
@@ -171,3 +209,14 @@ class TestCityRepositoryFindActiveCities:
 
         # Then: 빈 리스트 반환
         assert cities == []
+
+    async def test_count_active_cities_empty(
+        self,
+        city_repository: SqlAlchemyCityRepository,
+    ):
+        """활성화된 도시가 없으면 0을 반환해야 합니다."""
+        # When: 활성화된 도시 개수 조회 (샘플 데이터 없음)
+        count = await city_repository.count_active_cities()
+
+        # Then: 0이 반환됨
+        assert count == 0

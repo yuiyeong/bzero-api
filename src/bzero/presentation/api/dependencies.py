@@ -9,9 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bzero.core.database import get_async_db_session
 from bzero.core.settings import get_settings
 from bzero.domain.errors import UnauthorizedError
+from bzero.domain.services.city import CityService
 from bzero.domain.services.point_transaction import PointTransactionService
 from bzero.domain.services.user import UserService
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
+from bzero.infrastructure.repositories.city import SqlAlchemyCityRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
@@ -110,8 +112,17 @@ def get_point_transaction_service(
     return PointTransactionService(user_repository, point_transaction_repository)
 
 
+def get_city_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> CityService:
+    """Create CityService instance."""
+    city_repository = SqlAlchemyCityRepository(session)
+    return CityService(city_repository)
+
+
 # Type aliases
 DBSession = Annotated[AsyncSession, Depends(get_async_db_session)]
 CurrentJWTPayload = Annotated[JWTPayload, Depends(get_jwt_payload)]
 CurrentUserService = Annotated[UserService, Depends(get_user_service)]
 CurrentPointTransactionService = Annotated[PointTransactionService, Depends(get_point_transaction_service)]
+CurrentCityService = Annotated[CityService, Depends(get_city_service)]
