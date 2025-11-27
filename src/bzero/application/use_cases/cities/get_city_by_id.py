@@ -1,4 +1,5 @@
 from bzero.application.results.city_result import CityResult
+from bzero.domain.errors import BadRequestError, ErrorCode
 from bzero.domain.services.city import CityService
 from bzero.domain.value_objects import Id
 
@@ -20,11 +21,9 @@ class GetCityByIdUseCase:
             CityResult
 
         Raises:
-            NotFoundError: 도시가 존재하지 않을 때
+            CityNotFoundError: 도시가 존재하지 않을 때
             BadRequestError: 잘못된 UUID 형식일 때
         """
-        from bzero.domain.errors import BadRequestError, ErrorCode
-
         try:
             city_id_obj = Id.from_hex(city_id)
         except (ValueError, AttributeError):

@@ -93,12 +93,20 @@ class TestGetActiveCities:
         # Then
         assert response.status_code == 200
         data = response.json()
-        assert "data" in data
-        cities = data["data"]
+        assert "list" in data
+        assert "pagination" in data
+
+        cities = data["list"]
+        pagination = data["pagination"]
 
         # 활성화된 도시만 반환 (2개)
         assert len(cities) == 2
         assert all(city["is_active"] is True for city in cities)
+
+        # pagination 정보 확인
+        assert pagination["total"] == 2
+        assert pagination["offset"] == 0
+        assert pagination["limit"] == 20
 
         # display_order 순서대로 정렬 확인
         assert cities[0]["name"] == "세렌시아"
@@ -118,6 +126,29 @@ class TestGetActiveCities:
         assert "created_at" in first_city
         assert "updated_at" in first_city
 
+    async def test_get_active_cities_with_pagination(
+        self, client: AsyncClient, sample_cities: list[CityModel]
+    ):
+        """pagination 파라미터로 도시 목록 조회"""
+        # When
+        response = await client.get("/cities?offset=0&limit=1")
+
+        # Then
+        assert response.status_code == 200
+        data = response.json()
+
+        cities = data["list"]
+        pagination = data["pagination"]
+
+        # 1개만 반환
+        assert len(cities) == 1
+        assert cities[0]["name"] == "세렌시아"
+
+        # pagination 정보
+        assert pagination["total"] == 2
+        assert pagination["offset"] == 0
+        assert pagination["limit"] == 1
+
     async def test_get_active_cities_empty_list_when_no_cities(
         self, client: AsyncClient
     ):
@@ -128,7 +159,8 @@ class TestGetActiveCities:
         # Then
         assert response.status_code == 200
         data = response.json()
-        assert data["data"] == []
+        assert data["list"] == []
+        assert data["pagination"]["total"] == 0
 
 
 class TestGetCityById:
@@ -190,7 +222,7 @@ class TestGetCityById:
         assert response.status_code == 404
         data = response.json()
         assert "error" in data
-        assert "NOT_FOUND" in data["error"]["code"]
+        assert "CITY_NOT_FOUND" in data["error"]["code"]
 
     async def test_get_city_by_id_invalid_uuid_format(self, client: AsyncClient):
         """잘못된 UUID 형식으로 조회 시 400 또는 404"""
