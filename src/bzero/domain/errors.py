@@ -13,7 +13,6 @@ class ErrorCode(str, Enum):
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
 
-    NOT_FOUND = "찾을 수 없는 리소스입니다."
     CITY_NOT_FOUND = "찾을 수 없는 도시입니다."
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
 
