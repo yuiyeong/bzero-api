@@ -22,91 +22,119 @@
 
 ---
 
-## 1. 온보딩 & 회원가입
+## 1. 온보딩 & 회원가입 ✅
 
 ### User 모델 구현 ✅
 - [x] User 엔티티 생성 (domain/entities/user.py)
-- [x] 값 객체 생성 (Email, Nickname, Profile, Balance)
-- [x] User 테이블 마이그레이션
+- [x] UserIdentity 엔티티 생성 (domain/entities/user_identity.py)
+- [x] 값 객체 생성 (Email, Nickname, Profile, Balance, AuthProvider)
+- [x] User, UserIdentity 테이블 마이그레이션
 
 ### UserRepository 구현 ✅
 - [x] UserRepository 인터페이스 (domain/repositories/user.py)
+- [x] UserIdentityRepository 인터페이스 (domain/repositories/user_identity.py)
 - [x] SqlAlchemyUserRepository 구현체 (infrastructure/repositories/user.py)
+- [x] SqlAlchemyUserIdentityRepository 구현체 (infrastructure/repositories/user_identity.py)
 - [x] UUID로 사용자 조회
 - [x] 이메일로 사용자 조회
 - [x] 닉네임으로 사용자 조회
-- [x] 사용자 생성
+- [x] 사용자 생성/수정
 - [x] 이메일 중복 검사
 - [x] 닉네임 중복 검사
 
-### PointTransaction 시스템 구현
+### PointTransaction 시스템 구현 ✅
 - [x] PointTransaction 엔티티 생성 (domain/entities/point_transaction.py)
-- [x] 값 객체 생성 (TransactionType, TransactionReason, TransactionStatus)
+- [x] 값 객체 생성 (TransactionType, TransactionReason, TransactionStatus, TransactionReference)
 - [x] PointTransactionRepository 인터페이스 (domain/repositories/point_transaction.py)
 - [x] PointTransaction ORM 모델 (infrastructure/db/point_transaction_model.py)
 - [x] SqlAlchemyPointTransactionRepository 구현체 (infrastructure/repositories/point_transaction.py)
-- [x] PointTransactionService 도메인 서비스 (domain/services/point_transaction_service.py)
+- [x] PointTransactionService 도메인 서비스 (domain/services/point_transaction.py)
   - [x] earn_points() 메서드 (포인트 획득 + 거래 기록)
   - [x] spend_points() 메서드 (포인트 차감 + 거래 기록)
 - [x] PointTransaction 테이블 마이그레이션
 
-### 회원가입 UseCase 구현
-- [x] RegisterUserCommand DTO (application/dtos/user_dto.py)
-- [x] RegisterUserUseCase 구현 (application/use_cases/register_user.py)
-  - [x] 비밀번호 8자 이상 검증
-  - [x] Value Object 생성 및 검증
-  - [x] 이메일/닉네임 중복 확인
-  - [x] 비밀번호 해싱 (PasswordHasher 사용)
-  - [x] User 엔티티 생성 및 저장
+### 인증 시스템 구현 (Supabase Auth) ✅
+- [x] Supabase JWT 검증 (infrastructure/auth/jwt.py)
+- [x] UserService 도메인 서비스 (domain/services/user.py)
+  - [x] get_or_create_user_by_provider() 메서드
+  - [x] get_user_by_id() 메서드
+  - [x] update_user() 메서드
+- [x] CreateUserUseCase 구현 (application/use_cases/users/create_user.py)
+  - [x] Supabase 사용자 정보로 User/UserIdentity 생성
   - [x] PointTransactionService로 1000P 지급
+- [x] GetMeUseCase 구현 (application/use_cases/users/get_me.py)
+- [x] UpdateUserUseCase 구현 (application/use_cases/users/update_user.py)
 
-### API 엔드포인트 구현
-- [x] RegisterRequest/UserResponse 스키마 (presentation/schemas/auth.py)
-- [x] POST /api/v1/auth/register 엔드포인트 (presentation/api/v1/auth.py)
-- [x] 의존성 주입 설정 (core/dependencies.py)
+### API 엔드포인트 구현 ✅
+- [x] UserResponse 스키마 (presentation/schemas/user.py)
+- [x] POST /api/v1/users 엔드포인트 (사용자 생성)
+- [x] GET /api/v1/users/me 엔드포인트 (내 정보 조회)
+- [x] PATCH /api/v1/users/me 엔드포인트 (내 정보 수정)
+- [x] 의존성 주입 설정 (presentation/api/dependencies.py)
 - [x] 라우터 등록 (main.py)
 
-### 테스트 작성
+### 테스트 작성 ✅
+- [x] UserService 단위 테스트
 - [x] PointTransactionService 단위 테스트
+- [x] UserRepository 통합 테스트
+- [x] UserIdentityRepository 통합 테스트
 - [x] PointTransactionRepository 통합 테스트
-- [x] BcryptPasswordHasher 단위 테스트
-- [x] RegisterUserUseCase 단위 테스트
-- [x] 회원가입 API 통합 테스트
+- [x] PointTransactionService 통합 테스트
+- [x] User API E2E 테스트
 
-### 완료 조건
-- [x] 회원가입이 정상적으로 완료됨
+### 완료 조건 ✅
+- [x] Supabase Auth를 통한 사용자 인증이 작동함
+- [x] 최초 로그인 시 User/UserIdentity가 생성됨
 - [x] 가입 후 1000포인트가 자동 지급됨 (PointTransaction 기록 포함)
-- [x] 이메일 중복 검사가 작동함
 - [x] 닉네임 중복 검사가 작동함
-- [x] 비밀번호가 안전하게 해싱되어 저장됨
 - [x] 프로필 이모지가 저장됨
 - [x] 모든 테스트가 통과함
 
 ---
 
-## 2. B0 비행선 터미널 & 도시 선택
+## 2. B0 비행선 터미널 & 도시 선택 ✅
 
-### City 모델 구현
-- [ ] City 엔티티 생성 (city_id, name, theme, description, image_url, is_active, display_order)
-- [ ] City 테이블 마이그레이션
+### City 모델 구현 ✅
+- [x] City 엔티티 생성 (city_id, name, theme, description, image_url, is_active, display_order)
+- [x] City 테이블 마이그레이션
 
-### CityRepository 구현
-- [ ] ID로 도시 조회
-- [ ] 활성 도시 목록 조회
+### CityRepository 구현 ✅
+- [x] CityRepository 인터페이스 (domain/repositories/city.py)
+- [x] SqlAlchemyCityRepository 구현체 (infrastructure/repositories/city.py)
+- [x] ID로 도시 조회
+- [x] 활성 도시 목록 조회
 
-### 도시 시드 데이터 생성
-- [ ] 세렌시아 (관계의 도시)
-- [ ] 로렌시아 (회복의 도시)
-- [ ] 나머지 4개 도시 (is_active=false)
+### CityService 구현 ✅
+- [x] CityService 도메인 서비스 (domain/services/city.py)
+  - [x] get_active_cities() 메서드
+  - [x] get_city_by_id() 메서드
 
-### API 엔드포인트 구현
-- [ ] GET /api/cities (활성 도시 목록)
-- [ ] GET /api/cities/{city_id} (도시 상세 정보)
+### City UseCase 구현 ✅
+- [x] GetActiveCitiesUseCase 구현 (application/use_cases/cities/get_active_cities.py)
+- [x] GetCityByIdUseCase 구현 (application/use_cases/cities/get_city_by_id.py)
 
-### 완료 조건
-- [ ] 2개 도시 데이터가 DB에 저장됨
-- [ ] 도시 목록 API가 작동함
-- [ ] 도시 상세 정보 API가 작동함
+### 도시 시드 데이터 생성 ✅
+- [x] 시드 스크립트 작성 (scripts/seed_cities.py)
+- [x] 세렌시아 (관계의 도시)
+- [x] 로렌시아 (회복의 도시)
+- [x] 나머지 4개 도시 (is_active=false)
+
+### API 엔드포인트 구현 ✅
+- [x] CityResponse 스키마 (presentation/schemas/city.py)
+- [x] GET /api/v1/cities (활성 도시 목록)
+- [x] GET /api/v1/cities/{city_id} (도시 상세 정보)
+- [x] 의존성 주입 설정 (presentation/api/dependencies.py)
+
+### 테스트 작성 ✅
+- [x] City 엔티티 단위 테스트
+- [x] City UseCase 단위 테스트
+- [x] CityRepository 통합 테스트
+- [x] City API E2E 테스트
+
+### 완료 조건 ✅
+- [x] 6개 도시 데이터가 시드 스크립트로 생성됨 (2개 활성, 4개 비활성)
+- [x] 도시 목록 API가 작동함
+- [x] 도시 상세 정보 API가 작동함
 
 ---
 
