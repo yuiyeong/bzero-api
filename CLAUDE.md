@@ -35,12 +35,12 @@ bzero-api/
 │   │   ├── entities/        # User, UserIdentity, City, PointTransaction
 │   │   ├── value_objects/   # Id, Email, Nickname, Profile, Balance, AuthProvider, TransactionType 등
 │   │   ├── repositories/    # 리포지토리 인터페이스 (추상 클래스)
-│   │   ├── services/        # 도메인 서비스 (UserService, PointTransactionService)
+│   │   ├── services/        # 도메인 서비스 (UserService, PointTransactionService, CityService)
 │   │   └── errors.py        # 도메인 예외
 │   │
 │   ├── application/         # 애플리케이션 계층 (유스케이스)
-│   │   ├── use_cases/       # CreateUser, GetMe, UpdateUser 등
-│   │   └── results/         # 유스케이스 결과 객체
+│   │   ├── use_cases/       # users/, cities/ 하위 디렉토리로 구분
+│   │   └── results/         # 유스케이스 결과 객체 (UserResult, CityResult)
 │   │
 │   ├── infrastructure/      # 인프라 계층 (외부 시스템 연동)
 │   │   ├── auth/            # JWT 유틸리티 (Supabase JWT 검증)
@@ -125,7 +125,7 @@ uv run alembic upgrade head
 10. 테스트 작성
 ```
 
-### 현재 구현 상태 (2025-11-26 기준)
+### 현재 구현 상태 (2025-12-04 기준)
 
 #### ✅ 완료된 기능
 
@@ -139,7 +139,7 @@ uv run alembic upgrade head
   - 공통: Id (UUID v7)
   - User: Email, Nickname, Profile, Balance, AuthProvider
   - PointTransaction: TransactionType, TransactionStatus, TransactionReason, TransactionReference
-- **도메인 서비스**: UserService, PointTransactionService
+- **도메인 서비스**: UserService, PointTransactionService, CityService
 - **리포지토리 인터페이스**: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository
 
 **인프라 계층**
@@ -148,14 +148,20 @@ uv run alembic upgrade head
 - **인증**: Supabase JWT 검증 (verify_supabase_jwt, extract_user_id_from_jwt)
 
 **애플리케이션 계층**
-- **유스케이스**: CreateUserUseCase, GetMeUseCase, UpdateUserUseCase
+- **유스케이스**:
+  - User: CreateUserUseCase, GetMeUseCase, UpdateUserUseCase
+  - City: GetActiveCitiesUseCase, GetCityByIdUseCase
+- **결과 객체**: UserResult, CityResult
 
 **프레젠테이션 계층**
 - **API 엔드포인트**:
   - `POST /api/v1/users` - 사용자 생성
   - `GET /api/v1/users/me` - 내 정보 조회
   - `PATCH /api/v1/users/me` - 내 정보 수정
-- **의존성 주입**: DBSession, CurrentJWTPayload, CurrentUserService, CurrentPointTransactionService
+  - `GET /api/v1/cities` - 활성화된 도시 목록 조회
+  - `GET /api/v1/cities/{city_id}` - 도시 상세 조회
+- **Pydantic 스키마**: UserResponse, CityResponse
+- **의존성 주입**: DBSession, CurrentJWTPayload, CurrentUserService, CurrentPointTransactionService, CurrentCityService
 - **미들웨어**: 로깅, 에러 핸들링
 
 **마이그레이션** (4개)
@@ -165,9 +171,9 @@ uv run alembic upgrade head
 - 0004_create_useridentity.py
 
 **테스트**
-- 단위 테스트: UserService, PointTransactionService, City 엔티티
+- 단위 테스트: UserService, PointTransactionService, City 엔티티, City 유스케이스
 - 통합 테스트: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository, PointTransactionService
-- E2E 테스트: User API 엔드포인트
+- E2E 테스트: User API, City API
 
 #### 🚧 진행 예정
 - 비행선 티켓 시스템
@@ -288,6 +294,16 @@ class PointTransactionService:
     async def earn_points(user_id, amount, reason, ...) -> PointTransaction: ...
     async def spend_points(user_id, amount, reason, ...) -> PointTransaction: ...
     async def get_transactions(user_id, filter) -> list[PointTransaction]: ...
+```
+
+```python
+# src/bzero/domain/services/city.py
+class CityService:
+    def __init__(self, city_repo):
+        self._city_repository = city_repo
+
+    async def get_active_cities() -> list[City]: ...
+    async def get_city_by_id(city_id: Id) -> City | None: ...
 ```
 
 ---

@@ -1,35 +1,14 @@
 """City API E2E 테스트"""
 
-from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import datetime
 
-import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bzero.core.database import get_async_db_session
+from bzero.core.settings import get_settings
 from bzero.domain.value_objects import Id
 from bzero.infrastructure.db.city_model import CityModel
-from bzero.main import create_app
-
-
-@pytest_asyncio.fixture
-async def client(test_session: AsyncSession) -> AsyncIterator[AsyncClient]:
-    """테스트용 HTTP 클라이언트를 생성합니다."""
-    app = create_app()
-
-    # DB 세션을 테스트 세션으로 오버라이드
-    async def override_get_session() -> AsyncIterator[AsyncSession]:
-        yield test_session
-
-    app.dependency_overrides[get_async_db_session] = override_get_session
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as ac:
-        yield ac
 
 
 @pytest_asyncio.fixture
@@ -44,8 +23,8 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             image_url="https://example.com/serencia.jpg",
             is_active=True,
             display_order=1,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(get_settings().timezone),
+            updated_at=datetime.now(get_settings().timezone),
         ),
         CityModel(
             city_id=Id().value,
@@ -55,8 +34,8 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             image_url="https://example.com/flora.jpg",
             is_active=True,
             display_order=2,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(get_settings().timezone),
+            updated_at=datetime.now(get_settings().timezone),
         ),
         CityModel(
             city_id=Id().value,
@@ -66,8 +45,8 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             image_url=None,
             is_active=False,
             display_order=3,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(get_settings().timezone),
+            updated_at=datetime.now(get_settings().timezone),
         ),
     ]
 
@@ -83,9 +62,7 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
 class TestGetActiveCities:
     """GET /cities 테스트"""
 
-    async def test_get_active_cities_success(
-        self, client: AsyncClient, sample_cities: list[CityModel]
-    ):
+    async def test_get_active_cities_success(self, client: AsyncClient, sample_cities: list[CityModel]):
         """활성 도시 목록 조회 성공"""
         # When
         response = await client.get("/cities")
@@ -126,9 +103,7 @@ class TestGetActiveCities:
         assert "created_at" in first_city
         assert "updated_at" in first_city
 
-    async def test_get_active_cities_with_pagination(
-        self, client: AsyncClient, sample_cities: list[CityModel]
-    ):
+    async def test_get_active_cities_with_pagination(self, client: AsyncClient, sample_cities: list[CityModel]):
         """pagination 파라미터로 도시 목록 조회"""
         # When
         response = await client.get("/cities?offset=0&limit=1")
@@ -149,9 +124,7 @@ class TestGetActiveCities:
         assert pagination["offset"] == 0
         assert pagination["limit"] == 1
 
-    async def test_get_active_cities_empty_list_when_no_cities(
-        self, client: AsyncClient
-    ):
+    async def test_get_active_cities_empty_list_when_no_cities(self, client: AsyncClient):
         """도시가 없을 때 빈 리스트 반환"""
         # When
         response = await client.get("/cities")
@@ -166,9 +139,7 @@ class TestGetActiveCities:
 class TestGetCityById:
     """GET /cities/{city_id} 테스트"""
 
-    async def test_get_city_by_id_success(
-        self, client: AsyncClient, sample_cities: list[CityModel]
-    ):
+    async def test_get_city_by_id_success(self, client: AsyncClient, sample_cities: list[CityModel]):
         """도시 상세 정보 조회 성공"""
         # Given
         city = sample_cities[0]
@@ -190,9 +161,7 @@ class TestGetCityById:
         assert city_data["is_active"] is True
         assert city_data["display_order"] == 1
 
-    async def test_get_city_by_id_returns_inactive_city(
-        self, client: AsyncClient, sample_cities: list[CityModel]
-    ):
+    async def test_get_city_by_id_returns_inactive_city(self, client: AsyncClient, sample_cities: list[CityModel]):
         """비활성 도시도 ID로 조회 가능"""
         # Given
         inactive_city = sample_cities[2]

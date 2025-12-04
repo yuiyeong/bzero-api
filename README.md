@@ -12,7 +12,7 @@ bzero-api는 FastAPI를 사용하여 구축된 고성능 비동기 웹 API 서�
 - **데이터베이스**: PostgreSQL + SQLAlchemy (비동기)
 - **마이그레이션**: Alembic
 - **백그라운드 작업**: Celery + Redis
-- **인증**: Passlib (bcrypt)
+- **인증**: Supabase Auth (JWT)
 - **패키지 관리**: uv
 - **코드 품질**: Ruff (린터/포매터), pre-commit
 
@@ -144,36 +144,34 @@ bzero-api/
 │       │   ├── value_objects/# 값 객체 (Email, Nickname 등)
 │       │   ├── repositories/ # 리포지토리 인터페이스 (추상 클래스)
 │       │   ├── services/     # 도메인 서비스
-│       │   └── exceptions/   # 도메인 예외
+│       │   └── errors.py     # 도메인 예외
 │       │
 │       ├── application/      # 애플리케이션 계층 (유스케이스)
-│       │   ├── use_cases/    # 유스케이스 (RegisterUser, PurchaseTicket 등)
-│       │   └── dtos/         # 데이터 전송 객체
+│       │   ├── use_cases/    # 유스케이스 (users/, cities/ 하위 디렉토리)
+│       │   └── results/      # 유스케이스 결과 객체
 │       │
 │       ├── infrastructure/   # 인프라 계층 (외부 시스템 연동)
-│       │   ├── db/
-│       │   │   ├── models/   # SQLAlchemy ORM 모델
-│       │   │   └── session.py# DB 세션 관리
-│       │   ├── repositories/ # 리포지토리 구현체
-│       │   └── celery/       # Celery 설정 및 작업
+│       │   ├── auth/         # JWT 유틸리티 (Supabase JWT 검증)
+│       │   ├── db/           # SQLAlchemy ORM 모델
+│       │   └── repositories/ # 리포지토리 구현체
 │       │
 │       ├── presentation/     # 프레젠테이션 계층 (API)
 │       │   ├── api/          # API 엔드포인트 (라우터)
-│       │   ├── middleware/   # API 엔드포인트 (라우터)
+│       │   ├── middleware/   # 미들웨어 (로깅, 에러 핸들링)
 │       │   └── schemas/      # Pydantic 스키마 (요청/응답)
 │       │
 │       ├── core/             # 공통 설정
 │       │
 │       └── main.py           # FastAPI 앱 엔트리포인트
 │
-├── alembic/                  # Alembic 마이그레이션
+├── migrations/               # Alembic 마이그레이션
 │   └── versions/             # 마이그레이션 파일
 ├── tests/                    # 테스트 코드
 │   ├── unit/                 # 단위 테스트
 │   ├── integration/          # 통합 테스트
 │   └── conftest.py           # 테스트 설정
 ├── .env                      # 환경 변수 (git 무시)
-├── .env.example              # 환경 변수 예시
+├── .env.template             # 환경 변수 템플릿
 ├── pyproject.toml            # 프로젝트 설정 및 의존성
 ├── alembic.ini               # Alembic 설정
 ├── ruff.toml                 # Ruff 설정
@@ -195,7 +193,7 @@ Presentation → Application → Domain ← Infrastructure
 
 - RESTful API 엔드포인트
 - 비동기 데이터베이스 작업
-- JWT 기반 인증 (구현 예정)
+- JWT 기반 인증 (Supabase Auth)
 - 백그라운드 작업 처리
 - 자동 API 문서 생성 (Swagger/ReDoc)
 - 데이터베이스 마이그레이션 관리

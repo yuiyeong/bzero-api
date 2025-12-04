@@ -5,6 +5,7 @@ from typing import ClassVar
 from pydantic import BaseModel, Field, field_validator
 
 from bzero.application.results.user_result import UserResult
+from bzero.domain.value_objects.user import Profile
 
 
 class UpdateUserRequest(BaseModel):
@@ -61,7 +62,7 @@ class UpdateUserRequest(BaseModel):
             ValueError: 이모지 형식이 잘못된 경우
         """
         # 허용된 이모지 인지 검증
-        if v not in ["🙂", "😊", "😎", "😍", "🤔", "👉", "🌟", "👍", "🤩", "🚀"]:
+        if v not in Profile.ALLOWED_EMOJIS:
             raise ValueError("유효한 단일 이모지를 입력해주세요")
 
         return v
