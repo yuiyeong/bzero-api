@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import ClassVar
 
 from bzero.domain.errors import InvalidAmountError, InvalidEmailError, InvalidNicknameError, InvalidProfileError
 
@@ -42,15 +43,14 @@ class Nickname:
 
 @dataclass(frozen=True)
 class Profile:
-    """프로필 이모지 값 객체 (1-10자)"""
+    """프로필 이모지 값 객체"""
 
-    MIN_LENGTH = 1
-    MAX_LENGTH = 10
+    ALLOWED_EMOJIS: ClassVar[tuple[str, ...]] = ("🙂", "😊", "😎", "😍", "🤔", "👉", "🌟", "👍", "🤩", "🚀")
 
     value: str
 
     def __post_init__(self):
-        if len(self.value) < self.MIN_LENGTH or len(self.value) > self.MAX_LENGTH:
+        if self.value not in self.ALLOWED_EMOJIS:
             raise InvalidProfileError
 
 
