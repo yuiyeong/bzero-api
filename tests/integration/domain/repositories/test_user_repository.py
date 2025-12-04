@@ -26,7 +26,7 @@ def sample_user() -> User:
         user_id=Id(),
         email=Email("test@example.com"),
         nickname=Nickname("테스트유저"),
-        profile=Profile("🎉"),
+        profile=Profile("😎"),
         current_points=Balance(1000),
         created_at=datetime.now(),
         updated_at=datetime.now(),
@@ -272,12 +272,12 @@ class TestUserRepositoryUpdate:
 
         # When: 닉네임과 프로필 변경
         created_user.nickname = Nickname("새닉네임")
-        created_user.profile = Profile("🎈")
+        created_user.profile = Profile("😊")
         updated_user = await user_repository.update(created_user)
 
         # Then: 닉네임과 프로필이 업데이트됨
         assert updated_user.nickname.value == "새닉네임"
-        assert updated_user.profile.value == "🎈"
+        assert updated_user.profile.value == "😊"
         assert updated_user.user_id == created_user.user_id
 
     async def test_update_user_multiple_fields(
@@ -310,7 +310,7 @@ class TestUserRepositoryUpdate:
             user_id=Id(),
             email=Email("ghost@example.com"),
             nickname=Nickname("유령"),
-            profile=Profile("👻"),
+            profile=Profile("🤔"),
             current_points=Balance(0),
             created_at=datetime.now(),
             updated_at=datetime.now(),

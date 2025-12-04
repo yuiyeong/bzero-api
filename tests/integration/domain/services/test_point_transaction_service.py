@@ -43,7 +43,7 @@ async def test_user(user_repository: SqlAlchemyUserRepository) -> User:
         user_id=Id(),
         email=Email("test@example.com"),
         nickname=Nickname("테스트유저"),
-        profile=Profile("🎉"),
+        profile=Profile("😎"),
         current_points=Balance(0),
         created_at=datetime.now(get_settings().timezone),
         updated_at=datetime.now(get_settings().timezone),
