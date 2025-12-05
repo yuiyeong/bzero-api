@@ -29,6 +29,8 @@ def upgrade() -> None:
         sa.Column("theme", sa.String(length=100), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("image_url", sa.String(length=500), nullable=True),
+        sa.Column("base_cost_points", sa.Integer(), nullable=False),
+        sa.Column("base_duration_hours", sa.Integer(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("display_order", sa.Integer(), nullable=False),
         sa.Column(

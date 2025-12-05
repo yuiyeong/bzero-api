@@ -17,6 +17,8 @@ class TestCity:
         theme = "관계의 도시"
         description = "사람과의 연결을 회복하는 공간"
         image_url = "https://example.com/serencia.jpg"
+        base_cost_points = 100
+        base_duration_hours = 1
         is_active = True
         display_order = 1
         now = datetime.now()
@@ -28,6 +30,8 @@ class TestCity:
             theme=theme,
             description=description,
             image_url=image_url,
+            base_cost_points=base_cost_points,
+            base_duration_hours=base_duration_hours,
             is_active=is_active,
             display_order=display_order,
             created_at=now,
@@ -40,6 +44,8 @@ class TestCity:
         assert city.theme == theme
         assert city.description == description
         assert city.image_url == image_url
+        assert city.base_cost_points == base_cost_points
+        assert city.base_duration_hours == base_duration_hours
         assert city.is_active is True
         assert city.display_order == display_order
         assert city.deleted_at is None
@@ -53,6 +59,8 @@ class TestCity:
             theme="관계의 도시",
             description=None,
             image_url=None,
+            base_cost_points=100,
+            base_duration_hours=1,
             is_active=False,
             display_order=1,
             created_at=datetime.now(),
@@ -74,6 +82,8 @@ class TestCity:
             theme="관계의 도시",
             description=None,
             image_url=None,
+            base_cost_points=100,
+            base_duration_hours=1,
             is_active=True,
             display_order=1,
             created_at=datetime.now(),
@@ -95,6 +105,8 @@ class TestCity:
             theme="회복의 도시",
             description=None,
             image_url=None,
+            base_cost_points=150,
+            base_duration_hours=2,
             is_active=False,
             display_order=2,
             created_at=datetime.now(),
@@ -104,4 +116,6 @@ class TestCity:
         # Then
         assert city.description is None
         assert city.image_url is None
+        assert city.base_cost_points == 150
+        assert city.base_duration_hours == 2
         assert city.is_active is False

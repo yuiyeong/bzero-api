@@ -16,6 +16,8 @@ class City:
     theme: str  # 도시 테마 (예: 관계의 도시)
     description: str | None  # 도시 설명
     image_url: str | None  # 도시 이미지 URL
+    base_cost_points: int  # 기준 가격 (포인트)
+    base_duration_hours: int  # 기준 비행 시간 (시간)
     is_active: bool  # 활성화 여부
     display_order: int  # 도시 표시 순서
 

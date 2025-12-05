@@ -1,13 +1,10 @@
 """공통 Result 클래스들"""
 
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-
-T = TypeVar("T")
 
 
 @dataclass
-class PaginatedResult(Generic[T]):
+class PaginatedResult[T]:
     """Pagination이 포함된 목록 조회 결과
 
     Attributes:

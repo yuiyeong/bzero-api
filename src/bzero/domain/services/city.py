@@ -14,9 +14,7 @@ class CityService:
     def __init__(self, city_repository: CityRepository):
         self._city_repository = city_repository
 
-    async def get_active_cities(
-        self, offset: int = 0, limit: int = 20
-    ) -> tuple[list[City], int]:
+    async def get_active_cities(self, offset: int = 0, limit: int = 20) -> tuple[list[City], int]:
         """활성화된 도시 목록을 조회합니다.
 
         display_order 순서대로 정렬하여 반환합니다.
@@ -46,6 +44,6 @@ class CityService:
         """
         city = await self._city_repository.find_by_id(city_id)
         if city is None:
-            raise CityNotFoundError()
+            raise CityNotFoundError
 
         return city

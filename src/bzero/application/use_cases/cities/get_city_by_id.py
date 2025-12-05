@@ -26,8 +26,8 @@ class GetCityByIdUseCase:
         """
         try:
             city_id_obj = Id.from_hex(city_id)
-        except (ValueError, AttributeError):
-            raise BadRequestError(ErrorCode.INVALID_PARAMETER)
+        except (ValueError, AttributeError) as err:
+            raise BadRequestError(ErrorCode.INVALID_PARAMETER) from err
 
         city = await self._city_service.get_city_by_id(city_id_obj)
         return CityResult.create_from(city)

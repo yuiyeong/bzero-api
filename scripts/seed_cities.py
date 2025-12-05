@@ -9,11 +9,10 @@
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from bzero.core.settings import Settings
 from bzero.domain.value_objects import Id
@@ -86,9 +85,7 @@ async def seed_cities() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
     # 세션 생성
-    async_session_maker = async_sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session_maker() as session:
         # 기존 도시 확인
@@ -114,7 +111,7 @@ async def seed_cities() -> None:
             print("✅ 기존 도시 데이터를 삭제했습니다.\n")
 
         # 새 도시 데이터 생성
-        now = datetime.now(timezone.utc)
+        now = datetime.now(settings.timezone)
         cities = []
 
         for city_data in CITIES_DATA:
@@ -143,7 +140,7 @@ async def seed_cities() -> None:
 
         # 활성 도시 개수 확인
         active_count = sum(1 for city in cities if city.is_active)
-        print(f"\n📊 통계:")
+        print("\n📊 통계:")
         print(f"  - 총 도시: {len(cities)}개")
         print(f"  - 활성 도시 (Phase 1): {active_count}개")
         print(f"  - 비활성 도시 (Phase 2): {len(cities) - active_count}개")

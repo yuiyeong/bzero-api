@@ -12,6 +12,7 @@ from bzero.presentation.api.dependencies import CurrentCityService
 from bzero.presentation.schemas.city import CityResponse
 from bzero.presentation.schemas.common import DataResponse, ListResponse, Pagination
 
+
 router = APIRouter(prefix="/cities", tags=["cities"])
 
 
