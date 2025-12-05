@@ -15,6 +15,7 @@ class ErrorCode(str, Enum):
 
     CITY_NOT_FOUND = "찾을 수 없는 도시입니다."
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
+    NOT_FOUND_AIRSHIP = "찾을 수 없는 비행선입니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
@@ -77,6 +78,11 @@ class CityNotFoundError(NotFoundError):
 class NotFoundUserError(NotFoundError):
     def __init__(self):
         super().__init__(ErrorCode.NOT_FOUND_USER)
+
+
+class NotFoundAirshipError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_AIRSHIP)
 
 
 class DuplicatedRewardError(DuplicatedError):
