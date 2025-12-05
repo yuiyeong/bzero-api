@@ -37,8 +37,24 @@ erDiagram
         varchar_100 theme "NOT NULL"
         text description "NULL"
         varchar_500 image_url "NULL"
+        int base_cost_points "NOT NULL, 기준 가격"
+        int base_duration_hours "NOT NULL, 기준 비행 시간"
         boolean is_active "NOT NULL, DEFAULT FALSE"
         int display_order "NOT NULL"
+        datetime created_at "NOT NULL, DEFAULT NOW()"
+        datetime updated_at "NOT NULL, DEFAULT NOW()"
+        datetime deleted_at "NULL"
+    }
+
+    AIRSHIP {
+        uuid airship_id PK
+        varchar_100 name "NOT NULL, 예: 일반 비행선, 고속 비행선"
+        text description "NULL"
+        varchar_500 image_url "NULL"
+        decimal cost_factor "NOT NULL, 가격 배수"
+        decimal duration_factor "NOT NULL, 시간 배수"
+        int display_order "NOT NULL"
+        boolean is_active "NOT NULL, DEFAULT TRUE"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
         datetime deleted_at "NULL"
@@ -48,12 +64,12 @@ erDiagram
         uuid ticket_id PK
         uuid user_id FK "NOT NULL, USER"
         uuid city_id FK "NOT NULL, CITY"
-        enum ticket_type "NOT NULL, NORMAL(300P,3h) EXPRESS(500P,1h)"
+        uuid airship_id FK "NOT NULL, AIRSHIP"
         varchar_20 ticket_number UK "NOT NULL, B0-YYYY-000000"
-        int cost_points "NOT NULL"
+        int cost_points "NOT NULL, City.base_cost_points x Airship.cost_factor"
         datetime departure_time "NOT NULL"
-        datetime arrival_time "NOT NULL"
-        enum status "NOT NULL, DEFAULT PURCHASED, PURCHASED|TRAVELING|ARRIVED|EXPIRED"
+        datetime arrival_time "NOT NULL, departure + City.base_duration_hours x Airship.duration_factor"
+        enum status "NOT NULL, DEFAULT PURCHASED, PURCHASED|BOARDING|COMPLETED|CANCELED"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
         datetime deleted_at "NULL"
@@ -212,6 +228,7 @@ erDiagram
     CITY ||--o{ CONVERSATION_CARD: "테마"
     CITY ||--o{ QUESTIONNAIRE: "질문지"
     CITY ||--o{ DIARY: "작성도시"
+    AIRSHIP ||--o{ TICKET: "비행선 타입"
     GUESTHOUSE ||--o{ ROOM: "방"
     GUESTHOUSE ||--o{ DIRECT_MESSAGE_ROOM: "소속"
     TICKET ||--o| ROOM_STAY: "체크인"
@@ -232,42 +249,45 @@ erDiagram
 ### 2. CITY
 - 인덱스: `(is_active, display_order)`
 
-### 3. TICKET
-- 인덱스: `(user_id, created_at)`, `(status, arrival_time)`, `ticket_number` UK
+### 3. AIRSHIP
+- 인덱스: `(is_active, display_order)`
 
-### 4. GUESTHOUSE
+### 4. TICKET
+- 인덱스: `(user_id, created_at)`, `(status, arrival_time)`, `(airship_id, created_at)`, `ticket_number` UK
+
+### 5. GUESTHOUSE
 - 인덱스: `(city_id, guesthouse_type, is_active)`, `(city_id, is_active)`
 
-### 5. ROOM
+### 6. ROOM
 - 인덱스:
   - `(guesthouse_id, status, current_capacity)` - 가용 룸 찾기 최적화
   - `(guesthouse_id, room_number)` UK
 - 제약: `current_capacity <= max_capacity`
 - 참고: deleted_at IS NULL 조건으로 삭제된 룸 제외
 
-### 6. ROOM_STAY
+### 7. ROOM_STAY
 - 인덱스: `(room_id, status)`, `(user_id, status)`, `scheduled_checkout_time`
 
-### 7. CHAT_MESSAGE
+### 8. CHAT_MESSAGE
 - 인덱스: `(room_id, created_at)`, `expires_at`
 
-### 8. CONVERSATION_CARD
+### 9. CONVERSATION_CARD
 - 인덱스: `(city_id, is_active)`
 
-### 9. DIRECT_MESSAGE_ROOM
+### 10. DIRECT_MESSAGE_ROOM
 - 인덱스: `(room_id, status)`, `(guesthouse_id, status)`, `(user2_id, status)`
 
-### 10. DIRECT_MESSAGE
+### 11. DIRECT_MESSAGE
 - 인덱스: `(dm_room_id, created_at)`, `(to_user_id, is_read)`
 
-### 11. DIARY
+### 12. DIARY
 - 인덱스: `(user_id, diary_date)` UK, `(user_id, created_at)`
 
-### 12. QUESTIONNAIRE
+### 13. QUESTIONNAIRE
 - 인덱스: `(user_id, city_id)` UK
 - 질문: 코드에서 관리 (도시별 3개)
 
-### 13. POINT_TRANSACTION
+### 14. POINT_TRANSACTION
 - 인덱스: `(user_id, created_at)`, `(user_id, transaction_type)`
 
 ---
@@ -302,8 +322,11 @@ erDiagram
 
 ### TICKET
 
-- `ticket_type`: NORMAL, EXPRESS
-- `status`: PURCHASED, TRAVELING, ARRIVED, EXPIRED
+- `status`: PURCHASED, BOARDING, COMPLETED, CANCELED
+  - PURCHASED: 구매 완료 (출발 대기 중)
+  - BOARDING: 이동 중 (비행선 탑승 중)
+  - COMPLETED: 도착 완료
+  - CANCELED: 취소됨
 
 ### GUESTHOUSE
 

@@ -17,7 +17,7 @@ B0는 "지하 0층에서 출발하는 비행선을 타고 가상 세계를 여�
 - **B0 (지하 0층)**: 비행선 터미널이 있는 가상의 시작 공간
 - **여행자 (Traveler)**: 서비스를 이용하는 사용자
 - **도시 (City)**: 6개의 테마별 목적지 (세렌시아, 로렌시아, 에테리아, 드리모스, 셀레니아, 아벤투라)
-- **비행선 (Airship)**: 도시로 이동하는 교통 수단 (일반형, 쾌속형)
+- **비행선 (Airship)**: 도시로 이동하는 교통 수단의 타입. cost_factor(가격 배수)와 duration_factor(시간 배수)로 비용과 시간을 조절 (예: 일반 비행선, 고속 비행선)
 - **티켓 (Ticket)**: 비행선 탑승권
 - **게스트하우스 (Guesthouse)**: 도시에 있는 숙소
 - **룸 (Room)**: 게스트하우스 내 최대 6명이 머무르며 대화하는 공간
@@ -210,18 +210,23 @@ graph TB
 
 **엔티티**:
 - Ticket (티켓)
-- City (도시)
+- City (도시) - 기준 가격과 기준 비행 시간을 가짐
+- Airship (비행선) - 가격 배수와 시간 배수를 가짐
 
 **값 객체**:
-- TicketType (NORMAL, EXPRESS)
-- TravelDuration (3시간, 1시간)
-- TicketStatus (PURCHASED, TRAVELING, ARRIVED, EXPIRED)
-- TicketCost (300P, 500P)
+- TicketStatus (PURCHASED, BOARDING, COMPLETED, CANCELED)
+
+**비용/시간 계산**:
+- 티켓 비용 = City.base_cost_points × Airship.cost_factor
+- 이동 시간 = City.base_duration_hours × Airship.duration_factor
+- 예: 세렌시아(100P, 1h) + 일반 비행선(×1, ×3) = 100P, 3시간
+- 예: 세렌시아(100P, 1h) + 고속 비행선(×2, ×1) = 200P, 1시간
 
 **불변식**:
 - 티켓은 활성화된 도시로만 발권 가능
-- 일반 티켓은 300P, 쾌속 티켓은 500P
-- 일반 티켓은 3시간, 쾌속 티켓은 1시간 이동
+- 티켓은 활성화된 비행선으로만 발권 가능
+- 티켓 비용은 도시 기준 가격 × 비행선 가격 배수로 계산
+- 이동 시간은 도시 기준 시간 × 비행선 시간 배수로 계산
 
 ### 3. Room Aggregate
 
@@ -476,13 +481,38 @@ graph TB
 - theme: String (예: 관계의 도시)
 - description: Text
 - image_url: String
+- base_cost_points: Integer (기준 가격, 예: 100P)
+- base_duration_hours: Integer (기준 비행 시간, 예: 1시간)
 - is_active: Boolean
 - display_order: Integer (도시 표시 순서)
 
 **책임**:
 - 도시 정보 제공
+- 기준 가격 및 기준 비행 시간 제공
 - 활성화 상태 관리
 - 도시 표시 순서 관리
+
+### Airship (비행선)
+
+**식별자**: airship_id (UUID v7)
+
+**속성**:
+- name: String (예: "일반 비행선", "고속 비행선")
+- description: Text
+- image_url: String
+- cost_factor: Decimal (가격 배수, 예: 1.0, 2.0)
+- duration_factor: Decimal (시간 배수, 예: 3.0, 1.0)
+- display_order: Integer (표시 순서)
+- is_active: Boolean
+
+**책임**:
+- 비행선 타입 정보 제공
+- 가격 및 시간 배수 제공
+- 활성화 상태 관리
+
+**시드 데이터**:
+- 일반 비행선: cost_factor=1.0, duration_factor=3.0
+- 고속 비행선: cost_factor=2.0, duration_factor=1.0
 
 ### Ticket (티켓)
 
@@ -491,17 +521,17 @@ graph TB
 **속성**:
 - user_id: UUID (FK)
 - city_id: UUID (FK)
-- ticket_type: TicketType (VO)
+- airship_id: UUID (FK)
 - ticket_number: String (장식용, 예: "B0-2025-001234")
-- cost_points: Integer
+- cost_points: Integer (계산됨: City.base_cost_points × Airship.cost_factor)
 - departure_time: DateTime
-- arrival_time: DateTime
+- arrival_time: DateTime (계산됨: departure_time + City.base_duration_hours × Airship.duration_factor)
 - status: TicketStatus (VO)
 
 **책임**:
 - 티켓 발권
 - 티켓 번호 생성 (형식: "B0-{년도}-{일련번호}")
-- 이동 시간 계산
+- 비용 및 이동 시간 계산 (City × Airship factor)
 - 도착 처리
 
 ### Guesthouse (게스트하우스)
@@ -750,25 +780,14 @@ graph TB
 **검증**:
 - 0 이상
 
-### TicketType
-
-**속성**: NORMAL, EXPRESS
-
-**규칙**:
-- NORMAL: 300P, 3시간
-- EXPRESS: 500P, 1시간
-
-### TravelDuration
-
-**속성**: hours (Integer)
-
-**검증**:
-- NORMAL: 3시간
-- EXPRESS: 1시간
-
 ### TicketStatus
 
-**속성**: PURCHASED, TRAVELING, ARRIVED, EXPIRED
+**속성**: PURCHASED, BOARDING, COMPLETED, CANCELED
+
+**상태 전이**:
+- PURCHASED → BOARDING: 비행선 출발 시
+- BOARDING → COMPLETED: 비행선 도착 시
+- PURCHASED → CANCELED: 티켓 취소 시
 
 ### RoomCapacity
 
@@ -1058,9 +1077,19 @@ graph TB
 
 **주요 기능**:
 - ID, 사용자 ID로 티켓 조회
-- 상태별 티켓 조회 (구매/이동중/도착/만료)
+- 상태별 티켓 조회 (PURCHASED/BOARDING/COMPLETED/CANCELED)
+- 비행선별 티켓 조회
 - 티켓 발권 및 상태 업데이트
-- 티켓 번호 생성 (형식: "B0-{년도}-{6자리 일련번호}")
+- 티켓 번호 생성 (형식: "B0-{년도}-{일련번호}")
+
+### AirshipRepository
+
+**책임**: 비행선 엔티티의 영속성 관리
+
+**주요 기능**:
+- ID로 비행선 조회
+- 활성 비행선 목록 조회
+- 비행선 정보 관리
 
 ### GuesthouseRepository
 
@@ -1210,8 +1239,9 @@ graph TB
 - 문답지 작성: 50P (도시별 1회)
 
 **사용**:
-- 일반 비행선 티켓: 300P
-- 쾌속 비행선 티켓: 500P
+- 비행선 티켓: City.base_cost_points × Airship.cost_factor
+  - 예: 세렌시아(100P) + 일반 비행선(×1) = 100P
+  - 예: 세렌시아(100P) + 고속 비행선(×2) = 200P
 - 체류 연장: 300P/24시간 (무제한 횟수)
 
 **제약**:

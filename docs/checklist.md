@@ -140,31 +140,70 @@
 
 ## 3. 비행선 티켓 구매
 
+### Airship 모델 구현
+- [ ] Airship 엔티티 생성 (airship_id, name, description, image_url, cost_factor, duration_factor, display_order, is_active)
+- [ ] Airship 테이블 마이그레이션
+- [ ] AirshipRepository 인터페이스 (domain/repositories/airship.py)
+- [ ] SqlAlchemyAirshipRepository 구현체 (infrastructure/repositories/airship.py)
+- [ ] AirshipService 도메인 서비스 (domain/services/airship.py)
+  - [ ] get_active_airships() 메서드
+  - [ ] get_airship_by_id() 메서드
+
+### City 모델 수정
+- [ ] City 엔티티에 base_cost_points, base_duration_hours 속성 추가
+- [ ] City 테이블 마이그레이션 (ALTER TABLE)
+- [ ] 도시 시드 데이터 업데이트 (base_cost_points, base_duration_hours 설정)
+
+### Airship 시드 데이터 생성
+- [ ] 일반 비행선 (cost_factor: 1.0, duration_factor: 3.0)
+- [ ] 고속 비행선 (cost_factor: 2.0, duration_factor: 1.0)
+
 ### Ticket 모델 구현
-- [ ] Ticket 엔티티 생성 (ticket_id, user_id, city_id, ticket_type, ticket_number, cost_points, departure_time, arrival_time, status)
-- [ ] 값 객체 생성 (TicketType, TravelDuration, TicketStatus)
+- [ ] Ticket 엔티티 수정 (ticket_type → airship_id)
+- [ ] 값 객체 생성 (TicketStatus: PURCHASED, BOARDING, COMPLETED, CANCELED)
 - [ ] Ticket 테이블 마이그레이션
 
 ### TicketRepository 구현
+- [ ] TicketRepository 인터페이스 (domain/repositories/ticket.py)
+- [ ] SqlAlchemyTicketRepository 구현체 (infrastructure/repositories/ticket.py)
 - [ ] ID로 티켓 조회
 - [ ] 사용자 ID로 티켓 조회
 - [ ] 상태별 티켓 조회
-- [ ] 티켓 생성
-- [ ] 티켓 상태 업데이트
+- [ ] 비행선별 티켓 조회
+- [ ] 티켓 생성 및 상태 업데이트
+
+### TicketService 구현
+- [ ] TicketService 도메인 서비스 (domain/services/ticket.py)
+  - [ ] calculate_cost() 메서드: City.base_cost_points × Airship.cost_factor
+  - [ ] calculate_duration() 메서드: City.base_duration_hours × Airship.duration_factor
+  - [ ] purchase_ticket() 메서드
 
 ### 티켓 구매 로직 구현
 - [ ] 포인트 잔액 확인
-- [ ] 포인트 차감 (300P/500P)
-- [ ] 티켓 발급 (티켓 번호 생성: "B0-{년도}-{6자리}")
-- [ ] 출발/도착 시간 계산 (일반 3h, 쾌속 1h)
+- [ ] 비용 계산: City.base_cost_points × Airship.cost_factor
+- [ ] 포인트 차감 (PointTransactionService)
+- [ ] 시간 계산: City.base_duration_hours × Airship.duration_factor
+- [ ] 티켓 발급 (티켓 번호 생성: "B0-{년도}-{일련번호}")
 - [ ] 도착 시 자동 체크인 스케줄링 (Celery 태스크)
 
 ### API 엔드포인트 구현
-- [ ] POST /api/tickets/purchase (티켓 구매)
-- [ ] GET /api/tickets/my (내 티켓 조회)
-- [ ] GET /api/tickets/{ticket_id} (티켓 상세)
+- [ ] GET /api/v1/airships (비행선 목록 조회)
+- [ ] POST /api/v1/tickets (티켓 구매 - city_id, airship_id 파라미터)
+- [ ] GET /api/v1/tickets/my (내 티켓 조회)
+- [ ] GET /api/v1/tickets/{ticket_id} (티켓 상세)
+
+### 테스트 작성
+- [ ] Airship 엔티티 단위 테스트
+- [ ] Ticket 엔티티 단위 테스트
+- [ ] TicketService 단위 테스트 (비용/시간 계산)
+- [ ] AirshipRepository 통합 테스트
+- [ ] TicketRepository 통합 테스트
+- [ ] Ticket API E2E 테스트
 
 ### 완료 조건
+- [ ] 비행선 목록 API가 작동함
+- [ ] 비용이 City.base_cost_points × Airship.cost_factor로 계산됨
+- [ ] 이동 시간이 City.base_duration_hours × Airship.duration_factor로 계산됨
 - [ ] 포인트 결제가 정상 작동함
 - [ ] 포인트 부족 시 에러 반환
 - [ ] 티켓이 제대로 발급됨
