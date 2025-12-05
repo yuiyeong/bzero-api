@@ -19,9 +19,7 @@ class CityRepository(ABC):
         """
 
     @abstractmethod
-    async def find_active_cities(
-        self, offset: int = 0, limit: int = 20
-    ) -> list[City]:
+    async def find_active_cities(self, offset: int = 0, limit: int = 20) -> list[City]:
         """활성화된 도시 목록을 조회합니다.
 
         display_order 순서대로 정렬하여 반환합니다.

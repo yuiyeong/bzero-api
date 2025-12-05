@@ -1,6 +1,6 @@
 """City UseCase 단위 테스트"""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -23,13 +23,15 @@ def mock_city_service():
 @pytest.fixture
 def sample_city():
     """샘플 도시 엔티티"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return City(
         city_id=Id.from_hex("01936d9d7c6f70008000000000000001"),
         name="세렌시아",
         theme="관계의 도시",
         description="관계에 대해 생각하는 도시",
         image_url="https://example.com/serencia.jpg",
+        base_cost_points=100,
+        base_duration_hours=1,
         is_active=True,
         display_order=1,
         created_at=now,
@@ -40,7 +42,7 @@ def sample_city():
 @pytest.fixture
 def sample_cities():
     """샘플 도시 목록"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         City(
             city_id=Id.from_hex("01936d9d7c6f70008000000000000001"),
@@ -48,6 +50,8 @@ def sample_cities():
             theme="관계의 도시",
             description="관계에 대해 생각하는 도시",
             image_url="https://example.com/serencia.jpg",
+            base_cost_points=100,
+            base_duration_hours=1,
             is_active=True,
             display_order=1,
             created_at=now,
@@ -59,6 +63,8 @@ def sample_cities():
             theme="성장의 도시",
             description="성장에 대해 생각하는 도시",
             image_url="https://example.com/flora.jpg",
+            base_cost_points=150,
+            base_duration_hours=2,
             is_active=True,
             display_order=2,
             created_at=now,
@@ -70,9 +76,7 @@ def sample_cities():
 class TestGetActiveCitiesUseCase:
     """GetActiveCitiesUseCase 테스트"""
 
-    async def test_execute_returns_active_cities(
-        self, mock_city_service, sample_cities
-    ):
+    async def test_execute_returns_active_cities(self, mock_city_service, sample_cities):
         """활성 도시 목록을 반환한다"""
         # Given
         mock_city_service.get_active_cities.return_value = (sample_cities, 2)
@@ -92,9 +96,7 @@ class TestGetActiveCitiesUseCase:
         assert result.limit == 20
         mock_city_service.get_active_cities.assert_called_once_with(0, 20)
 
-    async def test_execute_with_pagination(
-        self, mock_city_service, sample_cities
-    ):
+    async def test_execute_with_pagination(self, mock_city_service, sample_cities):
         """pagination 파라미터로 도시 목록을 조회한다"""
         # Given
         mock_city_service.get_active_cities.return_value = (sample_cities[:1], 2)
@@ -111,9 +113,7 @@ class TestGetActiveCitiesUseCase:
         assert result.limit == 1
         mock_city_service.get_active_cities.assert_called_once_with(0, 1)
 
-    async def test_execute_returns_empty_list_when_no_cities(
-        self, mock_city_service
-    ):
+    async def test_execute_returns_empty_list_when_no_cities(self, mock_city_service):
         """활성 도시가 없을 때 빈 리스트를 반환한다"""
         # Given
         mock_city_service.get_active_cities.return_value = ([], 0)
@@ -131,9 +131,7 @@ class TestGetActiveCitiesUseCase:
 class TestGetCityByIdUseCase:
     """GetCityByIdUseCase 테스트"""
 
-    async def test_execute_returns_city_when_found(
-        self, mock_city_service, sample_city
-    ):
+    async def test_execute_returns_city_when_found(self, mock_city_service, sample_city):
         """도시 ID로 도시를 찾으면 반환한다"""
         # Given
         city_id = "01936d9d7c6f70008000000000000001"
@@ -151,9 +149,7 @@ class TestGetCityByIdUseCase:
         call_args = mock_city_service.get_city_by_id.call_args[0][0]
         assert call_args.value.hex == city_id
 
-    async def test_execute_raises_city_not_found_error_when_city_not_exists(
-        self, mock_city_service
-    ):
+    async def test_execute_raises_city_not_found_error_when_city_not_exists(self, mock_city_service):
         """도시를 찾을 수 없으면 CityNotFoundError를 발생시킨다"""
         # Given
         city_id = "01936d9d7c6f70008000000000000099"

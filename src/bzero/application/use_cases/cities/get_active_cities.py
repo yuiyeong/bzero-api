@@ -13,9 +13,7 @@ class GetActiveCitiesUseCase:
     def __init__(self, city_service: CityService):
         self._city_service = city_service
 
-    async def execute(
-        self, offset: int = 0, limit: int = 20
-    ) -> PaginatedResult[CityResult]:
+    async def execute(self, offset: int = 0, limit: int = 20) -> PaginatedResult[CityResult]:
         """
         Args:
             offset: 조회 시작 위치 (기본값: 0)
@@ -26,6 +24,4 @@ class GetActiveCitiesUseCase:
         """
         cities, total = await self._city_service.get_active_cities(offset, limit)
         city_results = [CityResult.create_from(city) for city in cities]
-        return PaginatedResult(
-            items=city_results, total=total, offset=offset, limit=limit
-        )
+        return PaginatedResult(items=city_results, total=total, offset=offset, limit=limit)
