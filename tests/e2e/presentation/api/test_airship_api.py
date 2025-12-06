@@ -75,12 +75,12 @@ async def sample_airships(test_session: AsyncSession) -> list[AirshipModel]:
 
 
 class TestGetAvailableAirships:
-    """GET /airships 테스트"""
+    """GET /api/v1/airships 테스트"""
 
     async def test_get_available_airships_success(self, client: AsyncClient, sample_airships: list[AirshipModel]):
         """이용 가능한 비행선 목록 조회 성공"""
         # When
-        response = await client.get("/airships")
+        response = await client.get("/api/v1/airships")
 
         # Then
         assert response.status_code == 200
@@ -100,13 +100,10 @@ class TestGetAvailableAirships:
         assert pagination["offset"] == 0
         assert pagination["limit"] == 20
 
-        # display_order 순서대로 정렬 확인
+        # display_order 순서대로 정렬 확인 (이름으로 검증)
         assert airships[0]["name"] == "일반 비행선"
-        assert airships[0]["display_order"] == 1
         assert airships[1]["name"] == "쾌속 비행선"
-        assert airships[1]["display_order"] == 2
         assert airships[2]["name"] == "특급 비행선"
-        assert airships[2]["display_order"] == 3
 
         # 응답 필드 확인
         first_airship = airships[0]
@@ -127,7 +124,7 @@ class TestGetAvailableAirships:
     ):
         """pagination 파라미터로 비행선 목록 조회"""
         # When
-        response = await client.get("/airships?offset=0&limit=1")
+        response = await client.get("/api/v1/airships?offset=0&limit=1")
 
         # Then
         assert response.status_code == 200
@@ -148,7 +145,7 @@ class TestGetAvailableAirships:
     async def test_get_available_airships_with_offset(self, client: AsyncClient, sample_airships: list[AirshipModel]):
         """offset 파라미터로 두 번째 페이지 조회"""
         # When
-        response = await client.get("/airships?offset=1&limit=2")
+        response = await client.get("/api/v1/airships?offset=1&limit=2")
 
         # Then
         assert response.status_code == 200
@@ -172,7 +169,7 @@ class TestGetAvailableAirships:
     ):
         """offset이 전체 개수보다 큰 경우 빈 리스트 반환"""
         # When
-        response = await client.get("/airships?offset=10&limit=20")
+        response = await client.get("/api/v1/airships?offset=10&limit=20")
 
         # Then
         assert response.status_code == 200
@@ -192,7 +189,7 @@ class TestGetAvailableAirships:
     async def test_get_available_airships_empty_list_when_no_airships(self, client: AsyncClient):
         """비행선이 없을 때 빈 리스트 반환"""
         # When
-        response = await client.get("/airships")
+        response = await client.get("/api/v1/airships")
 
         # Then
         assert response.status_code == 200
@@ -207,7 +204,7 @@ class TestGetAvailableAirships:
     ):
         """limit 최댓값(100) 파라미터로 조회"""
         # When
-        response = await client.get("/airships?offset=0&limit=100")
+        response = await client.get("/api/v1/airships?offset=0&limit=100")
 
         # Then
         assert response.status_code == 200
@@ -227,7 +224,7 @@ class TestGetAvailableAirships:
     async def test_get_available_airships_with_invalid_offset(self, client: AsyncClient):
         """음수 offset으로 조회 시 422 에러"""
         # When
-        response = await client.get("/airships?offset=-1&limit=20")
+        response = await client.get("/api/v1/airships?offset=-1&limit=20")
 
         # Then
         # FastAPI Query validation error
@@ -236,7 +233,7 @@ class TestGetAvailableAirships:
     async def test_get_available_airships_with_invalid_limit(self, client: AsyncClient):
         """잘못된 limit으로 조회 시 422 에러"""
         # When: limit이 0 이하인 경우
-        response = await client.get("/airships?offset=0&limit=0")
+        response = await client.get("/api/v1/airships?offset=0&limit=0")
 
         # Then
         assert response.status_code == 422
@@ -244,7 +241,7 @@ class TestGetAvailableAirships:
     async def test_get_available_airships_with_limit_over_max(self, client: AsyncClient):
         """limit이 최댓값(100)을 초과하는 경우 422 에러"""
         # When
-        response = await client.get("/airships?offset=0&limit=101")
+        response = await client.get("/api/v1/airships?offset=0&limit=101")
 
         # Then
         assert response.status_code == 422
@@ -254,7 +251,7 @@ class TestGetAvailableAirships:
     ):
         """비활성화된 비행선은 목록에 포함되지 않음"""
         # When
-        response = await client.get("/airships")
+        response = await client.get("/api/v1/airships")
 
         # Then
         assert response.status_code == 200
@@ -274,19 +271,15 @@ class TestGetAvailableAirships:
     ):
         """비행선 목록이 display_order 순서대로 정렬되어 반환됨"""
         # When
-        response = await client.get("/airships")
+        response = await client.get("/api/v1/airships")
 
         # Then
         assert response.status_code == 200
         data = response.json()
         airships = data["list"]
 
-        # display_order 오름차순 확인
+        # display_order 오름차순 확인 (이름으로 검증)
         assert len(airships) == 3
-        for i in range(len(airships) - 1):
-            assert airships[i]["display_order"] < airships[i + 1]["display_order"]
-
-        # 구체적인 순서 확인
-        assert airships[0]["display_order"] == 1
-        assert airships[1]["display_order"] == 2
-        assert airships[2]["display_order"] == 3
+        assert airships[0]["name"] == "일반 비행선"
+        assert airships[1]["name"] == "쾌속 비행선"
+        assert airships[2]["name"] == "특급 비행선"

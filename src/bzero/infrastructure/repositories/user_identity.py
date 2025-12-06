@@ -31,12 +31,13 @@ class SqlAlchemyUserIdentityRepository(UserIdentityRepository):
         return self._to_entity(model) if model else None
 
     @staticmethod
-    def _to_model(identity: UserIdentity) -> UserIdentityModel:
+    def _to_model(entity: UserIdentity) -> UserIdentityModel:
         return UserIdentityModel(
-            identity_id=identity.identity_id.value,
-            user_id=identity.user_id.value,
-            provider=identity.provider.value,
-            provider_user_id=identity.provider_user_id,
+            identity_id=entity.identity_id.value,
+            user_id=entity.user_id.value,
+            provider=entity.provider.value,
+            provider_user_id=entity.provider_user_id,
+            deleted_at=entity.deleted_at,
         )
 
     @staticmethod

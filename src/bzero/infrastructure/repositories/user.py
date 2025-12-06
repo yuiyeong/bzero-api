@@ -87,13 +87,14 @@ class SqlAlchemyUserRepository(UserRepository):
         return self._to_entity(model)
 
     @staticmethod
-    def _to_model(user: User) -> UserModel:
+    def _to_model(entity: User) -> UserModel:
         return UserModel(
-            user_id=user.user_id.value,
-            email=user.email.value if user.email else None,
-            nickname=user.nickname.value if user.nickname else None,
-            profile_emoji=user.profile.value if user.profile else None,
-            current_points=user.current_points.value,
+            user_id=entity.user_id.value,
+            email=entity.email.value if entity.email else None,
+            nickname=entity.nickname.value if entity.nickname else None,
+            profile_emoji=entity.profile.value if entity.profile else None,
+            current_points=entity.current_points.value,
+            deleted_at=entity.deleted_at,
         )
 
     @staticmethod

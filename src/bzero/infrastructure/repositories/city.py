@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +14,12 @@ class SqlAlchemyCityRepository(CityRepository):
 
     def __init__(self, session: AsyncSession):
         self._session = session
+
+    async def create(self, city: City) -> City:
+        city_model = self._to_model(city)
+        self._session.add(city_model)
+        await self._session.flush()
+        return city
 
     async def find_by_id(self, city_id: Id) -> City | None:
         stmt = select(CityModel).where(
@@ -48,6 +56,21 @@ class SqlAlchemyCityRepository(CityRepository):
         )
         result = await self._session.execute(stmt)
         return result.scalar_one()
+
+    @staticmethod
+    def _to_model(entity: City) -> CityModel:
+        return CityModel(
+            city_id=uuid.UUID(entity.city_id.value),
+            name=entity.name,
+            theme=entity.theme,
+            description=entity.description,
+            image_url=entity.image_url,
+            base_cost_points=entity.base_cost_points,
+            base_duration_hours=entity.base_duration_hours,
+            is_active=entity.is_active,
+            display_order=entity.display_order,
+            deleted_at=entity.deleted_at,
+        )
 
     @staticmethod
     def _to_entity(model: CityModel) -> City:

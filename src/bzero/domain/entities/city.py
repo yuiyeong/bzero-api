@@ -32,3 +32,32 @@ class City:
     def deactivate(self) -> None:
         """도시를 비활성화합니다."""
         self.is_active = False
+
+    @classmethod
+    def create(
+        cls,
+        name: str,
+        theme: str,
+        description: str | None,
+        image_url: str | None,
+        base_cost_points: int,
+        base_duration_hours: int,
+        is_active: bool,
+        display_order: int,
+        created_at: datetime,
+        updated_at: datetime,
+    ) -> "City":
+        """City 엔티티를 생성합니다."""
+        return cls(
+            city_id=Id(),
+            name=name,
+            theme=theme,
+            description=description,
+            image_url=image_url,
+            base_cost_points=base_cost_points,
+            base_duration_hours=base_duration_hours,
+            is_active=is_active,
+            display_order=display_order,
+            created_at=created_at,
+            updated_at=updated_at,
+        )

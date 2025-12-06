@@ -66,12 +66,12 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
 
 
 class TestGetActiveCities:
-    """GET /cities 테스트"""
+    """GET /api/v1/cities 테스트"""
 
     async def test_get_active_cities_success(self, client: AsyncClient, sample_cities: list[CityModel]):
         """활성 도시 목록 조회 성공"""
         # When
-        response = await client.get("/cities")
+        response = await client.get("/api/v1/cities")
 
         # Then
         assert response.status_code == 200
@@ -114,7 +114,7 @@ class TestGetActiveCities:
     async def test_get_active_cities_with_pagination(self, client: AsyncClient, sample_cities: list[CityModel]):
         """pagination 파라미터로 도시 목록 조회"""
         # When
-        response = await client.get("/cities?offset=0&limit=1")
+        response = await client.get("/api/v1/cities?offset=0&limit=1")
 
         # Then
         assert response.status_code == 200
@@ -135,7 +135,7 @@ class TestGetActiveCities:
     async def test_get_active_cities_empty_list_when_no_cities(self, client: AsyncClient):
         """도시가 없을 때 빈 리스트 반환"""
         # When
-        response = await client.get("/cities")
+        response = await client.get("/api/v1/cities")
 
         # Then
         assert response.status_code == 200
@@ -145,7 +145,7 @@ class TestGetActiveCities:
 
 
 class TestGetCityById:
-    """GET /cities/{city_id} 테스트"""
+    """GET /api/v1/cities/{city_id} 테스트"""
 
     async def test_get_city_by_id_success(self, client: AsyncClient, sample_cities: list[CityModel]):
         """도시 상세 정보 조회 성공"""
@@ -154,7 +154,7 @@ class TestGetCityById:
         city_id = city.city_id.hex
 
         # When
-        response = await client.get(f"/cities/{city_id}")
+        response = await client.get(f"/api/v1/cities/{city_id}")
 
         # Then
         assert response.status_code == 200
@@ -176,7 +176,7 @@ class TestGetCityById:
         city_id = inactive_city.city_id.hex
 
         # When
-        response = await client.get(f"/cities/{city_id}")
+        response = await client.get(f"/api/v1/cities/{city_id}")
 
         # Then
         assert response.status_code == 200
@@ -193,7 +193,7 @@ class TestGetCityById:
         nonexistent_id = Id().value.hex
 
         # When
-        response = await client.get(f"/cities/{nonexistent_id}")
+        response = await client.get(f"/api/v1/cities/{nonexistent_id}")
 
         # Then
         assert response.status_code == 404
@@ -207,7 +207,7 @@ class TestGetCityById:
         invalid_id = "invalid-uuid-format"
 
         # When
-        response = await client.get(f"/cities/{invalid_id}")
+        response = await client.get(f"/api/v1/cities/{invalid_id}")
 
         # Then
         # UUID 파싱 실패로 400 또는 404 예상

@@ -6,7 +6,7 @@ from httpx import AsyncClient
 
 
 class TestCreateUser:
-    """POST /users/me 테스트."""
+    """POST /api/v1/api/v1/users/me 테스트."""
 
     async def test_create_user_success(
         self,
@@ -15,7 +15,7 @@ class TestCreateUser:
     ):
         """신규 사용자를 성공적으로 생성합니다."""
         # When
-        response = await client.post("/users/me", headers=auth_headers)
+        response = await client.post("/api/v1/users/me", headers=auth_headers)
 
         # Then
         assert response.status_code == 201
@@ -37,11 +37,11 @@ class TestCreateUser:
     ):
         """이미 존재하는 사용자를 생성하면 409 에러를 반환합니다."""
         # Given: 사용자 생성
-        response = await client.post("/users/me", headers=auth_headers)
+        response = await client.post("/api/v1/users/me", headers=auth_headers)
         assert response.status_code == 201
 
         # When: 동일한 사용자로 다시 생성 시도
-        response = await client.post("/users/me", headers=auth_headers)
+        response = await client.post("/api/v1/users/me", headers=auth_headers)
 
         # Then
         assert response.status_code == 409
@@ -52,14 +52,14 @@ class TestCreateUser:
     ):
         """인증 없이 요청하면 401 에러를 반환합니다."""
         # When
-        response = await client.post("/users/me")
+        response = await client.post("/api/v1/users/me")
 
         # Then
         assert response.status_code == 403  # HTTPBearer는 401이 아닌 403 반환
 
 
 class TestGetMe:
-    """GET /users/me 테스트."""
+    """GET /api/v1/users/me 테스트."""
 
     async def test_get_me_success(
         self,
@@ -68,10 +68,10 @@ class TestGetMe:
     ):
         """로그인한 사용자 정보를 조회합니다."""
         # Given: 사용자 생성
-        await client.post("/users/me", headers=auth_headers)
+        await client.post("/api/v1/users/me", headers=auth_headers)
 
         # When
-        response = await client.get("/users/me", headers=auth_headers)
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
 
         # Then
         assert response.status_code == 200
@@ -87,7 +87,7 @@ class TestGetMe:
     ):
         """존재하지 않는 사용자를 조회하면 404 에러를 반환합니다."""
         # When: 사용자 생성 없이 조회
-        response = await client.get("/users/me", headers=auth_headers)
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
 
         # Then
         assert response.status_code == 404
@@ -98,14 +98,14 @@ class TestGetMe:
     ):
         """인증 없이 요청하면 403 에러를 반환합니다."""
         # When
-        response = await client.get("/users/me")
+        response = await client.get("/api/v1/users/me")
 
         # Then
         assert response.status_code == 403
 
 
 class TestUpdateUser:
-    """PATCH /users/me 테스트."""
+    """PATCH /api/v1/users/me 테스트."""
 
     async def test_update_user_success(
         self,
@@ -114,11 +114,11 @@ class TestUpdateUser:
     ):
         """사용자 프로필을 성공적으로 업데이트합니다."""
         # Given: 사용자 생성
-        await client.post("/users/me", headers=auth_headers)
+        await client.post("/api/v1/users/me", headers=auth_headers)
 
         # When
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=auth_headers,
             json={"nickname": "테스터", "profile_emoji": "😊"},
         )
@@ -139,7 +139,7 @@ class TestUpdateUser:
         """존재하지 않는 사용자를 업데이트하면 404 에러를 반환합니다."""
         # When
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=auth_headers,
             json={"nickname": "테스터", "profile_emoji": "😊"},
         )
@@ -154,11 +154,11 @@ class TestUpdateUser:
     ):
         """닉네임이 너무 짧으면 422 에러를 반환합니다."""
         # Given: 사용자 생성
-        await client.post("/users/me", headers=auth_headers)
+        await client.post("/api/v1/users/me", headers=auth_headers)
 
         # When
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=auth_headers,
             json={"nickname": "짧", "profile_emoji": "😊"},
         )
@@ -173,11 +173,11 @@ class TestUpdateUser:
     ):
         """닉네임에 특수문자가 있으면 422 에러를 반환합니다."""
         # Given: 사용자 생성
-        await client.post("/users/me", headers=auth_headers)
+        await client.post("/api/v1/users/me", headers=auth_headers)
 
         # When
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=auth_headers,
             json={"nickname": "테스터!", "profile_emoji": "😊"},
         )
@@ -192,11 +192,11 @@ class TestUpdateUser:
     ):
         """이모지가 아닌 문자를 입력하면 422 에러를 반환합니다."""
         # Given: 사용자 생성
-        await client.post("/users/me", headers=auth_headers)
+        await client.post("/api/v1/users/me", headers=auth_headers)
 
         # When: 일반 문자 입력
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=auth_headers,
             json={"nickname": "테스터", "profile_emoji": "A"},
         )
@@ -211,11 +211,11 @@ class TestUpdateUser:
     ):
         """여러 개의 이모지를 입력하면 422 에러를 반환합니다."""
         # Given: 사용자 생성
-        await client.post("/users/me", headers=auth_headers)
+        await client.post("/api/v1/users/me", headers=auth_headers)
 
         # When: 여러 이모지 입력
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=auth_headers,
             json={"nickname": "테스터", "profile_emoji": "😀😀"},
         )
@@ -230,7 +230,7 @@ class TestUpdateUser:
         """인증 없이 요청하면 403 에러를 반환합니다."""
         # When
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             json={"nickname": "테스터", "profile_emoji": "😊"},
         )
 
@@ -248,19 +248,19 @@ class TestUserFlow:
     ):
         """전체 사용자 플로우를 테스트합니다: 생성 -> 조회 -> 온보딩 완료."""
         # 1. 신규 사용자 등록
-        response = await client.post("/users/me", headers=auth_headers)
+        response = await client.post("/api/v1/users/me", headers=auth_headers)
         assert response.status_code == 201
         assert response.json()["data"]["is_profile_complete"] is False
         assert response.json()["data"]["current_points"] == 1000
 
         # 2. 사용자 정보 조회
-        response = await client.get("/users/me", headers=auth_headers)
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
         assert response.status_code == 200
         assert response.json()["data"]["nickname"] is None
 
         # 3. 온보딩 완료 (프로필 설정)
         response = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=auth_headers,
             json={"nickname": "여행자", "profile_emoji": "🚀"},
         )
@@ -270,7 +270,7 @@ class TestUserFlow:
         assert response.json()["data"]["profile_emoji"] == "🚀"
 
         # 4. 업데이트된 정보 조회
-        response = await client.get("/users/me", headers=auth_headers)
+        response = await client.get("/api/v1/users/me", headers=auth_headers)
         assert response.status_code == 200
         assert response.json()["data"]["nickname"] == "여행자"
 
@@ -291,14 +291,14 @@ class TestUserFlow:
         )
 
         # When: 각각 사용자 생성 및 프로필 설정
-        create_resp1 = await client.post("/users/me", headers=headers_user1)
+        create_resp1 = await client.post("/api/v1/users/me", headers=headers_user1)
         assert create_resp1.status_code == 201
 
-        create_resp2 = await client.post("/users/me", headers=headers_user2)
+        create_resp2 = await client.post("/api/v1/users/me", headers=headers_user2)
         assert create_resp2.status_code == 201
 
         update_resp1 = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=headers_user1,
             json={"nickname": "유저원", "profile_emoji": "😊"},
         )
@@ -306,7 +306,7 @@ class TestUserFlow:
         assert update_resp1.json()["data"]["nickname"] == "유저원"
 
         update_resp2 = await client.patch(
-            "/users/me",
+            "/api/v1/users/me",
             headers=headers_user2,
             json={"nickname": "유저투", "profile_emoji": "🌟"},
         )
@@ -314,8 +314,8 @@ class TestUserFlow:
         assert update_resp2.json()["data"]["nickname"] == "유저투"
 
         # Then: 각 사용자는 자신의 정보만 조회
-        response1 = await client.get("/users/me", headers=headers_user1)
-        response2 = await client.get("/users/me", headers=headers_user2)
+        response1 = await client.get("/api/v1/users/me", headers=headers_user1)
+        response2 = await client.get("/api/v1/users/me", headers=headers_user2)
 
         assert response1.json()["data"]["nickname"] == "유저원"
         assert response1.json()["data"]["email"] == "user1@example.com"

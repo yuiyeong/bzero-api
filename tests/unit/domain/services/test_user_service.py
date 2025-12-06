@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -32,7 +33,8 @@ def user_service(
     mock_user_identity_repository: MagicMock,
 ) -> UserService:
     """UserService with mocked repositories"""
-    return UserService(mock_user_repository, mock_user_identity_repository)
+    timezone = ZoneInfo("Asia/Seoul")
+    return UserService(mock_user_repository, mock_user_identity_repository, timezone)
 
 
 class TestUserServiceCreateUserWithIdentity:

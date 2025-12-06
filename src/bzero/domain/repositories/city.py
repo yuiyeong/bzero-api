@@ -8,6 +8,17 @@ class CityRepository(ABC):
     """도시 리포지토리 인터페이스"""
 
     @abstractmethod
+    async def create(self, city: City) -> City:
+        """도시를 생성합니다.
+
+        Args:
+            city: 생성할 도시 엔티티
+
+        Returns:
+            생성된 도시 엔티티
+        """
+
+    @abstractmethod
     async def find_by_id(self, city_id: Id) -> City | None:
         """도시 ID로 도시를 조회합니다.
 

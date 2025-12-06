@@ -100,9 +100,10 @@ def get_user_service(
     session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> UserService:
     """Create UserService instance."""
+    settings = get_settings()
     user_repository = get_user_repository(session)
     user_identity_repository = SqlAlchemyUserIdentityRepository(session)
-    return UserService(user_repository, user_identity_repository)
+    return UserService(user_repository, user_identity_repository, settings.timezone)
 
 
 def get_point_transaction_service(

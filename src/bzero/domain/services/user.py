@@ -1,11 +1,12 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from bzero.domain.entities.user import User
 from bzero.domain.entities.user_identity import UserIdentity
 from bzero.domain.errors import DuplicatedUserError, NotFoundUserError
 from bzero.domain.repositories.user import UserRepository
 from bzero.domain.repositories.user_identity import UserIdentityRepository
-from bzero.domain.value_objects import AuthProvider, Balance, Email, Id
+from bzero.domain.value_objects import AuthProvider, Email
 
 
 class UserService:
@@ -16,12 +17,11 @@ class UserService:
     """
 
     def __init__(
-        self,
-        user_repository: UserRepository,
-        user_identity_repository: UserIdentityRepository,
+        self, user_repository: UserRepository, user_identity_repository: UserIdentityRepository, timezone: ZoneInfo
     ):
         self._user_repository = user_repository
         self._user_identity_repository = user_identity_repository
+        self._timezone = timezone
 
     async def create_user_with_identity(
         self,
@@ -49,26 +49,23 @@ class UserService:
         if existing_identity:
             raise DuplicatedUserError
 
-        # 2. User 생성 (온보딩 전이므로 nickname, profile은 None)
-        user = User(
-            user_id=Id(),
+        current = datetime.now(self._timezone)
+
+        # 2. User 생성
+        user = User.create(
             email=email,
-            nickname=None,
-            profile=None,
-            current_points=Balance(0),
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=current,
+            updated_at=current,
         )
         created_user = await self._user_repository.create(user)
 
         # 3. UserIdentity 생성
-        identity = UserIdentity(
-            identity_id=Id(),
+        identity = UserIdentity.create(
             user_id=created_user.user_id,
             provider=provider,
             provider_user_id=provider_user_id,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=current,
+            updated_at=current,
         )
         created_identity = await self._user_identity_repository.create(identity)
 

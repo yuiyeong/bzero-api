@@ -15,3 +15,22 @@ class User:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+
+    @classmethod
+    def create(
+        cls,
+        email: Email | None,
+        created_at: datetime,
+        updated_at: datetime,
+        nickname: Nickname | None = None,
+        profile: Profile | None = None,
+    ) -> "User":
+        return cls(
+            user_id=Id(),
+            email=email,
+            nickname=nickname,
+            profile=profile,
+            current_points=Balance(0),
+            created_at=created_at,
+            updated_at=updated_at,
+        )
