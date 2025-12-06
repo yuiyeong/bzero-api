@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, pool
 
 from bzero.core.settings import get_settings
+from bzero.infrastructure.db.airship_model import AirshipModel  # noqa: F401
 from bzero.infrastructure.db.base import Base
 
 # Import all models here for autogenerate to detect them

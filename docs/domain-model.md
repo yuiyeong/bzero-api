@@ -500,8 +500,8 @@ graph TB
 - name: String (예: "일반 비행선", "고속 비행선")
 - description: Text
 - image_url: String
-- cost_factor: Decimal (가격 배수, 예: 1.0, 2.0)
-- duration_factor: Decimal (시간 배수, 예: 3.0, 1.0)
+- cost_factor: Integer (가격 배수, 예: 1, 2)
+- duration_factor: Integer (시간 배수, 예: 3, 1)
 - display_order: Integer (표시 순서)
 - is_active: Boolean
 
@@ -511,8 +511,8 @@ graph TB
 - 활성화 상태 관리
 
 **시드 데이터**:
-- 일반 비행선: cost_factor=1.0, duration_factor=3.0
-- 고속 비행선: cost_factor=2.0, duration_factor=1.0
+- 일반 비행선: cost_factor=1, duration_factor=3
+- 고속 비행선: cost_factor=2, duration_factor=1
 
 ### Ticket (티켓)
 
