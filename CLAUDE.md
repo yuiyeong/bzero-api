@@ -32,19 +32,19 @@ B0 프로젝트의 Backend API 서버입니다. FastAPI와 Clean Architecture를
 bzero-api/
 ├── src/bzero/               # 메인 소스 디렉토리
 │   ├── domain/              # 도메인 계층 (순수 비즈니스 로직)
-│   │   ├── entities/        # User, UserIdentity, City, PointTransaction
+│   │   ├── entities/        # User, UserIdentity, City, PointTransaction, Airship
 │   │   ├── value_objects/   # Id, Email, Nickname, Profile, Balance, AuthProvider, TransactionType 등
 │   │   ├── repositories/    # 리포지토리 인터페이스 (추상 클래스)
-│   │   ├── services/        # 도메인 서비스 (UserService, PointTransactionService, CityService)
+│   │   ├── services/        # 도메인 서비스 (UserService, PointTransactionService, CityService, AirshipService)
 │   │   └── errors.py        # 도메인 예외
 │   │
 │   ├── application/         # 애플리케이션 계층 (유스케이스)
-│   │   ├── use_cases/       # users/, cities/ 하위 디렉토리로 구분
-│   │   └── results/         # 유스케이스 결과 객체 (UserResult, CityResult)
+│   │   ├── use_cases/       # users/, cities/, airships/ 하위 디렉토리로 구분
+│   │   └── results/         # 유스케이스 결과 객체 (UserResult, CityResult, AirshipResult)
 │   │
 │   ├── infrastructure/      # 인프라 계층 (외부 시스템 연동)
 │   │   ├── auth/            # JWT 유틸리티 (Supabase JWT 검증)
-│   │   ├── db/              # ORM 모델 (UserModel, CityModel, PointTransactionModel, UserIdentityModel)
+│   │   ├── db/              # ORM 모델 (UserModel, CityModel, PointTransactionModel, UserIdentityModel, AirshipModel)
 │   │   └── repositories/    # 리포지토리 구현체
 │   │
 │   ├── presentation/        # 프레젠테이션 계층 (API)
@@ -60,7 +60,7 @@ bzero-api/
 │   └── main.py              # FastAPI 앱 진입점
 │
 ├── migrations/              # Alembic 마이그레이션
-│   └── versions/            # 마이그레이션 파일들 (4개)
+│   └── versions/            # 마이그레이션 파일들 (5개)
 ├── tests/                   # 테스트
 │   ├── unit/                # 단위 테스트
 │   │   └── domain/          # 도메인 서비스 테스트
@@ -125,7 +125,7 @@ uv run alembic upgrade head
 10. 테스트 작성
 ```
 
-### 현재 구현 상태 (2025-12-04 기준)
+### 현재 구현 상태 (2025-12-06 기준)
 
 #### ✅ 완료된 기능
 
@@ -134,24 +134,26 @@ uv run alembic upgrade head
 - Supabase Auth 연동 (JWT 검증)
 
 **도메인 계층**
-- **엔티티**: User, UserIdentity, City, PointTransaction
+- **엔티티**: User, UserIdentity, City, PointTransaction, Airship
+  - 모든 엔티티에 `create()` 팩토리 메서드 패턴 적용
 - **값 객체**:
   - 공통: Id (UUID v7)
   - User: Email, Nickname, Profile, Balance, AuthProvider
   - PointTransaction: TransactionType, TransactionStatus, TransactionReason, TransactionReference
-- **도메인 서비스**: UserService, PointTransactionService, CityService
-- **리포지토리 인터페이스**: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository
+- **도메인 서비스**: UserService, PointTransactionService, CityService, AirshipService
+- **리포지토리 인터페이스**: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository, AirshipRepository
 
 **인프라 계층**
-- **ORM 모델**: UserModel, UserIdentityModel, CityModel, PointTransactionModel
-- **리포지토리 구현체**: SqlAlchemyUserRepository, SqlAlchemyUserIdentityRepository, SqlAlchemyCityRepository, SqlAlchemyPointTransactionRepository
+- **ORM 모델**: UserModel, UserIdentityModel, CityModel, PointTransactionModel, AirshipModel
+- **리포지토리 구현체**: SqlAlchemyUserRepository, SqlAlchemyUserIdentityRepository, SqlAlchemyCityRepository, SqlAlchemyPointTransactionRepository, SqlAlchemyAirshipRepository
 - **인증**: Supabase JWT 검증 (verify_supabase_jwt, extract_user_id_from_jwt)
 
 **애플리케이션 계층**
 - **유스케이스**:
   - User: CreateUserUseCase, GetMeUseCase, UpdateUserUseCase
   - City: GetActiveCitiesUseCase, GetCityByIdUseCase
-- **결과 객체**: UserResult, CityResult
+  - Airship: GetAvailableAirshipsUseCase
+- **결과 객체**: UserResult, CityResult, AirshipResult
 
 **프레젠테이션 계층**
 - **API 엔드포인트**:
@@ -160,23 +162,25 @@ uv run alembic upgrade head
   - `PATCH /api/v1/users/me` - 내 정보 수정
   - `GET /api/v1/cities` - 활성화된 도시 목록 조회
   - `GET /api/v1/cities/{city_id}` - 도시 상세 조회
-- **Pydantic 스키마**: UserResponse, CityResponse
-- **의존성 주입**: DBSession, CurrentJWTPayload, CurrentUserService, CurrentPointTransactionService, CurrentCityService
+  - `GET /api/v1/airships` - 이용 가능한 비행선 목록 조회
+- **Pydantic 스키마**: UserResponse, CityResponse, AirshipResponse
+- **의존성 주입**: DBSession, CurrentJWTPayload, CurrentUserService, CurrentPointTransactionService, CurrentCityService, CurrentAirshipService
 - **미들웨어**: 로깅, 에러 핸들링
 
-**마이그레이션** (4개)
+**마이그레이션** (5개)
 - 0001_create_user.py
-- 0002_create_city.py
+- 0002_create_city.py (base_cost_points, base_duration_hours 포함)
 - 0003_create_pointtransaction.py
 - 0004_create_useridentity.py
+- 0005_create_airship.py
 
 **테스트**
-- 단위 테스트: UserService, PointTransactionService, City 엔티티, City 유스케이스
-- 통합 테스트: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository, PointTransactionService
-- E2E 테스트: User API, City API
+- 단위 테스트: UserService, PointTransactionService, CityService, AirshipService, City/Airship 엔티티, City/Airship 유스케이스
+- 통합 테스트: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository, AirshipRepository, PointTransactionService, AirshipService
+- E2E 테스트: User API, City API, Airship API
 
 #### 🚧 진행 예정
-- 비행선 티켓 시스템
+- 비행선 티켓 구매 시스템
 - 게스트하우스 및 룸 시스템
 - 채팅 시스템
 
@@ -184,7 +188,7 @@ uv run alembic upgrade head
 
 ### 코드 예시: 주요 도메인 모델
 
-#### 1. Domain Layer - 엔티티
+#### 1. Domain Layer - 엔티티 (팩토리 메서드 패턴)
 
 ```python
 # src/bzero/domain/entities/user.py
@@ -199,6 +203,26 @@ class User:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+
+    @classmethod
+    def create(
+        cls,
+        email: Email | None,
+        created_at: datetime,
+        updated_at: datetime,
+        nickname: Nickname | None = None,
+        profile: Profile | None = None,
+    ) -> "User":
+        """새 User 엔티티를 생성합니다 (ID 자동 생성)."""
+        return cls(
+            user_id=Id(),
+            email=email,
+            nickname=nickname,
+            profile=profile,
+            current_points=Balance(0),
+            created_at=created_at,
+            updated_at=updated_at,
+        )
 ```
 
 ```python
@@ -323,6 +347,7 @@ class CityService:
 - **비동기 처리**: 모든 DB 작업은 `async/await` 사용
 - **ID 생성**: UUID v7 사용 (`uuid_utils.uuid7()`)
 - **값 객체**: 불변 객체로 작성 (`@dataclass(frozen=True)`)
+- **엔티티 팩토리 메서드**: 새 엔티티 생성 시 `Entity.create()` 클래스 메서드 사용 (ID 자동 생성)
 - **예외 처리**: 도메인 예외 → HTTP 예외 변환 (Presentation Layer에서)
 - **인증**: Supabase Auth (JWT), 환경 변수로 민감 정보 관리
 - **타입 힌트**: 모든 함수와 메서드에 타입 힌트 필수
