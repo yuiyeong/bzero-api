@@ -39,6 +39,15 @@ class SqlAlchemyAirshipRepository(AirshipRepository):
 
         return self._to_entity(model)
 
+    async def find_by_id(self, airship_id: Id) -> Airship | None:
+        stmt = select(AirshipModel).where(
+            AirshipModel.airship_id == airship_id.value,
+            AirshipModel.deleted_at.is_(None),
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return self._to_entity(model) if model else None
+
     async def find_all(self, offset: int = 0, limit: int = 100) -> list[Airship]:
         """모든 비행선을 조회합니다 (소프트 삭제된 항목 제외).
 
