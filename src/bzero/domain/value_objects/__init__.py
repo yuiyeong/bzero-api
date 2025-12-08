@@ -11,16 +11,20 @@ from bzero.domain.value_objects.point_transaction import (
     TransactionStatus,
     TransactionType,
 )
+from bzero.domain.value_objects.ticket import AirshipSnapshot, CitySnapshot, TicketStatus
 from bzero.domain.value_objects.user import AuthProvider, Balance, Email, Nickname, Profile
 
 
 __all__ = [
+    "AirshipSnapshot",
     "AuthProvider",
     "Balance",
+    "CitySnapshot",
     "Email",
     "Id",
     "Nickname",
     "Profile",
+    "TicketStatus",
     "TransactionReason",
     "TransactionReference",
     "TransactionStatus",
