@@ -77,3 +77,6 @@ class Balance:
             raise InvalidAmountError
 
         return Balance(self.value - amount)
+
+    def less_than(self, amount: int) -> bool:
+        return self.value < amount

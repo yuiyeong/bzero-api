@@ -3,6 +3,8 @@ from uuid import UUID
 
 from uuid_utils import uuid7
 
+from bzero.domain.errors import InvalidIdError
+
 
 @dataclass(frozen=True)
 class Id:
@@ -10,7 +12,23 @@ class Id:
 
     value: UUID = field(default_factory=uuid7)
 
+    def extract_time(self) -> int:
+        return self.value.time
+
     @classmethod
     def from_hex(cls, hex_string: str) -> "Id":
-        """UUID hex string으로부터 Id 생성"""
-        return cls(value=UUID(hex=hex_string))
+        """UUID hex string으로부터 Id 생성
+
+        Args:
+            hex_string: UUID hex 문자열
+
+        Returns:
+            Id 인스턴스
+
+        Raises:
+            InvalidIdError: 잘못된 UUID 형식일 때
+        """
+        try:
+            return cls(value=UUID(hex=hex_string))
+        except (ValueError, AttributeError) as e:
+            raise InvalidIdError from e

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from bzero.domain.value_objects import Id
+from bzero.domain.value_objects import CitySnapshot, Id
 
 
 @dataclass
@@ -32,6 +32,17 @@ class City:
     def deactivate(self) -> None:
         """도시를 비활성화합니다."""
         self.is_active = False
+
+    def snapshot(self) -> CitySnapshot:
+        return CitySnapshot(
+            city_id=self.city_id,
+            name=self.name,
+            theme=self.theme,
+            image_url=self.image_url,
+            description=self.description,
+            base_cost_points=self.base_cost_points,
+            base_duration_hours=self.base_duration_hours,
+        )
 
     @classmethod
     def create(

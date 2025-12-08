@@ -1,5 +1,7 @@
 from bzero.domain.entities import Airship
+from bzero.domain.errors import InvalidAirshipStatusError, NotFoundAirshipError
 from bzero.domain.repositories.airship import AirshipRepository
+from bzero.domain.value_objects import Id
 
 
 class AirshipService:
@@ -30,3 +32,15 @@ class AirshipService:
         airships = await self._airship_repository.find_all_by_active_state(is_active=True, limit=limit, offset=offset)
         total = await self._airship_repository.count_by(is_active=True)
         return airships, total
+
+    async def get_airship_by_id(self, airship_id: Id) -> Airship:
+        airship = await self._airship_repository.find_by_id(airship_id)
+        if airship is None:
+            raise NotFoundAirshipError
+        return airship
+
+    async def get_active_airship_by_id(self, airship_id: Id) -> Airship:
+        airship = await self.get_airship_by_id(airship_id)
+        if not airship.is_active:
+            raise InvalidAirshipStatusError
+        return airship

@@ -1,5 +1,5 @@
 from bzero.domain.entities.city import City
-from bzero.domain.errors import CityNotFoundError
+from bzero.domain.errors import CityNotFoundError, InvalidCityStatusError
 from bzero.domain.repositories.city import CityRepository
 from bzero.domain.value_objects import Id
 
@@ -46,4 +46,10 @@ class CityService:
         if city is None:
             raise CityNotFoundError
 
+        return city
+
+    async def get_active_city_by_id(self, city_id: Id) -> City:
+        city = await self.get_city_by_id(city_id)
+        if not city.is_active:
+            raise InvalidCityStatusError
         return city
