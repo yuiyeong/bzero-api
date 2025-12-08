@@ -12,17 +12,21 @@ class ErrorCode(str, Enum):
     INVALID_PROFILE = "프로필 형식이 잘못되었습니다."
     INVALID_POINT_TRANSACTION_STATUS = "트랜잭션 상태가 잘못되었습니다."
     INVALID_TICKET_STATUS = "티켓 상태가 잘못되었습니다."
+    INVALID_DIARY_CONTENT = "일기 내용이 잘못되었습니다."
+    INVALID_DIARY_MOOD = "일기 기분이 잘못되었습니다."
     INSUFFICIENT_BALANCE = "잔액이 부족합니다."
     INVALID_CITY_STATUS = "도시 상태가 잘못되었습니다."
     INVALID_AIRSHIP_STATUS = "비행선 상태가 잘못되었습니다."
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
+    FORBIDDEN = "접근 권한이 없습니다."
     FORBIDDEN_TICKET = "티켓을 가져올 수 없는 사용자입니다."
 
     CITY_NOT_FOUND = "찾을 수 없는 도시입니다."
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
     NOT_FOUND_AIRSHIP = "찾을 수 없는 비행선입니다."
     NOT_FOUND_TICKET = "찾을 수 없는 티켓입니다."
+    DIARY_NOT_FOUND = "찾을 수 없는 일기입니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
@@ -141,6 +145,11 @@ class UnauthorizedError(AuthError):
         super().__init__(ErrorCode.UNAUTHORIZED)
 
 
+class ForbiddenError(AuthError):
+    def __init__(self):
+        super().__init__(ErrorCode.FORBIDDEN)
+
+
 class DuplicatedUserError(DuplicatedError):
     def __init__(self):
         super().__init__(ErrorCode.DUPLICATED_USER)
@@ -149,3 +158,18 @@ class DuplicatedUserError(DuplicatedError):
 class ProfileIncompleteError(BadRequestError):
     def __init__(self):
         super().__init__(ErrorCode.PROFILE_INCOMPLETE)
+
+
+class InvalidDiaryContentError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_DIARY_CONTENT)
+
+
+class InvalidDiaryMoodError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_DIARY_MOOD)
+
+
+class DiaryNotFoundError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.DIARY_NOT_FOUND)

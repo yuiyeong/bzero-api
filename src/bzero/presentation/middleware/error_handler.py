@@ -11,7 +11,9 @@ from bzero.domain.errors import (
     BeZeroError,
     DuplicatedError,
     ErrorCode,
+    ForbiddenError,
     NotFoundError,
+    UnauthorizedError,
 )
 from bzero.presentation.schemas.common import ErrorResponse
 
@@ -24,9 +26,19 @@ def setup_error_handlers(app: FastAPI, debug: bool) -> None:
         debug: 디버그 모드 여부
     """
 
+    @app.exception_handler(UnauthorizedError)
+    async def handle_unauthorized_error(_: Request, e: UnauthorizedError) -> JSONResponse:
+        """인증 에러를 처리합니다."""
+        return _convert_error_to_json(status_code=status.HTTP_401_UNAUTHORIZED, error_code=e.code)
+
+    @app.exception_handler(ForbiddenError)
+    async def handle_forbidden_error(_: Request, e: ForbiddenError) -> JSONResponse:
+        """권한 에러를 처리합니다."""
+        return _convert_error_to_json(status_code=status.HTTP_403_FORBIDDEN, error_code=e.code)
+
     @app.exception_handler(AuthError)
     async def handle_auth_error(_: Request, e: AuthError) -> JSONResponse:
-        """인증 에러를 처리합니다."""
+        """기타 인증/인가 에러를 처리합니다."""
         return _convert_error_to_json(status_code=status.HTTP_401_UNAUTHORIZED, error_code=e.code)
 
     @app.exception_handler(AccessDeniedError)
