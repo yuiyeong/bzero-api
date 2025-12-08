@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from bzero.domain.value_objects import Id
+from bzero.domain.value_objects import AirshipSnapshot, Id
 
 
 @dataclass
@@ -45,6 +45,16 @@ class Airship:
     def deactivate(self) -> None:
         """비행선 비활성화"""
         self.is_active = False
+
+    def snapshot(self) -> AirshipSnapshot:
+        return AirshipSnapshot(
+            airship_id=self.airship_id,
+            name=self.name,
+            image_url=self.image_url,
+            description=self.description,
+            cost_factor=self.cost_factor,
+            duration_factor=self.duration_factor,
+        )
 
     @classmethod
     def create(

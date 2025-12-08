@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from bzero.domain.entities import Airship
+from bzero.domain.value_objects import Id
 
 
 class AirshipRepository(ABC):
@@ -21,6 +22,10 @@ class AirshipRepository(ABC):
         Returns:
             생성된 비행선 엔티티 (DB에서 생성된 타임스탬프 포함)
         """
+
+    @abstractmethod
+    async def find_by_id(self, airship_id: Id) -> Airship | None:
+        pass
 
     @abstractmethod
     async def find_all(self, offset: int = 0, limit: int = 100) -> list[Airship]:

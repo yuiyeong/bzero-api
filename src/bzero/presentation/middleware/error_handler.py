@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from bzero.domain.errors import (
+    AccessDeniedError,
     AuthError,
     BadRequestError,
     BeZeroError,
@@ -25,8 +26,13 @@ def setup_error_handlers(app: FastAPI, debug: bool) -> None:
 
     @app.exception_handler(AuthError)
     async def handle_auth_error(_: Request, e: AuthError) -> JSONResponse:
-        """인증/인가 에러를 처리합니다."""
+        """인증 에러를 처리합니다."""
         return _convert_error_to_json(status_code=status.HTTP_401_UNAUTHORIZED, error_code=e.code)
+
+    @app.exception_handler(AccessDeniedError)
+    async def handle_access_denied_error(_: Request, e: AuthError) -> JSONResponse:
+        """인가 에러를 처리합니다."""
+        return _convert_error_to_json(status_code=status.HTTP_403_FORBIDDEN, error_code=e.code)
 
     @app.exception_handler(DuplicatedError)
     async def handle_duplicated_error(_: Request, e: DuplicatedError) -> JSONResponse:
@@ -43,7 +49,7 @@ def setup_error_handlers(app: FastAPI, debug: bool) -> None:
         return _convert_error_to_json(status_code=status.HTTP_404_NOT_FOUND, error_code=e.code)
 
     @app.exception_handler(BeZeroError)
-    async def handle_smartrss_error(_: Request, e: BeZeroError) -> JSONResponse:
+    async def handle_b0_error(_: Request, e: BeZeroError) -> JSONResponse:
         """B0 애플리케이션 에러를 처리합니다."""
         return _convert_error_to_json(status_code=status.HTTP_400_BAD_REQUEST, error_code=e.code)
 

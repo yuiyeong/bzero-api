@@ -18,6 +18,7 @@ class TransactionReason(str, Enum):
     QUESTIONNAIRE = "questionnaire"
     TICKET = "ticket"
     EXTENSION = "extension"
+    REFUND = "refund"
     ETC = "etc"
 
 
