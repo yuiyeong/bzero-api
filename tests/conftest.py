@@ -25,10 +25,8 @@ from bzero.main import create_app
 # 모든 모델을 import하여 Base.metadata.create_all()이 모든 테이블을 생성하도록 함
 from bzero.infrastructure.db.airship_model import AirshipModel  # noqa: F401
 from bzero.infrastructure.db.city_model import CityModel  # noqa: F401
-from bzero.infrastructure.db.diary_model import DiaryModel  # noqa: F401
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel  # noqa: F401
 from bzero.infrastructure.db.ticket_model import TicketModel  # noqa: F401
-# from bzero.infrastructure.db.questionnaire_model import QuestionnaireModel  # noqa: F401
 from bzero.infrastructure.db.user_identity_model import UserIdentityModel  # noqa: F401
 from bzero.infrastructure.db.user_model import UserModel  # noqa: F401
 
@@ -183,18 +181,6 @@ def auth_headers() -> dict[str, str]:
 
 
 @pytest.fixture
-def auth_headers_2() -> dict[str, str]:
-    """두 번째 사용자의 인증 헤더를 반환합니다."""
-    settings = Settings()
-    token = create_test_jwt(
-        provider_user_id="test-user-id-456",
-        email="test2@example.com",
-        secret=settings.auth.supabase_jwt_secret.get_secret_value(),
-    )
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture
 def auth_headers_factory() -> Any:
     """커스텀 인증 헤더를 생성하는 팩토리를 반환합니다."""
     settings = Settings()
@@ -213,24 +199,3 @@ def auth_headers_factory() -> Any:
         return {"Authorization": f"Bearer {token}"}
 
     return _create_headers
-
-
-@pytest_asyncio.fixture
-async def test_city_id(test_session: AsyncSession) -> str:
-    """테스트용 도시 ID를 생성합니다."""
-    from uuid_utils import uuid7
-    from bzero.infrastructure.db.city_model import CityModel
-
-    city = CityModel(
-        city_id=uuid7(),
-        name="테스트 도시",
-        theme="테스트",
-        description="테스트용 도시",
-        image_url="https://example.com/image.jpg",
-        is_active=True,
-        display_order=1,
-    )
-    test_session.add(city)
-    await test_session.flush()
-    await test_session.refresh(city)
-    return str(city.city_id)

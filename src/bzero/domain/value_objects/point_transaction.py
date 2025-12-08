@@ -25,5 +25,4 @@ class TransactionReason(str, Enum):
 class TransactionReference(str, Enum):
     USERS = "users"
     DIARIES = "diaries"
-    QUESTIONNAIRES = "questionnaires"
     TICKETS = "tickets"
