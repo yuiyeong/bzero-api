@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bzero.core.database import get_async_db_session
 from bzero.core.settings import get_settings
 from bzero.domain.errors import UnauthorizedError
-from bzero.domain.services import AirshipService
+from bzero.domain.services import AirshipService, TicketService
 from bzero.domain.services.city import CityService
 from bzero.domain.services.point_transaction import PointTransactionService
 from bzero.domain.services.user import UserService
@@ -17,6 +17,7 @@ from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.airship import SqlAlchemyAirshipRepository
 from bzero.infrastructure.repositories.city import SqlAlchemyCityRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
+from bzero.infrastructure.repositories.ticket import SqlAlchemyTicketRepository
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
 from bzero.presentation.schemas.common import JWTPayload
@@ -131,6 +132,15 @@ def get_airship_service(
     return AirshipService(airship_repository)
 
 
+def get_ticket_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> TicketService:
+    """Create TicketService instance."""
+    settings = get_settings()
+    ticket_repository = SqlAlchemyTicketRepository(session)
+    return TicketService(ticket_repository, settings.timezone)
+
+
 # Type aliases
 DBSession = Annotated[AsyncSession, Depends(get_async_db_session)]
 CurrentJWTPayload = Annotated[JWTPayload, Depends(get_jwt_payload)]
@@ -138,3 +148,4 @@ CurrentUserService = Annotated[UserService, Depends(get_user_service)]
 CurrentPointTransactionService = Annotated[PointTransactionService, Depends(get_point_transaction_service)]
 CurrentCityService = Annotated[CityService, Depends(get_city_service)]
 CurrentAirshipService = Annotated[AirshipService, Depends(get_airship_service)]
+CurrentTicketService = Annotated[TicketService, Depends(get_ticket_service)]
