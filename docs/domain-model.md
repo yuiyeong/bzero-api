@@ -369,11 +369,7 @@ graph TB
     subgraph TravelAggregate[Travel Aggregate]
         Ticket[Ticket<br/>티켓<br/>AR]
         City[City<br/>도시]
-        TicketType[TicketType<br/>VO]
-        TravelDuration[TravelDuration<br/>VO]
         Ticket --> City
-        Ticket --> TicketType
-        Ticket --> TravelDuration
     end
 
     subgraph RoomAggregate[Room Aggregate]
