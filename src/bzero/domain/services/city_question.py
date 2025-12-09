@@ -1,4 +1,5 @@
 from bzero.domain.errors import CityNotFoundError
+from bzero.domain.repositories.city import CityRepository
 from bzero.domain.value_objects import Id
 
 # 세렌시아 (관계의 도시) 질문
@@ -15,6 +16,36 @@ LORENCIA_QUESTIONS = [
     "회복이 필요할 때 가장 먼저 하고 싶은 일은?",
 ]
 
+# 엠마시아 (희망의 도시) 질문
+EMMASIA_QUESTIONS = [
+    "최근에 나를 설레게 한 것은?",
+    "내가 이루고 싶은 꿈이 있다면?",
+    "미래의 나에게 하고 싶은 말은?",
+]
+
+# 다마린 (고요의 도시) 질문
+DAMARIN_QUESTIONS = [
+    "요즘 마음이 고요할 때는 언제인가?",
+    "내가 가장 평온함을 느끼는 순간은?",
+    "고요함 속에서 떠오르는 생각은?",
+]
+
+# 갈리시아 (성찰의 도시) 질문
+GALICIA_QUESTIONS = [
+    "최근에 내가 성장했다고 느낀 순간은?",
+    "지금의 나를 만든 경험이 있다면?",
+    "앞으로 더 발전하고 싶은 부분은?",
+]
+
+# 도시 이름 -> 질문 매핑
+CITY_QUESTIONS_MAP = {
+    "세렌시아": SERENCIA_QUESTIONS,
+    "로렌시아": LORENCIA_QUESTIONS,
+    "엠마시아": EMMASIA_QUESTIONS,
+    "다마린": DAMARIN_QUESTIONS,
+    "갈리시아": GALICIA_QUESTIONS,
+}
+
 
 class CityQuestionService:
     """도시별 질문 서비스
@@ -23,7 +54,10 @@ class CityQuestionService:
     질문은 코드로 관리하며 DB에 저장하지 않습니다.
     """
 
-    def get_questions_by_city(self, city_id: Id) -> list[str]:
+    def __init__(self, city_repository: CityRepository):
+        self._city_repository = city_repository
+
+    async def get_questions_by_city(self, city_id: Id) -> list[str]:
         """도시 ID로 질문 3개 조회
 
         Args:
@@ -35,15 +69,14 @@ class CityQuestionService:
         Raises:
             CityNotFoundError: 존재하지 않는 도시 ID인 경우
         """
-        # TODO: 도시 ID 값을 실제 데이터와 매칭하여 반환해야 함
-        # 현재는 도시 이름으로 구분하거나, 별도 매핑 테이블이 필요할 수 있음
-        # 여기서는 하드코딩된 ID를 사용하거나, 도시 리포지토리를 통해 이름을 가져올 수 있음
+        # 1. 도시 조회
+        city = await self._city_repository.find_by_id(city_id)
+        if not city:
+            raise CityNotFoundError
 
-        # 임시로 도시 ID에 따른 질문 반환 로직 (실제로는 도시 name을 기준으로)
-        # 이 부분은 시드 데이터의 도시 ID와 맞춰야 합니다
-        city_id_value = city_id.value
+        # 2. 도시 이름으로 질문 매핑
+        questions = CITY_QUESTIONS_MAP.get(city.name)
+        if not questions:
+            raise CityNotFoundError
 
-        # 시드 데이터의 실제 도시 ID와 매핑 필요
-        # 여기서는 city_id 문자열에 따라 분기 (추후 개선 필요)
-        # 실제 구현에서는 CityRepository를 주입받아 city.name으로 판단할 수 있음
-        raise CityNotFoundError
+        return questions

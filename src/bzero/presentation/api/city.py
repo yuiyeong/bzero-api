@@ -8,9 +8,11 @@ from bzero.application.use_cases.cities.get_active_cities import (
     GetActiveCitiesUseCase,
 )
 from bzero.application.use_cases.cities.get_city_by_id import GetCityByIdUseCase
-from bzero.presentation.api.dependencies import CurrentCityService
+from bzero.application.use_cases.cities.get_city_questions import GetCityQuestionsUseCase
+from bzero.presentation.api.dependencies import CurrentCityQuestionService, CurrentCityService
 from bzero.presentation.schemas.city import CityResponse
 from bzero.presentation.schemas.common import DataResponse, ListResponse, Pagination
+from bzero.presentation.schemas.questionnaire import CityQuestionsResponse
 
 
 router = APIRouter(prefix="/cities", tags=["cities"])
@@ -63,3 +65,28 @@ async def get_city_by_id(
     """
     result = await GetCityByIdUseCase(city_service).execute(city_id)
     return DataResponse(data=CityResponse.create_from(result))
+
+
+@router.get(
+    "/{city_id}/questions",
+    response_model=DataResponse[CityQuestionsResponse],
+    summary="도시별 질문 조회",
+    description="도시 ID로 해당 도시의 문답지 질문 3개를 조회합니다.",
+)
+async def get_city_questions(
+    city_id: str,
+    city_question_service: CurrentCityQuestionService,
+) -> DataResponse[CityQuestionsResponse]:
+    """도시별 질문 조회.
+
+    Args:
+        city_id: 도시 ID (UUID hex 문자열)
+
+    Returns:
+        도시 ID와 질문 3개
+
+    Raises:
+        HTTPException 404: 도시를 찾을 수 없거나 질문이 없는 경우
+    """
+    questions = await GetCityQuestionsUseCase(city_question_service).execute(city_id)
+    return DataResponse(data=CityQuestionsResponse(city_id=city_id, questions=questions))
