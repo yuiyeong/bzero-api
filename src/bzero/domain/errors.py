@@ -15,6 +15,9 @@ class ErrorCode(str, Enum):
     INSUFFICIENT_BALANCE = "잔액이 부족합니다."
     INVALID_CITY_STATUS = "도시 상태가 잘못되었습니다."
     INVALID_AIRSHIP_STATUS = "비행선 상태가 잘못되었습니다."
+    INVALID_DIARY_CONTENT = "일기 내용 형식이 잘못되었습니다."
+    INVALID_DIARY_MOOD = "일기 기분 이모지 형식이 잘못되었습니다."
+    INVALID_QUESTIONNAIRE_ANSWER = "문답지 답변 형식이 잘못되었습니다."
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
     FORBIDDEN_TICKET = "티켓을 가져올 수 없는 사용자입니다."
@@ -23,9 +26,13 @@ class ErrorCode(str, Enum):
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
     NOT_FOUND_AIRSHIP = "찾을 수 없는 비행선입니다."
     NOT_FOUND_TICKET = "찾을 수 없는 티켓입니다."
+    NOT_FOUND_DIARY = "찾을 수 없는 일기입니다."
+    NOT_FOUND_QUESTIONNAIRE = "찾을 수 없는 문답지입니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
+    DUPLICATED_DIARY = "이미 작성한 일기가 있습니다."
+    DUPLICATED_QUESTIONNAIRE = "이미 작성한 문답지가 있습니다."
 
     PROFILE_INCOMPLETE = "프로필이 완료되지 않았습니다."
 
@@ -149,3 +156,38 @@ class DuplicatedUserError(DuplicatedError):
 class ProfileIncompleteError(BadRequestError):
     def __init__(self):
         super().__init__(ErrorCode.PROFILE_INCOMPLETE)
+
+
+class InvalidDiaryContentError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_DIARY_CONTENT)
+
+
+class InvalidDiaryMoodError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_DIARY_MOOD)
+
+
+class InvalidQuestionnaireAnswerError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_QUESTIONNAIRE_ANSWER)
+
+
+class NotFoundDiaryError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_DIARY)
+
+
+class NotFoundQuestionnaireError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_QUESTIONNAIRE)
+
+
+class DuplicatedDiaryError(DuplicatedError):
+    def __init__(self):
+        super().__init__(ErrorCode.DUPLICATED_DIARY)
+
+
+class DuplicatedQuestionnaireError(DuplicatedError):
+    def __init__(self):
+        super().__init__(ErrorCode.DUPLICATED_QUESTIONNAIRE)

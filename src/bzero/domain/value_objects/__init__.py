@@ -5,12 +5,14 @@
 """
 
 from bzero.domain.value_objects.common import Id
+from bzero.domain.value_objects.diary import DiaryContent, DiaryMood
 from bzero.domain.value_objects.point_transaction import (
     TransactionReason,
     TransactionReference,
     TransactionStatus,
     TransactionType,
 )
+from bzero.domain.value_objects.questionnaire import QuestionAnswer
 from bzero.domain.value_objects.ticket import AirshipSnapshot, CitySnapshot, TicketStatus
 from bzero.domain.value_objects.user import AuthProvider, Balance, Email, Nickname, Profile
 
@@ -20,10 +22,13 @@ __all__ = [
     "AuthProvider",
     "Balance",
     "CitySnapshot",
+    "DiaryContent",
+    "DiaryMood",
     "Email",
     "Id",
     "Nickname",
     "Profile",
+    "QuestionAnswer",
     "TicketStatus",
     "TransactionReason",
     "TransactionReference",
