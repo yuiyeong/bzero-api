@@ -1,10 +1,8 @@
 """일기 관련 API 엔드포인트."""
 
-from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
-from zoneinfo import ZoneInfo
 
 from bzero.application.use_cases.diaries.create_diary import CreateDiaryUseCase
 from bzero.application.use_cases.diaries.get_diaries import GetDiariesUseCase
@@ -14,6 +12,7 @@ from bzero.presentation.api.dependencies import (
     CurrentDiaryService,
     CurrentJWTPayload,
     CurrentPointTransactionService,
+    CurrentTicketService,
     DBSession,
 )
 from bzero.presentation.schemas.common import DataResponse
@@ -35,26 +34,26 @@ async def create_diary(
     session: DBSession,
     jwt_payload: CurrentJWTPayload,
     diary_service: CurrentDiaryService,
+    ticket_service: CurrentTicketService,
     point_transaction_service: CurrentPointTransactionService,
 ) -> DataResponse[DiaryResponse]:
     """일기 작성.
 
     - 하루에 하나의 일기만 작성 가능 (중복 시 409 Conflict)
     - 작성 시 50P 자동 지급 (하루 1회)
-    - diary_date는 서버 시간 기준 오늘 날짜로 자동 설정
+    - diary_date는 탑승 중인 티켓 기준 또는 자정 기준으로 자동 계산
     """
     user_id = jwt_payload["sub"]
-    today = date.today()
 
     result = await CreateDiaryUseCase(
         session=session,
         diary_service=diary_service,
+        ticket_service=ticket_service,
         point_transaction_service=point_transaction_service,
     ).execute(
         user_id=user_id,
         content=request.content,
         mood=request.mood,
-        diary_date=today,
         title=request.title,
         city_id=request.city_id,
     )
@@ -71,16 +70,17 @@ async def create_diary(
 async def get_today_diary(
     jwt_payload: CurrentJWTPayload,
     diary_service: CurrentDiaryService,
+    ticket_service: CurrentTicketService,
 ) -> DataResponse[DiaryResponse | None]:
     """오늘 일기 조회.
 
     - 본인이 오늘 작성한 일기만 조회 가능
     - 일기가 없으면 data=None 반환
+    - "오늘"은 탑승 중인 티켓 기준 또는 자정 기준으로 자동 계산
     """
     user_id = jwt_payload["sub"]
-    today = date.today()
 
-    result = await GetTodayDiaryUseCase(diary_service).execute(user_id=user_id, today=today)
+    result = await GetTodayDiaryUseCase(diary_service, ticket_service).execute(user_id=user_id)
 
     return DataResponse(data=DiaryResponse.create_from(result) if result else None)
 

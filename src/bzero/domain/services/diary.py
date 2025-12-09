@@ -1,7 +1,8 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from bzero.domain.entities.diary import Diary
+from bzero.domain.entities.ticket import Ticket
 from bzero.domain.errors import DuplicatedDiaryError, NotFoundDiaryError
 from bzero.domain.repositories.diary import DiaryRepository
 from bzero.domain.value_objects import DiaryContent, DiaryMood, Id
@@ -17,6 +18,30 @@ class DiaryService:
     def __init__(self, diary_repository: DiaryRepository, timezone: ZoneInfo):
         self._diary_repository = diary_repository
         self._timezone = timezone
+
+    def calculate_diary_date(self, current_boarding_ticket: Ticket | None) -> date:
+        """일기 날짜를 계산합니다.
+
+        - 탑승 중인 티켓이 있으면: departure_datetime을 기준으로 날짜 계산
+        - 탑승 중인 티켓이 없으면: 현재 자정 기준으로 날짜 계산
+
+        Args:
+            current_boarding_ticket: 현재 탑승 중인 티켓 (없으면 None)
+
+        Returns:
+            일기 날짜 (date)
+        """
+        now = datetime.now(self._timezone)
+
+        if current_boarding_ticket:
+            # 티켓 기준: departure_datetime부터 24시간 단위
+            departure = current_boarding_ticket.departure_datetime
+            elapsed_hours = (now - departure).total_seconds() / 3600
+            days_since_departure = int(elapsed_hours // 24)
+            return departure.date() + timedelta(days=days_since_departure)
+        else:
+            # 자정 기준: 현재 날짜
+            return now.date()
 
     async def create_diary(
         self,
