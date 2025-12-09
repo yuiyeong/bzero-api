@@ -87,8 +87,9 @@ async def test_session(test_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
     SAVEPOINT를 사용하여 UseCase의 commit()이 실제로 동작하면서도
     테스트 종료 시 전체 롤백이 가능하도록 합니다.
     """
-    # 테이블 생성 (첫 테스트 시)
+    # 테이블 재생성 (기존 테이블 삭제 후 생성)
     async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     # 연결 생성
