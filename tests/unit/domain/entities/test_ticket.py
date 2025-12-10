@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from uuid_utils import uuid7
 
+from bzero.core.settings import get_settings
 from bzero.domain.entities.ticket import Ticket
 from bzero.domain.errors import InvalidTicketStatusError
 from bzero.domain.value_objects import AirshipSnapshot, CitySnapshot, Id, TicketStatus
@@ -13,6 +14,11 @@ from bzero.domain.value_objects import AirshipSnapshot, CitySnapshot, Id, Ticket
 
 class TestTicket:
     """Ticket 엔티티 단위 테스트"""
+
+    @pytest.fixture
+    def tz(self) -> ZoneInfo:
+        """Seoul timezone"""
+        return get_settings().timezone
 
     @pytest.fixture
     def sample_city_snapshot(self) -> CitySnapshot:
@@ -39,12 +45,13 @@ class TestTicket:
             duration_factor=1,
         )
 
-    def test_create_ticket(self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot):
+    def test_create_ticket(
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
+    ):
         """티켓을 생성할 수 있다"""
         # Given
         user_id = Id(uuid7())
         cost_points = 300
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         created_at = departure_datetime
@@ -75,12 +82,11 @@ class TestTicket:
         assert ticket.updated_at == updated_at
 
     def test_create_ticket_generates_ticket_number(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """티켓 생성 시 티켓 번호가 자동 생성된다"""
         # Given
         user_id = Id(uuid7())
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         created_at = departure_datetime
@@ -102,12 +108,11 @@ class TestTicket:
         assert ticket.ticket_number is not None
         assert ticket.ticket_number.startswith(f"B0-{departure_datetime.year}-")
 
-    def test_generate_ticket_number(self):
+    def test_generate_ticket_number(self, tz: ZoneInfo):
         """티켓 번호를 생성할 수 있다"""
         # Given
         user_id = Id(uuid7())
         ticket_id = Id(uuid7())
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
 
         # When
@@ -122,11 +127,10 @@ class TestTicket:
         assert len(ticket_number) > 10
 
     def test_consume_ticket_from_purchased_status(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """PURCHASED 상태의 티켓을 소비하여 BOARDING 상태로 변경할 수 있다"""
         # Given
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         ticket = Ticket.create(
@@ -148,11 +152,10 @@ class TestTicket:
         assert ticket.status == TicketStatus.BOARDING
 
     def test_consume_ticket_from_non_purchased_status_raises_error(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """PURCHASED가 아닌 상태의 티켓을 소비하려 하면 에러가 발생한다"""
         # Given
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         ticket = Ticket(
@@ -174,11 +177,10 @@ class TestTicket:
             ticket.consume()
 
     def test_complete_ticket_from_boarding_status(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """BOARDING 상태의 티켓을 완료하여 COMPLETED 상태로 변경할 수 있다"""
         # Given
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         ticket = Ticket(
@@ -202,11 +204,10 @@ class TestTicket:
         assert ticket.status == TicketStatus.COMPLETED
 
     def test_complete_ticket_from_non_boarding_status_raises_error(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """BOARDING이 아닌 상태의 티켓을 완료하려 하면 에러가 발생한다"""
         # Given
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         ticket = Ticket.create(
@@ -226,11 +227,10 @@ class TestTicket:
             ticket.complete()
 
     def test_cancel_ticket_from_purchased_status(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """PURCHASED 상태의 티켓을 취소하여 CANCELLED 상태로 변경할 수 있다"""
         # Given
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         ticket = Ticket.create(
@@ -252,11 +252,10 @@ class TestTicket:
         assert ticket.status == TicketStatus.CANCELLED
 
     def test_cancel_ticket_from_non_purchased_status_raises_error(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """PURCHASED가 아닌 상태의 티켓을 취소하려 하면 에러가 발생한다"""
         # Given
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         ticket = Ticket(
@@ -278,11 +277,10 @@ class TestTicket:
             ticket.cancel()
 
     def test_cancel_completed_ticket_raises_error(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """COMPLETED 상태의 티켓은 취소할 수 없다"""
         # Given
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=24)
         ticket = Ticket(
@@ -304,13 +302,12 @@ class TestTicket:
             ticket.cancel()
 
     def test_create_ticket_with_different_cost_and_duration(
-        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot
+        self, sample_city_snapshot: CitySnapshot, sample_airship_snapshot: AirshipSnapshot, tz: ZoneInfo
     ):
         """다양한 비용과 기간으로 티켓을 생성할 수 있다"""
         # Given
         user_id = Id(uuid7())
         cost_points = 500
-        tz = ZoneInfo("Asia/Seoul")
         departure_datetime = datetime.now(tz)
         arrival_datetime = departure_datetime + timedelta(hours=12)
 

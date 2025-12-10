@@ -142,7 +142,7 @@ class TestGetCityByIdUseCase:
         result = await use_case.execute(city_id)
 
         # Then
-        assert result.city_id == sample_city.city_id.value.hex
+        assert result.city_id == sample_city.city_id.to_hex()
         assert result.name == "세렌시아"
         assert result.theme == "관계의 도시"
         mock_city_service.get_city_by_id.assert_called_once()
