@@ -71,7 +71,6 @@ graph TB
         Guesthouse[Guesthouse<br/>게스트하우스]
         Room[Room<br/>룸<br/>체류+대화 공간]
         RoomStay[RoomStay<br/>체류]
-        RoomAssignment[Room Assignment<br/>자동 룸 배정]
         Checkout[Checkout Logic<br/>체크아웃 로직]
     end
 
@@ -610,9 +609,9 @@ PURCHASED → BOARDING → COMPLETED
 - room_id: UUID (FK)
 - user_id: UUID (FK)
 - ticket_id: UUID (FK)
-- check_in_time: DateTime (개별)
-- scheduled_checkout_time: DateTime (개별)
-- actual_checkout_time: DateTime (nullable)
+- check_in_at: DateTime (개별)
+- scheduled_check_out_at: DateTime (개별)
+- actual_check_out_at: DateTime (nullable)
 - extension_count: Integer (개별, 기본값 0)
 - total_extension_cost: Integer (개별, 기본값 0)
 - status: RoomStayStatus (VO)
@@ -856,7 +855,7 @@ PURCHASED → BOARDING → COMPLETED
 
 ### RoomStayStatus
 
-**속성**: CHECKED_IN, CHECKED_OUT
+**속성**: CHECKED_IN, CHECKED_OUT, EXTENDED
 
 ### MessageContent
 
@@ -939,6 +938,7 @@ PURCHASED → BOARDING → COMPLETED
 - **CheckoutScheduled**: 개별 여행자 체크아웃 예약
 - **UserCheckedOut**: 개별 여행자 체크아웃 완료 (자동 또는 수동)
   - RoomStay 상태를 CHECKED_OUT으로 변경
+  - RoomStay 의 actual_check_out_at 업데이트
   - Room의 current_capacity 감소
   - 해당 여행자의 1:1 대화방 삭제
 - **RoomBecameFull**: 룸 정원 6명 도달 (새 배정 불가)
@@ -1324,7 +1324,7 @@ PURCHASED → BOARDING → COMPLETED
 2. **1시간 전 알림**: 각 여행자에게 개별 알림 발송
 3. **체크아웃 처리**:
    - RoomStay 상태를 CHECKED_OUT으로 변경
-   - actual_checkout_time 기록
+   - actual_check_out_at 기록
    - 1:1 대화방 자동 삭제
    - Room의 current_capacity 감소
 4. **룸 삭제**: 마지막 여행자 체크아웃 시 (current_capacity = 0) 룸의 `deleted_at` 설정 (soft delete)
