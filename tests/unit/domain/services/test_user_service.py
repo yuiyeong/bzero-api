@@ -2,10 +2,10 @@
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
-from zoneinfo import ZoneInfo
 
 import pytest
 
+from bzero.core.settings import get_settings
 from bzero.domain.entities.user import User
 from bzero.domain.entities.user_identity import UserIdentity
 from bzero.domain.errors import DuplicatedUserError, NotFoundUserError
@@ -33,7 +33,7 @@ def user_service(
     mock_user_identity_repository: MagicMock,
 ) -> UserService:
     """UserService with mocked repositories"""
-    timezone = ZoneInfo("Asia/Seoul")
+    timezone = get_settings().timezone
     return UserService(mock_user_repository, mock_user_identity_repository, timezone)
 
 

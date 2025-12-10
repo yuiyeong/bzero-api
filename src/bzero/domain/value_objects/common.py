@@ -15,6 +15,9 @@ class Id:
     def extract_time(self) -> int:
         return self.value.time
 
+    def to_hex(self) -> str:
+        return self.value.hex
+
     @classmethod
     def from_hex(cls, hex_string: str) -> "Id":
         """UUID hex string으로부터 Id 생성

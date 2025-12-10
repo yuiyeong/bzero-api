@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,7 +58,7 @@ class SqlAlchemyCityRepository(CityRepository):
     @staticmethod
     def _to_model(entity: City) -> CityModel:
         return CityModel(
-            city_id=uuid.UUID(entity.city_id.value),
+            city_id=entity.city_id.value,
             name=entity.name,
             theme=entity.theme,
             description=entity.description,

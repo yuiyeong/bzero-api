@@ -38,6 +38,54 @@ services:
     networks:
       - bezero-dev-network
 
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bezero-celery-worker-dev
+    command: celery -A bzero.worker.app:bzero_celery_app worker --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE__HOST=postgres
+      - REDIS__HOST=redis
+      - CELERY__BROKER_URL=redis://:${REDIS__PASSWORD:-bezero_redis_dev_password}@redis:6379/0
+      - CELERY__RESULT_BACKEND=redis://:${REDIS__PASSWORD:-bezero_redis_dev_password}@redis:6379/1
+    volumes:
+      - ./src:/app/src:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bezero-dev-network
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bezero-celery-beat-dev
+    command: celery -A bzero.worker.app:bzero_celery_app beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE__HOST=postgres
+      - REDIS__HOST=redis
+      - CELERY__BROKER_URL=redis://:${REDIS__PASSWORD:-bezero_redis_dev_password}@redis:6379/0
+      - CELERY__RESULT_BACKEND=redis://:${REDIS__PASSWORD:-bezero_redis_dev_password}@redis:6379/1
+    volumes:
+      - ./src:/app/src:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bezero-dev-network
+    restart: unless-stopped
+
 volumes:
   postgres_dev_data:
     name: bezero_postgres_dev_data

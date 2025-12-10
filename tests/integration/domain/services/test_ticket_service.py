@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_utils import uuid7
 
@@ -384,77 +384,6 @@ class TestTicketServicePurchaseTicket:
         # When/Then
         with pytest.raises(InvalidAirshipStatusError):
             await ticket_service.purchase_ticket(sample_user, sample_city, sample_inactive_airship)
-
-
-class TestTicketServiceComplete:
-    """complete 메서드 통합 테스트"""
-
-    async def test_complete_ticket_success(
-        self,
-        ticket_service: TicketService,
-        sample_ticket: Ticket,
-        test_session: AsyncSession,
-    ):
-        """티켓을 성공적으로 완료할 수 있어야 합니다."""
-        # Given: BOARDING 상태의 티켓
-        stmt = (
-            update(TicketModel)
-            .where(TicketModel.ticket_id == sample_ticket.ticket_id.value)
-            .values(status=TicketStatus.BOARDING.value)
-        )
-        await test_session.execute(stmt)
-        await test_session.flush()
-
-        # When: DB에서 조회한 티켓의 user_id를 사용 (UUID 타입 호환성 문제 해결)
-        ticket_from_db = await ticket_service.get_ticket_by_id(sample_ticket.ticket_id)
-        completed_ticket = await ticket_service.complete(ticket_from_db.user_id, sample_ticket.ticket_id)
-
-        # Then
-        assert completed_ticket.status == TicketStatus.COMPLETED
-
-        # DB에 업데이트되었는지 확인
-        stmt = select(TicketModel).where(TicketModel.ticket_id == sample_ticket.ticket_id.value)
-        result = await test_session.execute(stmt)
-        saved_model = result.scalar_one_or_none()
-        assert saved_model is not None
-        assert saved_model.status == TicketStatus.COMPLETED.value
-
-    async def test_complete_raises_error_when_ticket_not_found(
-        self,
-        ticket_service: TicketService,
-        sample_user: User,
-    ):
-        """티켓을 찾을 수 없으면 에러가 발생해야 합니다."""
-        # Given
-        non_existent_ticket_id = Id(uuid7())
-
-        # When/Then
-        with pytest.raises(NotFoundTicketError):
-            await ticket_service.complete(sample_user.user_id, non_existent_ticket_id)
-
-    async def test_complete_raises_error_when_forbidden_user(
-        self,
-        ticket_service: TicketService,
-        sample_ticket: Ticket,
-        test_session: AsyncSession,
-    ):
-        """다른 사용자의 티켓을 완료하려 하면 에러가 발생해야 합니다."""
-        # Given: BOARDING 상태로 변경
-        sample_ticket.consume()
-        stmt = (
-            update(TicketModel)
-            .where(TicketModel.ticket_id == sample_ticket.ticket_id.value)
-            .values(status=TicketStatus.BOARDING.value)
-        )
-        await test_session.execute(stmt)
-        await test_session.flush()
-
-        # Given: 다른 사용자
-        another_user_id = Id(uuid7())
-
-        # When/Then
-        with pytest.raises(ForbiddenTicketError):
-            await ticket_service.complete(another_user_id, sample_ticket.ticket_id)
 
 
 class TestTicketServiceCancel:

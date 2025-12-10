@@ -9,11 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_utils import uuid7
 
 from bzero.application.use_cases.tickets.cancel_ticket import CancelTicketUseCase
-from bzero.application.use_cases.tickets.complete_ticket import CompleteTicketUseCase
 from bzero.application.use_cases.tickets.get_current_boarding_ticket import GetCurrentBoardingTicketUseCase
 from bzero.application.use_cases.tickets.get_ticket_detail import GetTicketDetailUseCase
 from bzero.application.use_cases.tickets.get_tickets_by_user import GetTicketsByUserUseCase
 from bzero.application.use_cases.tickets.purchase_ticket import PurchaseTicketUseCase
+from bzero.core.settings import get_settings
 from bzero.domain.entities import Airship, City, Ticket, User, UserIdentity
 from bzero.domain.errors import (
     CityNotFoundError,
@@ -25,6 +25,7 @@ from bzero.domain.errors import (
     NotFoundTicketError,
     NotFoundUserError,
 )
+from bzero.domain.ports import TaskScheduler
 from bzero.domain.repositories.point_transaction import TransactionFilter
 from bzero.domain.services import AirshipService, CityService, PointTransactionService, TicketService, UserService
 from bzero.domain.value_objects import (
@@ -52,8 +53,36 @@ from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdenti
 
 
 # =============================================================================
+# Mock TaskScheduler
+# =============================================================================
+
+
+class MockTaskScheduler(TaskScheduler):
+    """테스트용 Mock TaskScheduler."""
+
+    def __init__(self):
+        self.scheduled_tasks: list[dict] = []
+
+    def schedule_ticket_completion(self, ticket_id: str, eta: datetime) -> None:
+        """티켓 완료 작업을 기록합니다 (실제 스케줄링하지 않음)."""
+        self.scheduled_tasks.append({"ticket_id": ticket_id, "eta": eta})
+
+
+# =============================================================================
 # Fixtures
 # =============================================================================
+
+
+@pytest.fixture
+def timezone() -> ZoneInfo:
+    """Seoul timezone"""
+    return get_settings().timezone
+
+
+@pytest.fixture
+def mock_task_scheduler() -> MockTaskScheduler:
+    """MockTaskScheduler fixture를 생성합니다."""
+    return MockTaskScheduler()
 
 
 @pytest.fixture
@@ -96,9 +125,9 @@ def point_transaction_repository(test_session: AsyncSession) -> SqlAlchemyPointT
 def user_service(
     user_repository: SqlAlchemyUserRepository,
     user_identity_repository: SqlAlchemyUserIdentityRepository,
+    timezone: ZoneInfo,
 ) -> UserService:
     """UserService fixture를 생성합니다."""
-    timezone = ZoneInfo("Asia/Seoul")
     return UserService(user_repository, user_identity_repository, timezone)
 
 
@@ -115,9 +144,8 @@ def airship_service(airship_repository: SqlAlchemyAirshipRepository) -> AirshipS
 
 
 @pytest.fixture
-def ticket_service(ticket_repository: SqlAlchemyTicketRepository) -> TicketService:
+def ticket_service(ticket_repository: SqlAlchemyTicketRepository, timezone: ZoneInfo) -> TicketService:
     """TicketService fixture를 생성합니다."""
-    timezone = ZoneInfo("Asia/Seoul")
     return TicketService(ticket_repository, timezone)
 
 
@@ -131,9 +159,8 @@ def point_transaction_service(
 
 
 @pytest_asyncio.fixture
-async def test_user(test_session: AsyncSession) -> User:
+async def test_user(test_session: AsyncSession, timezone: ZoneInfo) -> User:
     """테스트용 사용자를 생성합니다 (초기 잔액 1000)."""
-    timezone = ZoneInfo("Asia/Seoul")
     now = datetime.now(timezone)
     user_id = uuid7()
     initial_points = 1000
@@ -184,9 +211,9 @@ async def test_user(test_session: AsyncSession) -> User:
 async def test_user_identity(
     user_identity_repository: SqlAlchemyUserIdentityRepository,
     test_user: User,
+    timezone: ZoneInfo,
 ) -> UserIdentity:
     """테스트용 사용자 인증 정보를 생성합니다."""
-    timezone = ZoneInfo("Asia/Seoul")
     now = datetime.now(timezone)
     identity = UserIdentity(
         identity_id=Id(),
@@ -200,9 +227,8 @@ async def test_user_identity(
 
 
 @pytest_asyncio.fixture
-async def test_city(test_session: AsyncSession) -> City:
+async def test_city(test_session: AsyncSession, timezone: ZoneInfo) -> City:
     """테스트용 도시를 생성합니다."""
-    timezone = ZoneInfo("Asia/Seoul")
     now = datetime.now(timezone)
 
     # CityModel을 직접 생성하여 DB에 저장
@@ -239,9 +265,8 @@ async def test_city(test_session: AsyncSession) -> City:
 
 
 @pytest_asyncio.fixture
-async def test_airship(test_session: AsyncSession) -> Airship:
+async def test_airship(test_session: AsyncSession, timezone: ZoneInfo) -> Airship:
     """테스트용 비행선을 생성합니다."""
-    timezone = ZoneInfo("Asia/Seoul")
     now = datetime.now(timezone)
 
     # AirshipModel을 직접 생성하여 DB에 저장
@@ -288,6 +313,7 @@ def purchase_ticket_use_case(
     airship_service: AirshipService,
     ticket_service: TicketService,
     point_transaction_service: PointTransactionService,
+    mock_task_scheduler: MockTaskScheduler,
 ) -> PurchaseTicketUseCase:
     """PurchaseTicketUseCase fixture를 생성합니다."""
     return PurchaseTicketUseCase(
@@ -297,17 +323,8 @@ def purchase_ticket_use_case(
         airship_service,
         ticket_service,
         point_transaction_service,
+        mock_task_scheduler,
     )
-
-
-@pytest.fixture
-def complete_ticket_use_case(
-    test_session: AsyncSession,
-    user_service: UserService,
-    ticket_service: TicketService,
-) -> CompleteTicketUseCase:
-    """CompleteTicketUseCase fixture를 생성합니다."""
-    return CompleteTicketUseCase(test_session, user_service, ticket_service)
 
 
 @pytest.fixture
@@ -379,9 +396,9 @@ async def purchased_ticket(
     test_city: City,
     test_airship: Airship,
     ticket_repository: SqlAlchemyTicketRepository,
+    timezone: ZoneInfo,
 ):
     """PURCHASED 상태의 티켓을 직접 생성합니다."""
-    timezone = ZoneInfo("Asia/Seoul")
     now = datetime.now(timezone)
 
     # Ticket.create()로 생성하면 자동으로 PURCHASED 상태
@@ -540,10 +557,10 @@ class TestPurchaseTicketUseCase:
         test_user_identity: UserIdentity,
         test_airship: Airship,
         test_session: AsyncSession,
+        timezone: ZoneInfo,
     ):
         """비활성화된 도시로 티켓 구매 시 에러가 발생해야 합니다."""
         # Given: 비활성화된 도시를 직접 생성
-        timezone = ZoneInfo("Asia/Seoul")
         now = datetime.now(timezone)
 
         inactive_city_model = CityModel(
@@ -578,10 +595,10 @@ class TestPurchaseTicketUseCase:
         test_user_identity: UserIdentity,
         test_city: City,
         test_session: AsyncSession,
+        timezone: ZoneInfo,
     ):
         """비활성화된 비행선으로 티켓 구매 시 에러가 발생해야 합니다."""
         # Given: 비활성화된 비행선을 직접 생성
-        timezone = ZoneInfo("Asia/Seoul")
         now = datetime.now(timezone)
 
         inactive_airship_model = AirshipModel(
@@ -606,96 +623,6 @@ class TestPurchaseTicketUseCase:
                 provider_user_id=test_user_identity.provider_user_id,
                 city_id=str(test_city.city_id.value),
                 airship_id=str(inactive_airship_model.airship_id),
-            )
-
-
-# =============================================================================
-# CompleteTicketUseCase Tests
-# =============================================================================
-
-
-class TestCompleteTicketUseCase:
-    """CompleteTicketUseCase 통합 테스트."""
-
-    @pytest.mark.asyncio
-    async def test_complete_ticket_success(
-        self,
-        complete_ticket_use_case: CompleteTicketUseCase,
-        test_user_identity: UserIdentity,
-        boarding_ticket_result,
-    ):
-        """티켓을 정상적으로 완료할 수 있어야 합니다."""
-        # Given: BOARDING 상태의 티켓
-        ticket_id = boarding_ticket_result.ticket_id
-
-        # When: 티켓 완료
-        result = await complete_ticket_use_case.execute(
-            provider=test_user_identity.provider.value,
-            provider_user_id=test_user_identity.provider_user_id,
-            ticket_id=ticket_id,
-        )
-
-        # Then: 티켓 상태가 COMPLETED로 변경됨
-        assert result.ticket_id == ticket_id
-        assert result.status == TicketStatus.COMPLETED.value
-
-    @pytest.mark.asyncio
-    async def test_complete_ticket_with_nonexistent_ticket(
-        self,
-        complete_ticket_use_case: CompleteTicketUseCase,
-        test_user_identity: UserIdentity,
-    ):
-        """존재하지 않는 티켓 완료 시 에러가 발생해야 합니다."""
-        # Given: 존재하지 않는 티켓 ID
-        nonexistent_ticket_id = Id()
-
-        # When/Then: 존재하지 않는 티켓 완료 시 에러 발생
-        with pytest.raises(NotFoundTicketError):
-            await complete_ticket_use_case.execute(
-                provider=test_user_identity.provider.value,
-                provider_user_id=test_user_identity.provider_user_id,
-                ticket_id=str(nonexistent_ticket_id.value),
-            )
-
-    @pytest.mark.asyncio
-    async def test_complete_ticket_of_other_user(
-        self,
-        complete_ticket_use_case: CompleteTicketUseCase,
-        boarding_ticket_result,
-        user_identity_repository: SqlAlchemyUserIdentityRepository,
-        user_repository: SqlAlchemyUserRepository,
-    ):
-        """다른 사용자의 티켓 완료 시 에러가 발생해야 합니다."""
-        # Given: 다른 사용자 생성
-        timezone = ZoneInfo("Asia/Seoul")
-        now = datetime.now(timezone)
-        other_user = User(
-            user_id=Id(),
-            email=Email("other@example.com"),
-            nickname=Nickname("다른유저"),
-            profile=Profile("😊"),  # 허용된 이모지 사용
-            current_points=Balance(1000),
-            created_at=now,
-            updated_at=now,
-        )
-        other_user = await user_repository.create(other_user)
-
-        other_identity = UserIdentity(
-            identity_id=Id(),
-            user_id=other_user.user_id,
-            provider=AuthProvider.EMAIL,
-            provider_user_id="other-provider-user-456",
-            created_at=now,
-            updated_at=now,
-        )
-        other_identity = await user_identity_repository.create(other_identity)
-
-        # When/Then: 다른 사용자가 티켓 완료 시도 시 에러 발생
-        with pytest.raises(ForbiddenTicketError):
-            await complete_ticket_use_case.execute(
-                provider=other_identity.provider.value,
-                provider_user_id=other_identity.provider_user_id,
-                ticket_id=boarding_ticket_result.ticket_id,
             )
 
 
@@ -805,10 +732,10 @@ class TestGetTicketDetailUseCase:
         purchased_ticket,
         user_identity_repository: SqlAlchemyUserIdentityRepository,
         user_repository: SqlAlchemyUserRepository,
+        timezone: ZoneInfo,
     ):
         """다른 사용자의 티켓 조회 시 에러가 발생해야 합니다."""
         # Given: 다른 사용자 생성
-        timezone = ZoneInfo("Asia/Seoul")
         now = datetime.now(timezone)
         other_user = User(
             user_id=Id(),
@@ -855,9 +782,9 @@ class TestGetTicketsByUserUseCase:
         test_city: City,
         test_airship: Airship,
         ticket_repository: SqlAlchemyTicketRepository,
+        timezone: ZoneInfo,
     ):
         """여러 개의 티켓을 생성합니다."""
-        timezone = ZoneInfo("Asia/Seoul")
         now = datetime.now(timezone)
 
         tickets = []
@@ -933,9 +860,9 @@ class TestGetCurrentBoardingTicketUseCase:
         test_city: City,
         test_airship: Airship,
         ticket_repository: SqlAlchemyTicketRepository,
+        timezone: ZoneInfo,
     ):
         """BOARDING 상태의 티켓을 생성합니다."""
-        timezone = ZoneInfo("Asia/Seoul")
         now = datetime.now(timezone)
 
         ticket = Ticket.create(

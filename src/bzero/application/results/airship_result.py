@@ -46,7 +46,7 @@ class AirshipResult:
             생성된 AirshipResult 객체
         """
         return cls(
-            airship_id=entity.airship_id.value.hex,
+            airship_id=entity.airship_id.to_hex(),
             name=entity.name,
             description=entity.description,
             image_url=entity.image_url,

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv(".env.test", override=True)
 
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
 import jwt
@@ -15,9 +15,11 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event, text
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Session, sessionmaker
 
-from bzero.core.database import get_async_db_session
+from bzero.core.database import create_engine, get_async_db_session
 from bzero.core.settings import Settings
 from bzero.infrastructure.db.base import Base
 from bzero.main import create_app
@@ -199,3 +201,68 @@ def auth_headers_factory() -> Any:
         return {"Authorization": f"Bearer {token}"}
 
     return _create_headers
+
+
+# =============================================================================
+# Celery 태스크 테스트용 동기 DB fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def test_sync_engine() -> Iterator[Engine]:
+    """테스트용 동기 데이터베이스 엔진을 생성합니다."""
+    settings = Settings()
+
+    engine = create_engine(
+        settings.database.sync_url,
+        echo=False,
+        pool_pre_ping=True,
+    )
+
+    # 테이블 생성
+    Base.metadata.create_all(engine)
+
+    yield engine
+
+    engine.dispose()
+
+
+@pytest.fixture
+def test_sync_session(test_sync_engine: Engine) -> Iterator[Session]:
+    """테스트용 동기 DB 세션을 생성합니다.
+
+    SAVEPOINT를 사용하여 태스크 내의 commit()이 실제로 동작하면서도
+    테스트 종료 시 전체 롤백이 가능하도록 합니다.
+    """
+    # 연결 생성
+    connection: Connection = test_sync_engine.connect()
+
+    # 트랜잭션 시작
+    transaction = connection.begin()
+
+    # 세션 생성
+    session_maker = sessionmaker(
+        bind=connection,
+        class_=Session,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+    )
+    session = session_maker()
+
+    # nested transaction (SAVEPOINT) 시작
+    nested = connection.begin_nested()
+
+    # session.commit()이 호출되면 SAVEPOINT만 커밋하고 새 SAVEPOINT 시작
+    @event.listens_for(session, "after_transaction_end")
+    def restart_savepoint(db_session: Any, trans: Any) -> None:
+        nonlocal nested
+        if trans.nested and not trans._parent.nested:
+            nested = connection.begin_nested()
+
+    yield session
+
+    # 세션 종료 및 롤백
+    session.close()
+    transaction.rollback()
+    connection.close()

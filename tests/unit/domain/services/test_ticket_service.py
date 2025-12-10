@@ -312,62 +312,6 @@ class TestTicketServicePurchaseTicket:
         assert duration_hours == 24
 
 
-class TestTicketServiceComplete:
-    """complete 메서드 테스트"""
-
-    async def test_complete_ticket_success(
-        self,
-        ticket_service: TicketService,
-        mock_ticket_repository: MagicMock,
-        sample_ticket: Ticket,
-        sample_user: User,
-    ):
-        """티켓을 성공적으로 완료할 수 있다"""
-        # Given: BOARDING 상태의 티켓
-        sample_ticket.consume()  # PURCHASED -> BOARDING
-        mock_ticket_repository.find_by_id = AsyncMock(return_value=sample_ticket)
-        mock_ticket_repository.update = AsyncMock(return_value=sample_ticket)
-
-        # When
-        completed_ticket = await ticket_service.complete(sample_user.user_id, sample_ticket.ticket_id)
-
-        # Then
-        assert completed_ticket.status == TicketStatus.COMPLETED
-        mock_ticket_repository.find_by_id.assert_called_once_with(sample_ticket.ticket_id)
-        mock_ticket_repository.update.assert_called_once()
-
-    async def test_complete_raises_error_when_ticket_not_found(
-        self,
-        ticket_service: TicketService,
-        mock_ticket_repository: MagicMock,
-        sample_user: User,
-    ):
-        """티켓을 찾을 수 없으면 에러가 발생한다"""
-        # Given
-        ticket_id = Id(uuid7())
-        mock_ticket_repository.find_by_id = AsyncMock(return_value=None)
-
-        # When/Then
-        with pytest.raises(NotFoundTicketError):
-            await ticket_service.complete(sample_user.user_id, ticket_id)
-
-    async def test_complete_raises_error_when_forbidden_user(
-        self,
-        ticket_service: TicketService,
-        mock_ticket_repository: MagicMock,
-        sample_ticket: Ticket,
-    ):
-        """다른 사용자의 티켓을 완료하려 하면 에러가 발생한다"""
-        # Given
-        sample_ticket.consume()
-        another_user_id = Id(uuid7())
-        mock_ticket_repository.find_by_id = AsyncMock(return_value=sample_ticket)
-
-        # When/Then
-        with pytest.raises(ForbiddenTicketError):
-            await ticket_service.complete(another_user_id, sample_ticket.ticket_id)
-
-
 class TestTicketServiceCancel:
     """cancel 메서드 테스트"""
 

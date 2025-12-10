@@ -161,7 +161,7 @@ class TestGetAvailableAirshipsUseCase:
         result = await use_case.execute(offset=0, limit=20)
 
         # Then: AirshipResult 타입으로 변환됨
-        assert result.items[0].airship_id == sample_airships[0].airship_id.value.hex
+        assert result.items[0].airship_id == sample_airships[0].airship_id.to_hex()
         assert result.items[0].name == sample_airships[0].name
         assert result.items[0].cost_factor == sample_airships[0].cost_factor
-        assert result.items[1].airship_id == sample_airships[1].airship_id.value.hex
+        assert result.items[1].airship_id == sample_airships[1].airship_id.to_hex()
