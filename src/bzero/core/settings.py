@@ -70,6 +70,11 @@ class AuthSettings(BaseModel):
     jwt_algorithm: str = "HS256"
 
 
+class CelerySettings(BaseModel):
+    broker_url: str = "redis://localhost:6379/0"
+    result_backend: str = "redis://localhost:6379/1"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -90,6 +95,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = RedisSettings()
     cors: CorsSettings = CorsSettings()
     auth: AuthSettings = AuthSettings()
+    celery: CelerySettings = CelerySettings()
 
     timezone: ZoneInfo = ZoneInfo("Asia/Seoul")
 
