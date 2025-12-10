@@ -11,6 +11,7 @@ from bzero.infrastructure.db.airship_model import AirshipModel  # noqa: F401
 from bzero.infrastructure.db.base import Base
 from bzero.infrastructure.db.city_model import CityModel  # noqa: F401
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel  # noqa: F401
+from bzero.infrastructure.db.task_failure_log_model import TaskFailureLogModel  # noqa: F401
 from bzero.infrastructure.db.ticket_model import TicketModel  # noqa: F401
 from bzero.infrastructure.db.user_identity_model import UserIdentityModel  # noqa: F401
 from bzero.infrastructure.db.user_model import UserModel  # noqa: F401

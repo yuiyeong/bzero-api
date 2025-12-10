@@ -255,7 +255,7 @@ class TestCompleteTicketTask:
         sample_test_data: dict,
         timezone: ZoneInfo,
     ):
-        """이미 COMPLETED 상태의 티켓은 다시 complete할 수 없어야 합니다."""
+        """이미 COMPLETED 상태의 티켓은 이미 처리가 된 것이므로, 다시 처리하지 않는 것으로 멱등성을 보장합니다."""
         # Given: COMPLETED 상태의 티켓 생성
         ticket_model = create_ticket_model(
             test_sync_session,
@@ -278,10 +278,9 @@ class TestCompleteTicketTask:
             # When: 태스크 직접 호출
             result = complete_ticket_task(ticket_id_hex)
 
-        # Then: 실패 결과 확인
+        # Then: 성공 결과 확인
         assert result["ticket_id"] == ticket_id_hex
-        assert "failed" in result["result"]
-        assert "티켓 상태" in result["result"]  # 한글 에러 메시지 확인
+        assert result["result"] == "success"
 
     def test_complete_ticket_invalid_status_cancelled(
         self,
@@ -289,7 +288,7 @@ class TestCompleteTicketTask:
         sample_test_data: dict,
         timezone: ZoneInfo,
     ):
-        """CANCELLED 상태의 티켓은 complete할 수 없어야 합니다."""
+        """CANCELLED 상태의 티켓은 이미 처리가 된 것이므로, 다시 처리하지 않는 것으로 멱등성을 보장합니다."""
         # Given: CANCELLED 상태의 티켓 생성
         ticket_model = create_ticket_model(
             test_sync_session,
@@ -312,7 +311,6 @@ class TestCompleteTicketTask:
             # When: 태스크 직접 호출
             result = complete_ticket_task(ticket_id_hex)
 
-        # Then: 실패 결과 확인
+        # Then: 성공 결과 확인
         assert result["ticket_id"] == ticket_id_hex
-        assert "failed" in result["result"]
-        assert "티켓 상태" in result["result"]  # 한글 에러 메시지 확인
+        assert result["result"] == "success"
