@@ -23,7 +23,7 @@ class CityResult:
     @classmethod
     def create_from(cls, entity: City) -> "CityResult":
         return cls(
-            city_id=entity.city_id.value.hex,
+            city_id=entity.city_id.to_hex(),
             name=entity.name,
             theme=entity.theme,
             description=entity.description,

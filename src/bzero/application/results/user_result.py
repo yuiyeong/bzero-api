@@ -24,7 +24,7 @@ class UserResult:
     @classmethod
     def create_from(cls, entity: User) -> "UserResult":
         return cls(
-            user_id=entity.user_id.value.hex,
+            user_id=entity.user_id.to_hex(),
             email=entity.email.value if entity.email else None,
             nickname=entity.nickname.value if entity.nickname else None,
             profile_emoji=entity.profile.value if entity.profile else None,

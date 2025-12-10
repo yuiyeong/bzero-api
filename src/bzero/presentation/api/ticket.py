@@ -11,6 +11,7 @@ from bzero.presentation.api.dependencies import (
     CurrentCityService,
     CurrentJWTPayload,
     CurrentPointTransactionService,
+    CurrentTaskScheduler,
     CurrentTicketService,
     CurrentUserService,
     DBSession,
@@ -37,6 +38,7 @@ async def purchase_ticket(
     airship_service: CurrentAirshipService,
     ticket_service: CurrentTicketService,
     point_transaction_service: CurrentPointTransactionService,
+    task_scheduler: CurrentTaskScheduler,
 ) -> DataResponse[TicketResponse]:
     """티켓을 구매합니다.
 
@@ -49,6 +51,7 @@ async def purchase_ticket(
         airship_service: 비행선 도메인 서비스
         ticket_service: 티켓 도메인 서비스
         point_transaction_service: 포인트 트랜잭션 도메인 서비스
+        task_scheduler: 태스크 스케줄러
 
     Returns:
         TicketResponse: 구매한 티켓 정보
@@ -60,6 +63,7 @@ async def purchase_ticket(
         airship_service=airship_service,
         ticket_service=ticket_service,
         point_transaction_service=point_transaction_service,
+        task_scheduler=task_scheduler,
     )
     result = await use_case.execute(
         provider=jwt_payload.provider,
