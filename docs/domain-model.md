@@ -214,7 +214,9 @@ graph TB
 - Airship (비행선) - 가격 배수와 시간 배수를 가짐
 
 **값 객체**:
-- TicketStatus (PURCHASED, BOARDING, COMPLETED, CANCELED)
+- TicketStatus (PURCHASED, BOARDING, COMPLETED, CANCELLED)
+- CitySnapshot (구매 시점의 도시 정보 스냅샷)
+- AirshipSnapshot (구매 시점의 비행선 정보 스냅샷)
 
 **비용/시간 계산**:
 - 티켓 비용 = City.base_cost_points × Airship.cost_factor
@@ -222,11 +224,18 @@ graph TB
 - 예: 세렌시아(100P, 1h) + 일반 비행선(×1, ×3) = 100P, 3시간
 - 예: 세렌시아(100P, 1h) + 고속 비행선(×2, ×1) = 200P, 1시간
 
+**스냅샷 패턴**:
+- 티켓 구매 시 도시와 비행선 정보를 스냅샷으로 저장
+- 원본 데이터가 변경되어도 티켓의 정보는 구매 당시 그대로 유지
+- CitySnapshot: city_id, name, theme, image_url, description, base_cost_points, base_duration_hours
+- AirshipSnapshot: airship_id, name, image_url, description, cost_factor, duration_factor
+
 **불변식**:
 - 티켓은 활성화된 도시로만 발권 가능
 - 티켓은 활성화된 비행선으로만 발권 가능
 - 티켓 비용은 도시 기준 가격 × 비행선 가격 배수로 계산
 - 이동 시간은 도시 기준 시간 × 비행선 시간 배수로 계산
+- 구매 즉시 BOARDING 상태로 전환 (즉시 탑승)
 
 ### 3. Room Aggregate
 
@@ -516,19 +525,37 @@ graph TB
 
 **속성**:
 - user_id: UUID (FK)
-- city_id: UUID (FK)
-- airship_id: UUID (FK)
-- ticket_number: String (장식용, 예: "B0-2025-001234")
+- city_snapshot: CitySnapshot (VO) - 구매 시점의 도시 정보
+- airship_snapshot: AirshipSnapshot (VO) - 구매 시점의 비행선 정보
+- ticket_number: String (형식: "B0-{년도}-{user_id_timestamp}{ticket_id_timestamp}")
 - cost_points: Integer (계산됨: City.base_cost_points × Airship.cost_factor)
-- departure_time: DateTime
-- arrival_time: DateTime (계산됨: departure_time + City.base_duration_hours × Airship.duration_factor)
+- departure_datetime: DateTime (구매 즉시)
+- arrival_datetime: DateTime (계산됨: departure_datetime + City.base_duration_hours × Airship.duration_factor)
 - status: TicketStatus (VO)
+- created_at: DateTime
+- updated_at: DateTime
 
 **책임**:
-- 티켓 발권
-- 티켓 번호 생성 (형식: "B0-{년도}-{일련번호}")
+- 티켓 발권 (구매 즉시 BOARDING 상태)
+- 티켓 번호 생성 (UUID v7의 타임스탬프 활용)
 - 비용 및 이동 시간 계산 (City × Airship factor)
-- 도착 처리
+- 도착 시 자동 완료 처리 (Celery 태스크)
+- 티켓 취소 (PURCHASED 상태에서만 가능)
+
+**도메인 메서드**:
+- `consume()`: PURCHASED → BOARDING 상태 전환
+- `complete()`: BOARDING → COMPLETED 상태 전환
+- `cancel()`: PURCHASED → CANCELLED 상태 전환
+
+**상태 전이**:
+```
+PURCHASED → BOARDING → COMPLETED
+          ↘ CANCELLED
+```
+
+**스냅샷 패턴**:
+- 티켓은 city_id/airship_id 대신 CitySnapshot/AirshipSnapshot 값 객체를 저장
+- 도시나 비행선 정보가 변경되어도 발권 당시 정보가 유지됨
 
 ### Guesthouse (게스트하우스)
 
@@ -778,12 +805,37 @@ graph TB
 
 ### TicketStatus
 
-**속성**: PURCHASED, BOARDING, COMPLETED, CANCELED
+**속성**: PURCHASED, BOARDING, COMPLETED, CANCELLED
 
 **상태 전이**:
-- PURCHASED → BOARDING: 비행선 출발 시
-- BOARDING → COMPLETED: 비행선 도착 시
-- PURCHASED → CANCELED: 티켓 취소 시
+- PURCHASED → BOARDING: 티켓 구매 시 즉시 (구매와 탑승이 동시)
+- BOARDING → COMPLETED: 도착 시간 도달 시 (Celery 태스크로 자동 처리)
+- PURCHASED → CANCELLED: 티켓 취소 시 (탑승 전에만 가능)
+
+### CitySnapshot
+
+**속성**:
+- city_id: UUID
+- name: String
+- theme: String
+- image_url: String (nullable)
+- description: Text (nullable)
+- base_cost_points: Integer
+- base_duration_hours: Integer
+
+**설명**: 티켓 구매 시점의 도시 정보를 불변으로 저장하는 값 객체
+
+### AirshipSnapshot
+
+**속성**:
+- airship_id: UUID
+- name: String
+- image_url: String (nullable)
+- description: Text
+- cost_factor: Integer
+- duration_factor: Integer
+
+**설명**: 티켓 구매 시점의 비행선 정보를 불변으로 저장하는 값 객체
 
 ### RoomCapacity
 
@@ -866,9 +918,9 @@ graph TB
 
 ### Travel Domain Events
 
-- **TicketPurchased**: 티켓 구매 완료 (포인트 차감)
-- **AirshipDeparted**: 비행선 출발
-- **AirshipArrived**: 비행선 도착 (자동 체크인 트리거)
+- **TicketPurchased**: 티켓 구매 완료 (포인트 차감, 즉시 BOARDING 상태)
+- **TicketCompleted**: 티켓 완료 (Celery 태스크로 도착 시간에 자동 처리)
+- **TicketCancelled**: 티켓 취소 (탑승 전에만 가능)
 
 ### Room Domain Events
 
@@ -965,6 +1017,27 @@ graph TB
 - **1:1 대화방 삭제**: 체크아웃한 여행자의 1:1 대화방 자동 삭제
 - **룸 삭제**: 마지막 여행자 체크아웃 시 (current_capacity = 0) 룸의 `deleted_at` 설정 (soft delete)
 
+### TicketService (티켓 서비스)
+
+**책임**: 비행선 티켓의 구매, 취소, 조회 등 핵심 비즈니스 로직
+
+**주요 로직**:
+- **티켓 구매** (`purchase_ticket`):
+  - 포인트 잔액 검증 (InsufficientBalanceError)
+  - 도시 활성화 상태 검증 (InvalidCityStatusError)
+  - 비행선 활성화 상태 검증 (InvalidAirshipStatusError)
+  - 비용 계산: City.base_cost_points × Airship.cost_factor
+  - 시간 계산: City.base_duration_hours × Airship.duration_factor
+  - 티켓 생성 및 즉시 BOARDING 상태로 전환
+  - CitySnapshot/AirshipSnapshot으로 구매 시점 정보 저장
+- **티켓 취소** (`cancel`):
+  - 소유권 검증 (ForbiddenTicketError)
+  - PURCHASED 상태에서만 취소 가능 (InvalidTicketStatusError)
+- **티켓 조회**:
+  - ID로 조회 (소유권 검증 옵션)
+  - 사용자별 전체 티켓 목록 (페이지네이션)
+  - 사용자별 + 상태별 티켓 목록 (페이지네이션)
+
 ### PointTransactionService (포인트 거래 서비스)
 
 **책임**: 포인트 획득 및 사용을 트랜잭션으로 안전하게 처리
@@ -1004,6 +1077,25 @@ graph TB
 - **알림 채널**: 인앱 알림 (Phase 1), 푸시/이메일 (Phase 2)
 - 체크인 시 체크아웃 알림 태스크 예약
 - 연장 시 기존 알림 취소 후 재예약
+
+### TicketCompletionService (티켓 완료 서비스) - Celery Worker
+
+**책임**: 도착 시간에 티켓을 자동으로 완료 처리
+
+**구현 방식**:
+- **TaskScheduler 포트**: 도메인에서 정의한 백그라운드 작업 스케줄링 인터페이스
+- **CeleryTaskScheduler 어댑터**: TaskScheduler의 Celery 구현체
+- **complete_ticket_task**: 티켓 완료 처리 Celery 태스크
+
+**주요 로직**:
+- 티켓 구매 시 도착 시간(`arrival_datetime`)에 태스크 예약
+- 예약된 시간에 BOARDING → COMPLETED 상태 전환
+- 멱등성 보장: 이미 COMPLETED/CANCELLED 상태면 성공으로 처리
+- FailoverTask 베이스 클래스: 실패 시 DB에 로그 저장, 재시도 지원
+
+**동기 리포지토리**:
+- Celery는 비동기를 지원하지 않으므로 `TicketSyncRepository` 사용
+- `get_sync_db_session()`으로 동기 DB 세션 획득
 
 ### RateLimitingService (전송 제한 서비스)
 
@@ -1067,16 +1159,26 @@ graph TB
 - ID로 도시 조회
 - 활성 도시 목록 조회
 
-### TicketRepository
+### TicketRepository (비동기)
 
-**책임**: 티켓 엔티티의 영속성 관리
+**책임**: 티켓 엔티티의 영속성 관리 (API 서버용)
 
 **주요 기능**:
-- ID, 사용자 ID로 티켓 조회
-- 상태별 티켓 조회 (PURCHASED/BOARDING/COMPLETED/CANCELED)
-- 비행선별 티켓 조회
-- 티켓 발권 및 상태 업데이트
-- 티켓 번호 생성 (형식: "B0-{년도}-{일련번호}")
+- ID로 티켓 조회
+- 사용자 ID로 티켓 목록 조회 (페이지네이션)
+- 사용자 ID + 상태별 티켓 조회 (PURCHASED/BOARDING/COMPLETED/CANCELLED)
+- 티켓 개수 조회 (전체/상태별)
+- 티켓 생성 및 상태 업데이트
+
+### TicketSyncRepository (동기)
+
+**책임**: 티켓 엔티티의 영속성 관리 (Celery Worker용)
+
+**주요 기능**:
+- ID로 티켓 조회
+- 티켓 상태 업데이트
+
+**참고**: Celery는 비동기를 지원하지 않으므로 동기 버전의 리포지토리가 별도로 필요
 
 ### AirshipRepository
 

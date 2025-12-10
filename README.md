@@ -19,9 +19,9 @@ bzero-api는 FastAPI를 사용하여 구축된 고성능 비동기 웹 API 서�
 ## 요구사항
 
 - Python 3.12 이상
-- PostgreSQL
-- Redis
+- Docker & Docker Compose
 - uv (패키지 관리)
+- Make (선택사항, Docker 명령어 간소화)
 
 ## 설치
 
@@ -40,15 +40,20 @@ uv sync
 
 ### 3. 환경 변수 설정
 
-`.env` 파일을 생성하고 필요한 환경 변수를 설정합니다:
+`.env.template`을 복사하여 `.env` 파일을 생성합니다:
 
-```env
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/dbname
-REDIS_URL=redis://localhost:6379/0
-SECRET_KEY=your-secret-key-here
+```bash
+cp .env.template .env
+# .env 파일을 열어 필요한 값을 설정합니다
 ```
 
-### 4. 데이터베이스 마이그레이션
+### 4. Docker 인프라 실행
+
+```bash
+make up  # 또는 docker compose -f docker-compose.dev.yml up -d
+```
+
+### 5. 데이터베이스 마이그레이션
 
 ```bash
 uv run alembic upgrade head
@@ -63,14 +68,48 @@ uv run dev
 ```
 
 서버가 실행되면 다음 주소에서 접근할 수 있습니다:
+
 - API 서버: http://localhost:8000
 - Swagger UI 문서: http://localhost:8000/docs
 - ReDoc 문서: http://localhost:8000/redoc
 
-### Celery 워커 실행 (백그라운드 작업)
+### Docker 인프라 실행 (Makefile 사용)
+
+개발 환경에서는 Makefile을 사용하여 Docker 인프라를 관리합니다:
 
 ```bash
-uv run celery -A bzero.celery_app worker --loglevel=info
+# 사용 가능한 명령어 확인
+make help
+
+# Docker 컨테이너 시작 (PostgreSQL, Redis, Celery Worker, Celery Beat)
+make up
+
+# 컨테이너 로그 확인 (실시간)
+make logs
+
+# 컨테이너 상태 확인
+make ps
+
+# 컨테이너 재시작
+make restart
+
+# 컨테이너 중지
+make down
+
+# 컨테이너 및 볼륨 삭제 (데이터 삭제 주의!)
+make clean
+
+# PostgreSQL 접속 (psql)
+make exec-postgres
+
+# Redis 접속 (redis-cli)
+make exec-redis
+```
+
+Celery 워커 수동 실행이 필요한 경우:
+
+```bash
+uv run celery -A bzero.worker.app:bzero_celery_app worker --loglevel=info
 ```
 
 ## 개발 가이드
@@ -112,7 +151,7 @@ uv run pytest tests/test_example.py
 uv run pytest tests/test_example.py::test_function_name
 
 # 커버리지와 함께 실행
-uv run pytest --cov=bzero --cov-report=html
+uv run pytest --cov=src/bzero --cov-report=html
 ```
 
 ### 데이터베이스 마이그레이션
@@ -140,17 +179,19 @@ bzero-api/
 ├── src/
 │   └── bzero/                # 메인 애플리케이션 패키지
 │       ├── domain/           # 도메인 계층 (순수 비즈니스 로직)
-│       │   ├── entities/     # 도메인 엔티티 (User, City, Room 등)
-│       │   ├── value_objects/# 값 객체 (Email, Nickname 등)
+│       │   ├── entities/     # 도메인 엔티티 (User, City, Airship, Ticket 등)
+│       │   ├── value_objects/# 값 객체 (Id, Email, Nickname, Balance 등)
 │       │   ├── repositories/ # 리포지토리 인터페이스 (추상 클래스)
+│       │   ├── ports/        # 외부 시스템 포트 인터페이스 (TaskScheduler)
 │       │   ├── services/     # 도메인 서비스
 │       │   └── errors.py     # 도메인 예외
 │       │
 │       ├── application/      # 애플리케이션 계층 (유스케이스)
-│       │   ├── use_cases/    # 유스케이스 (users/, cities/ 하위 디렉토리)
+│       │   ├── use_cases/    # 유스케이스 (users/, cities/, airships/, tickets/)
 │       │   └── results/      # 유스케이스 결과 객체
 │       │
 │       ├── infrastructure/   # 인프라 계층 (외부 시스템 연동)
+│       │   ├── adapters/     # 포트 구현체 (CeleryTaskScheduler)
 │       │   ├── auth/         # JWT 유틸리티 (Supabase JWT 검증)
 │       │   ├── db/           # SQLAlchemy ORM 모델
 │       │   └── repositories/ # 리포지토리 구현체
@@ -159,6 +200,10 @@ bzero-api/
 │       │   ├── api/          # API 엔드포인트 (라우터)
 │       │   ├── middleware/   # 미들웨어 (로깅, 에러 핸들링)
 │       │   └── schemas/      # Pydantic 스키마 (요청/응답)
+│       │
+│       ├── worker/           # Celery 백그라운드 작업
+│       │   ├── app.py        # Celery 앱 설정
+│       │   └── tasks/        # 태스크 모듈
 │       │
 │       ├── core/             # 공통 설정
 │       │
@@ -169,9 +214,13 @@ bzero-api/
 ├── tests/                    # 테스트 코드
 │   ├── unit/                 # 단위 테스트
 │   ├── integration/          # 통합 테스트
+│   ├── e2e/                  # E2E 테스트 (API 엔드포인트)
 │   └── conftest.py           # 테스트 설정
+├── docs/                     # 프로젝트 문서
 ├── .env                      # 환경 변수 (git 무시)
 ├── .env.template             # 환경 변수 템플릿
+├── docker-compose.dev.yml    # 개발용 Docker Compose
+├── Makefile                  # Docker 인프라 관리 명령어
 ├── pyproject.toml            # 프로젝트 설정 및 의존성
 ├── alembic.ini               # Alembic 설정
 ├── ruff.toml                 # Ruff 설정

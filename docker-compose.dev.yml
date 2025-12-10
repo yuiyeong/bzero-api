@@ -43,7 +43,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: bezero-celery-worker-dev
-    command: celery -A bzero.worker.app:bzero_celery_app worker --loglevel=info
+    command: celery -A bzero.worker.app:bzero_celery_app worker --loglevel=info --concurrency 2
     env_file:
       - .env
     environment:
