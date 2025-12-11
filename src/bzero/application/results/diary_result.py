@@ -22,13 +22,13 @@ class DiaryResult:
     @classmethod
     def create_from(cls, entity: Diary) -> "DiaryResult":
         return cls(
-            diary_id=entity.diary_id.value,
-            user_id=entity.user_id.value,
+            diary_id=entity.diary_id.value.hex,
+            user_id=entity.user_id.value.hex,
             title=entity.title,
             content=entity.content.value,
             mood=entity.mood.value,
             diary_date=entity.diary_date,
-            city_id=entity.city_id.value if entity.city_id else None,
+            city_id=entity.city_id.value.hex if entity.city_id else None,
             has_earned_points=entity.has_earned_points,
             created_at=entity.created_at,
             updated_at=entity.updated_at,

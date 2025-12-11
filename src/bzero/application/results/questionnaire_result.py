@@ -21,9 +21,9 @@ class QuestionnaireResult:
     @classmethod
     def create_from(cls, entity: Questionnaire) -> "QuestionnaireResult":
         return cls(
-            questionnaire_id=entity.questionnaire_id.value,
-            user_id=entity.user_id.value,
-            city_id=entity.city_id.value,
+            questionnaire_id=entity.questionnaire_id.value.hex,
+            user_id=entity.user_id.value.hex,
+            city_id=entity.city_id.value.hex,
             question_1_answer=entity.question_1_answer.value,
             question_2_answer=entity.question_2_answer.value,
             question_3_answer=entity.question_3_answer.value,

@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from bzero.domain.entities.diary import Diary
@@ -19,29 +19,22 @@ class DiaryService:
         self._diary_repository = diary_repository
         self._timezone = timezone
 
-    def calculate_diary_date(self, current_boarding_ticket: Ticket | None) -> date:
+    def calculate_diary_date(self, latest_completed_ticket: Ticket | None) -> date:
         """일기 날짜를 계산합니다.
 
-        - 탑승 중인 티켓이 있으면: departure_datetime을 기준으로 날짜 계산
-        - 탑승 중인 티켓이 없으면: 현재 자정 기준으로 날짜 계산
+        TODO: 추후 room_stays 테이블 구현 시 교체 필요
+        - room_stays의 check_in_time을 기준으로 일기 날짜 계산
+        - 현재는 임시로 단순히 현재 날짜를 반환
 
         Args:
-            current_boarding_ticket: 현재 탑승 중인 티켓 (없으면 None)
+            latest_completed_ticket: 가장 최근 COMPLETED 상태의 티켓 (없으면 None)
+                                     - 현재는 사용하지 않음 (room_stays 구현 전까지 임시)
 
         Returns:
-            일기 날짜 (date)
+            일기 날짜 (date) - 현재는 항상 오늘 날짜 반환
         """
         now = datetime.now(self._timezone)
-
-        if current_boarding_ticket:
-            # 티켓 기준: departure_datetime부터 24시간 단위
-            departure = current_boarding_ticket.departure_datetime
-            elapsed_hours = (now - departure).total_seconds() / 3600
-            days_since_departure = int(elapsed_hours // 24)
-            return departure.date() + timedelta(days=days_since_departure)
-        else:
-            # 자정 기준: 현재 날짜
-            return now.date()
+        return now.date()
 
     async def create_diary(
         self,

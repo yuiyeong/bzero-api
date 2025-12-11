@@ -21,6 +21,8 @@ class ErrorCode(str, Enum):
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
     FORBIDDEN_TICKET = "티켓을 가져올 수 없는 사용자입니다."
+    FORBIDDEN_DIARY = "일기를 가져올 수 없는 사용자입니다."
+    FORBIDDEN_QUESTIONNAIRE = "문답지를 가져올 수 없는 사용자입니다."
 
     CITY_NOT_FOUND = "찾을 수 없는 도시입니다."
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
@@ -66,6 +68,16 @@ class DuplicatedError(BeZeroError):
 class ForbiddenTicketError(AccessDeniedError):
     def __init__(self):
         super().__init__(ErrorCode.FORBIDDEN_TICKET)
+
+
+class ForbiddenDiaryError(AccessDeniedError):
+    def __init__(self):
+        super().__init__(ErrorCode.FORBIDDEN_DIARY)
+
+
+class ForbiddenQuestionnaireError(AccessDeniedError):
+    def __init__(self):
+        super().__init__(ErrorCode.FORBIDDEN_QUESTIONNAIRE)
 
 
 class InvalidIdError(BadRequestError):

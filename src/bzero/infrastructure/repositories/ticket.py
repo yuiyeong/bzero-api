@@ -77,7 +77,7 @@ class SqlAlchemyTicketRepository(TicketRepository):
             )
             .offset(offset)
             .limit(limit)
-            .order_by(TicketModel.departure_datetime.desc())
+            .order_by(TicketModel.arrival_datetime.desc())
         )
 
         result = await self._session.execute(stmt)

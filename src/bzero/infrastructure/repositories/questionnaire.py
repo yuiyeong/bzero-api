@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,7 +70,7 @@ class SqlAlchemyQuestionnaireRepository(QuestionnaireRepository):
 
         if existing_model:
             # 업데이트
-            existing_model.city_id = uuid.UUID(questionnaire.city_id.value)
+            existing_model.city_id = questionnaire.city_id.value
             existing_model.question_1_answer = questionnaire.question_1_answer.value
             existing_model.question_2_answer = questionnaire.question_2_answer.value
             existing_model.question_3_answer = questionnaire.question_3_answer.value
@@ -89,9 +87,9 @@ class SqlAlchemyQuestionnaireRepository(QuestionnaireRepository):
     @staticmethod
     def _to_model(entity: Questionnaire) -> QuestionnaireModel:
         return QuestionnaireModel(
-            questionnaire_id=uuid.UUID(entity.questionnaire_id.value),
-            user_id=uuid.UUID(entity.user_id.value),
-            city_id=uuid.UUID(entity.city_id.value),
+            questionnaire_id=entity.questionnaire_id.value,
+            user_id=entity.user_id.value,
+            city_id=entity.city_id.value,
             question_1_answer=entity.question_1_answer.value,
             question_2_answer=entity.question_2_answer.value,
             question_3_answer=entity.question_3_answer.value,
@@ -103,9 +101,9 @@ class SqlAlchemyQuestionnaireRepository(QuestionnaireRepository):
     def _to_entity(model: QuestionnaireModel) -> Questionnaire:
         """ORM 모델을 도메인 엔티티로 변환합니다."""
         return Questionnaire(
-            questionnaire_id=Id(str(model.questionnaire_id)),
-            user_id=Id(str(model.user_id)),
-            city_id=Id(str(model.city_id)),
+            questionnaire_id=Id(model.questionnaire_id),
+            user_id=Id(model.user_id),
+            city_id=Id(model.city_id),
             question_1_answer=QuestionAnswer(model.question_1_answer),
             question_2_answer=QuestionAnswer(model.question_2_answer),
             question_3_answer=QuestionAnswer(model.question_3_answer),

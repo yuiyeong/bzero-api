@@ -13,6 +13,7 @@ from bzero.presentation.api.dependencies import (
     CurrentJWTPayload,
     CurrentPointTransactionService,
     CurrentTicketService,
+    CurrentUserService,
     DBSession,
 )
 from bzero.presentation.schemas.common import DataResponse
@@ -33,6 +34,7 @@ async def create_diary(
     request: CreateDiaryRequest,
     session: DBSession,
     jwt_payload: CurrentJWTPayload,
+    user_service: CurrentUserService,
     diary_service: CurrentDiaryService,
     ticket_service: CurrentTicketService,
     point_transaction_service: CurrentPointTransactionService,
@@ -43,15 +45,15 @@ async def create_diary(
     - 작성 시 50P 자동 지급 (하루 1회)
     - diary_date는 탑승 중인 티켓 기준 또는 자정 기준으로 자동 계산
     """
-    user_id = jwt_payload["sub"]
-
     result = await CreateDiaryUseCase(
         session=session,
+        user_service=user_service,
         diary_service=diary_service,
         ticket_service=ticket_service,
         point_transaction_service=point_transaction_service,
     ).execute(
-        user_id=user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
         content=request.content,
         mood=request.mood,
         title=request.title,
@@ -69,6 +71,7 @@ async def create_diary(
 )
 async def get_today_diary(
     jwt_payload: CurrentJWTPayload,
+    user_service: CurrentUserService,
     diary_service: CurrentDiaryService,
     ticket_service: CurrentTicketService,
 ) -> DataResponse[DiaryResponse | None]:
@@ -78,9 +81,10 @@ async def get_today_diary(
     - 일기가 없으면 data=None 반환
     - "오늘"은 탑승 중인 티켓 기준 또는 자정 기준으로 자동 계산
     """
-    user_id = jwt_payload["sub"]
-
-    result = await GetTodayDiaryUseCase(diary_service, ticket_service).execute(user_id=user_id)
+    result = await GetTodayDiaryUseCase(user_service, diary_service, ticket_service).execute(
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
+    )
 
     return DataResponse(data=DiaryResponse.create_from(result) if result else None)
 
@@ -93,6 +97,7 @@ async def get_today_diary(
 )
 async def get_diaries(
     jwt_payload: CurrentJWTPayload,
+    user_service: CurrentUserService,
     diary_service: CurrentDiaryService,
     offset: Annotated[int, Query(ge=0, description="조회 시작 위치")] = 0,
     limit: Annotated[int, Query(ge=1, le=100, description="조회할 최대 개수")] = 20,
@@ -103,19 +108,18 @@ async def get_diaries(
     - diary_date 역순 정렬 (최신순)
     - pagination 지원 (기본값: offset=0, limit=20)
     """
-    user_id = jwt_payload["sub"]
-
-    results, total = await GetDiariesUseCase(diary_service).execute(
-        user_id=user_id,
+    result = await GetDiariesUseCase(user_service, diary_service).execute(
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
         offset=offset,
         limit=limit,
     )
 
     return DiaryListResponse(
-        diaries=[DiaryResponse.create_from(result) for result in results],
-        total=total,
-        offset=offset,
-        limit=limit,
+        diaries=[DiaryResponse.create_from(item) for item in result.items],
+        total=result.total,
+        offset=result.offset,
+        limit=result.limit,
     )
 
 
@@ -128,6 +132,7 @@ async def get_diaries(
 async def get_diary_by_id(
     diary_id: str,
     jwt_payload: CurrentJWTPayload,
+    user_service: CurrentUserService,
     diary_service: CurrentDiaryService,
 ) -> DataResponse[DiaryResponse]:
     """일기 상세 조회.
@@ -135,11 +140,10 @@ async def get_diary_by_id(
     - 본인이 작성한 일기만 조회 가능 (다른 사용자 일기 조회 시 404)
     - 존재하지 않는 일기 조회 시 404
     """
-    user_id = jwt_payload["sub"]
-
-    result = await GetDiaryByIdUseCase(diary_service).execute(
+    result = await GetDiaryByIdUseCase(user_service, diary_service).execute(
         diary_id=diary_id,
-        user_id=user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
     )
 
     return DataResponse(data=DiaryResponse.create_from(result))

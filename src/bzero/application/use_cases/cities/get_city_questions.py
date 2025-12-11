@@ -20,4 +20,4 @@ class GetCityQuestionsUseCase:
         Raises:
             CityNotFoundError: 존재하지 않는 도시 ID인 경우
         """
-        return await self._city_question_service.get_questions_by_city(Id(city_id))
+        return await self._city_question_service.get_questions_by_city(Id.from_hex(city_id))

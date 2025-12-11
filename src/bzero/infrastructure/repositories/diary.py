@@ -1,4 +1,3 @@
-import uuid
 from datetime import date
 
 from sqlalchemy import func, select
@@ -77,7 +76,7 @@ class SqlAlchemyDiaryRepository(DiaryRepository):
             existing_model.content = diary.content.value
             existing_model.mood = diary.mood.value
             existing_model.diary_date = diary.diary_date
-            existing_model.city_id = uuid.UUID(diary.city_id.value) if diary.city_id else None
+            existing_model.city_id = diary.city_id.value if diary.city_id else None
             existing_model.has_earned_points = diary.has_earned_points
             existing_model.updated_at = diary.updated_at
         else:
@@ -91,13 +90,13 @@ class SqlAlchemyDiaryRepository(DiaryRepository):
     @staticmethod
     def _to_model(entity: Diary) -> DiaryModel:
         return DiaryModel(
-            diary_id=uuid.UUID(entity.diary_id.value),
-            user_id=uuid.UUID(entity.user_id.value),
+            diary_id=entity.diary_id.value,
+            user_id=entity.user_id.value,
             title=entity.title,
             content=entity.content.value,
             mood=entity.mood.value,
             diary_date=entity.diary_date,
-            city_id=uuid.UUID(entity.city_id.value) if entity.city_id else None,
+            city_id=entity.city_id.value if entity.city_id else None,
             has_earned_points=entity.has_earned_points,
             deleted_at=entity.deleted_at,
         )
@@ -106,13 +105,13 @@ class SqlAlchemyDiaryRepository(DiaryRepository):
     def _to_entity(model: DiaryModel) -> Diary:
         """ORM 모델을 도메인 엔티티로 변환합니다."""
         return Diary(
-            diary_id=Id(str(model.diary_id)),
-            user_id=Id(str(model.user_id)),
+            diary_id=Id(model.diary_id),
+            user_id=Id(model.user_id),
             title=model.title,
             content=DiaryContent(model.content),
             mood=DiaryMood(model.mood),
             diary_date=model.diary_date,
-            city_id=Id(str(model.city_id)) if model.city_id else None,
+            city_id=Id(model.city_id) if model.city_id else None,
             has_earned_points=model.has_earned_points,
             created_at=model.created_at,
             updated_at=model.updated_at,
