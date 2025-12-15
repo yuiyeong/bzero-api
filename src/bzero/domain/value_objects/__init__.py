@@ -5,12 +5,14 @@
 """
 
 from bzero.domain.value_objects.common import Id
+from bzero.domain.value_objects.guesthouse import GuestHouseType
 from bzero.domain.value_objects.point_transaction import (
     TransactionReason,
     TransactionReference,
     TransactionStatus,
     TransactionType,
 )
+from bzero.domain.value_objects.room_stay import RoomStayStatus
 from bzero.domain.value_objects.ticket import AirshipSnapshot, CitySnapshot, TicketStatus
 from bzero.domain.value_objects.user import AuthProvider, Balance, Email, Nickname, Profile
 
@@ -21,9 +23,11 @@ __all__ = [
     "Balance",
     "CitySnapshot",
     "Email",
+    "GuestHouseType",
     "Id",
     "Nickname",
     "Profile",
+    "RoomStayStatus",
     "TicketStatus",
     "TransactionReason",
     "TransactionReference",

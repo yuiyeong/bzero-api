@@ -13,12 +13,14 @@ from bzero.domain.ports import TaskScheduler
 from bzero.domain.services import AirshipService, TicketService
 from bzero.domain.services.city import CityService
 from bzero.domain.services.point_transaction import PointTransactionService
+from bzero.domain.services.room_stay import RoomStayService
 from bzero.domain.services.user import UserService
 from bzero.infrastructure.adapters import CeleryTaskScheduler
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.airship import SqlAlchemyAirshipRepository
 from bzero.infrastructure.repositories.city import SqlAlchemyCityRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
+from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayRepository
 from bzero.infrastructure.repositories.ticket import SqlAlchemyTicketRepository
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
@@ -143,6 +145,14 @@ def get_ticket_service(
     return TicketService(ticket_repository, settings.timezone)
 
 
+def get_room_stay_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> RoomStayService:
+    """Create RoomStayService instance."""
+    room_stay_repository = SqlAlchemyRoomStayRepository(session)
+    return RoomStayService(room_stay_repository)
+
+
 def get_task_scheduler() -> TaskScheduler:
     """Create TaskScheduler instance."""
     return CeleryTaskScheduler()
@@ -156,4 +166,5 @@ CurrentPointTransactionService = Annotated[PointTransactionService, Depends(get_
 CurrentCityService = Annotated[CityService, Depends(get_city_service)]
 CurrentAirshipService = Annotated[AirshipService, Depends(get_airship_service)]
 CurrentTicketService = Annotated[TicketService, Depends(get_ticket_service)]
+CurrentRoomStayService = Annotated[RoomStayService, Depends(get_room_stay_service)]
 CurrentTaskScheduler = Annotated[TaskScheduler, Depends(get_task_scheduler)]

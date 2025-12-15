@@ -1,6 +1,8 @@
 from collections.abc import AsyncIterator, Iterator
 from contextlib import contextmanager
 
+import psycopg
+from psycopg.types.uuid import UUIDDumper
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -9,13 +11,18 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import Session, sessionmaker
+from uuid_utils import UUID as UUID7
 
+import bzero.infrastructure.db  # noqa: F401  # 모든 ORM 모델을 MetaData에 등록 (외래키 관계 해결용)
 from bzero.core.settings import Settings
 
 
+# psycopg에 uuid_utils.UUID 어댑터 등록 (동기 세션에서 UUID 타입 처리용)
+# asyncpg는 uuid_utils.UUID를 자동 처리하지만, psycopg는 표준 uuid.UUID만 자동 처리함
+psycopg.adapters.register_dumper(UUID7, UUIDDumper)
+
 _async_engine: AsyncEngine | None = None
 _async_session_maker: async_sessionmaker[AsyncSession] | None = None
-
 
 _sync_engine: Engine | None = None
 _sync_session_maker: sessionmaker[Session] | None = None

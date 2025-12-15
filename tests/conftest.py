@@ -6,6 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv(".env.test", override=True)
 
+# psycopg에 uuid_utils.UUID 어댑터 등록 (동기 세션에서 UUID 타입 처리용)
+import psycopg
+from psycopg.types.uuid import UUIDDumper
+from uuid_utils import UUID as UUID7
+
+psycopg.adapters.register_dumper(UUID7, UUIDDumper)
+
 import time
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
@@ -31,6 +38,9 @@ from bzero.infrastructure.db.point_transaction_model import PointTransactionMode
 from bzero.infrastructure.db.ticket_model import TicketModel  # noqa: F401
 from bzero.infrastructure.db.user_identity_model import UserIdentityModel  # noqa: F401
 from bzero.infrastructure.db.user_model import UserModel  # noqa: F401
+from bzero.infrastructure.db.guest_house_model import GuestHouseModel  # noqa: F401
+from bzero.infrastructure.db.room_model import RoomModel  # noqa: F401
+from bzero.infrastructure.db.room_stay_model import RoomStayModel  # noqa: F401
 
 
 async def ensure_test_database_exists(settings: Settings) -> None:

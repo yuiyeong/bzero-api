@@ -6,7 +6,7 @@ from bzero.domain.entities.user_identity import UserIdentity
 from bzero.domain.errors import DuplicatedUserError, NotFoundUserError
 from bzero.domain.repositories.user import UserRepository
 from bzero.domain.repositories.user_identity import UserIdentityRepository
-from bzero.domain.value_objects import AuthProvider, Email
+from bzero.domain.value_objects import AuthProvider, Email, Id
 
 
 class UserService:
@@ -111,3 +111,6 @@ class UserService:
             NotFoundUserError: 사용자가 존재하지 않을 때
         """
         return await self._user_repository.update(user)
+
+    async def get_users_by_user_ids(self, user_ids: tuple[Id]) -> list[User]:
+        return await self._user_repository.find_all_by_user_ids(user_ids)
