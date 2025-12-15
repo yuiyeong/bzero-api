@@ -1,41 +1,38 @@
-"""티켓 리포지토리 공통 Base 클래스.
+"""Ticket Repository 핵심 로직.
 
-Async/Sync 리포지토리에서 공유하는 쿼리 생성 및 Entity/Model 변환 로직을 제공합니다.
-이 패턴을 통해 FastAPI(비동기)와 Celery(동기) 환경에서 동일한 쿼리 로직을 재사용할 수 있습니다.
+쿼리 빌더, Entity/Model 변환, DB 작업 로직을 모두 포함합니다.
+비동기 리포지토리는 run_sync로, 동기 리포지토리는 직접 호출합니다.
 
 구조:
-    TicketRepositoryBase (쿼리 빌더 + 변환)
+    TicketRepositoryCore (쿼리 빌더 + 변환 + DB 작업)
          ↑          ↑
-         │          │
     SqlAlchemy     SqlAlchemy
     TicketRepo     TicketSyncRepo
-    (Async)        (Sync)
+    (run_sync)     (직접 호출)
 """
 
 from sqlalchemy import Select, Update, func, select, update
+from sqlalchemy.orm import Session
 
 from bzero.domain.entities import Ticket
+from bzero.domain.errors import NotFoundTicketError
 from bzero.domain.value_objects import AirshipSnapshot, CitySnapshot, Id, TicketStatus
 from bzero.infrastructure.db.ticket_model import TicketModel
 
 
-class TicketRepositoryBase:
-    """티켓 리포지토리 공통 Base 클래스.
+class TicketRepositoryCore:
+    """Ticket Repository 핵심 로직.
 
-    쿼리 생성 메서드와 Entity/Model 변환 메서드를 제공합니다.
-    Async/Sync Repository에서 이 클래스를 상속받아 사용합니다.
+    쿼리 생성, Entity/Model 변환, DB 작업 로직을 모두 포함합니다.
+    모든 DB 작업 메서드는 정적 메서드로, 첫 번째 인자로 Session을 받습니다.
+    이 패턴을 통해 AsyncSession.run_sync()와 호환됩니다.
     """
+
+    # ==================== 쿼리 빌더 ====================
 
     @staticmethod
     def _query_find_by_id(ticket_id: Id) -> Select[tuple[TicketModel]]:
-        """ID로 티켓을 조회하는 쿼리를 생성합니다.
-
-        Args:
-            ticket_id: 조회할 티켓 ID
-
-        Returns:
-            SQLAlchemy Select 쿼리
-        """
+        """ID로 티켓을 조회하는 쿼리를 생성합니다."""
         return select(TicketModel).where(
             TicketModel.ticket_id == ticket_id.value,
             TicketModel.deleted_at.is_(None),
@@ -47,16 +44,7 @@ class TicketRepositoryBase:
         offset: int = 0,
         limit: int = 100,
     ) -> Select[tuple[TicketModel]]:
-        """사용자의 모든 티켓을 조회하는 쿼리를 생성합니다.
-
-        Args:
-            user_id: 사용자 ID
-            offset: 페이지네이션 오프셋
-            limit: 최대 조회 개수
-
-        Returns:
-            SQLAlchemy Select 쿼리 (출발일시 내림차순 정렬)
-        """
+        """사용자의 모든 티켓을 조회하는 쿼리를 생성합니다."""
         return (
             select(TicketModel)
             .where(
@@ -75,17 +63,7 @@ class TicketRepositoryBase:
         offset: int = 0,
         limit: int = 100,
     ) -> Select[tuple[TicketModel]]:
-        """사용자의 특정 상태 티켓을 조회하는 쿼리를 생성합니다.
-
-        Args:
-            user_id: 사용자 ID
-            status: 필터링할 티켓 상태
-            offset: 페이지네이션 오프셋
-            limit: 최대 조회 개수
-
-        Returns:
-            SQLAlchemy Select 쿼리 (출발일시 내림차순 정렬)
-        """
+        """사용자의 특정 상태 티켓을 조회하는 쿼리를 생성합니다."""
         return (
             select(TicketModel)
             .where(
@@ -103,15 +81,7 @@ class TicketRepositoryBase:
         user_id: Id | None = None,
         status: TicketStatus | None = None,
     ) -> Select[tuple[int]]:
-        """조건에 맞는 티켓 개수를 조회하는 쿼리를 생성합니다.
-
-        Args:
-            user_id: 사용자 ID (선택)
-            status: 티켓 상태 (선택)
-
-        Returns:
-            SQLAlchemy Select 쿼리 (COUNT)
-        """
+        """조건에 맞는 티켓 개수를 조회하는 쿼리를 생성합니다."""
         stmt = select(func.count()).select_from(TicketModel).where(TicketModel.deleted_at.is_(None))
         if user_id is not None:
             stmt = stmt.where(TicketModel.user_id == user_id.value)
@@ -121,14 +91,7 @@ class TicketRepositoryBase:
 
     @staticmethod
     def _query_update(ticket: Ticket) -> Update:
-        """티켓 상태를 업데이트하는 쿼리를 생성합니다.
-
-        Args:
-            ticket: 업데이트할 티켓 엔티티
-
-        Returns:
-            SQLAlchemy Update 쿼리 (RETURNING 포함)
-        """
+        """티켓 상태를 업데이트하는 쿼리를 생성합니다."""
         return (
             update(TicketModel)
             .where(
@@ -139,18 +102,11 @@ class TicketRepositoryBase:
             .returning(TicketModel)
         )
 
+    # ==================== Entity/Model 변환 ====================
+
     @staticmethod
     def to_model(entity: Ticket) -> TicketModel:
-        """Ticket 엔티티를 TicketModel(ORM)로 변환합니다.
-
-        City/Airship 스냅샷은 개별 컬럼으로 펼쳐서 저장합니다.
-
-        Args:
-            entity: 변환할 Ticket 엔티티
-
-        Returns:
-            TicketModel 인스턴스
-        """
+        """Ticket 엔티티를 TicketModel(ORM)로 변환합니다."""
         return TicketModel(
             ticket_id=entity.ticket_id.value,
             user_id=entity.user_id.value,
@@ -178,16 +134,7 @@ class TicketRepositoryBase:
 
     @staticmethod
     def to_entity(model: TicketModel) -> Ticket:
-        """TicketModel(ORM)을 Ticket 엔티티로 변환합니다.
-
-        개별 컬럼으로 저장된 City/Airship 정보를 스냅샷 객체로 조립합니다.
-
-        Args:
-            model: 변환할 TicketModel 인스턴스
-
-        Returns:
-            Ticket 엔티티
-        """
+        """TicketModel(ORM)을 Ticket 엔티티로 변환합니다."""
         return Ticket(
             ticket_id=Id(model.ticket_id),
             user_id=Id(model.user_id),
@@ -218,3 +165,81 @@ class TicketRepositoryBase:
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
+
+    # ==================== DB 작업 로직 ====================
+
+    @staticmethod
+    def create(session: Session, ticket: Ticket) -> Ticket:
+        """티켓을 생성합니다."""
+        model = TicketRepositoryCore.to_model(ticket)
+
+        session.add(model)
+        session.flush()
+        session.refresh(model)
+
+        return TicketRepositoryCore.to_entity(model)
+
+    @staticmethod
+    def update(session: Session, ticket: Ticket) -> Ticket:
+        """티켓을 업데이트합니다.
+
+        Raises:
+            NotFoundTicketError: 티켓을 찾을 수 없는 경우
+        """
+        stmt = TicketRepositoryCore._query_update(ticket)
+
+        result = session.execute(stmt)
+        model = result.scalar_one_or_none()
+
+        if model is None:
+            raise NotFoundTicketError
+        return TicketRepositoryCore.to_entity(model)
+
+    @staticmethod
+    def find_by_id(session: Session, ticket_id: Id) -> Ticket | None:
+        """ID로 티켓을 조회합니다."""
+        stmt = TicketRepositoryCore._query_find_by_id(ticket_id)
+
+        result = session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return TicketRepositoryCore.to_entity(model) if model else None
+
+    @staticmethod
+    def find_all_by_user_id(
+        session: Session,
+        user_id: Id,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list[Ticket]:
+        """사용자의 모든 티켓을 조회합니다."""
+        stmt = TicketRepositoryCore._query_find_all_by_user_id(user_id, offset, limit)
+
+        result = session.execute(stmt)
+        models = result.scalars().all()
+        return [TicketRepositoryCore.to_entity(model) for model in models]
+
+    @staticmethod
+    def find_all_by_user_id_and_status(
+        session: Session,
+        user_id: Id,
+        status: TicketStatus,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list[Ticket]:
+        """사용자의 특정 상태 티켓을 조회합니다."""
+        stmt = TicketRepositoryCore._query_find_all_by_user_id_and_status(user_id, status, offset, limit)
+
+        result = session.execute(stmt)
+        models = result.scalars().all()
+        return [TicketRepositoryCore.to_entity(model) for model in models]
+
+    @staticmethod
+    def count_by(
+        session: Session,
+        user_id: Id | None = None,
+        status: TicketStatus | None = None,
+    ) -> int:
+        """조건에 맞는 티켓 개수를 조회합니다."""
+        stmt = TicketRepositoryCore._query_count_by(user_id, status)
+        result = session.execute(stmt)
+        return result.scalar_one()

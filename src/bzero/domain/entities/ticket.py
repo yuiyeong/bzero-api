@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from bzero.domain.errors import InvalidTicketStatusError
+from bzero.domain.errors import AlreadyCompletedTicketError, InvalidTicketStatusError
 from bzero.domain.value_objects import AirshipSnapshot, CitySnapshot, Id, TicketStatus
 
 
@@ -41,6 +41,10 @@ class Ticket:
     created_at: datetime
     updated_at: datetime
 
+    @property
+    def is_completed(self) -> bool:
+        return self.status == TicketStatus.COMPLETED
+
     def consume(self) -> None:
         """티켓을 사용하여 탑승 상태로 변경합니다.
 
@@ -58,8 +62,10 @@ class Ticket:
         Raises:
             InvalidTicketStatusError: 티켓이 BOARDING 상태가 아닌 경우
         """
-        if self.status != TicketStatus.BOARDING:
+        if self.status == TicketStatus.PURCHASED:
             raise InvalidTicketStatusError
+        if self.status in (TicketStatus.COMPLETED, TicketStatus.CANCELLED):
+            raise AlreadyCompletedTicketError
 
         self.status = TicketStatus.COMPLETED
 

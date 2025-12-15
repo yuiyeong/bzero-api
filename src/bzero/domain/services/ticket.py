@@ -15,7 +15,7 @@ from bzero.domain.errors import (
     InvalidCityStatusError,
     NotFoundTicketError,
 )
-from bzero.domain.repositories.ticket import TicketRepository
+from bzero.domain.repositories.ticket import TicketRepository, TicketSyncRepository
 from bzero.domain.value_objects import Id, TicketStatus
 
 
@@ -174,3 +174,24 @@ class TicketService:
         )
         total = await self._ticket_repository.count_by(user_id=user_id, status=status)
         return tickets, total
+
+
+class TicketSyncService:
+    def __init__(self, ticket_sync_repository: TicketSyncRepository):
+        self._ticket_repository = ticket_sync_repository
+
+    def get_ticket_by_id(self, ticket_id: Id) -> Ticket:
+        ticket = self._ticket_repository.find_by_id(ticket_id)
+        if ticket is None:
+            raise NotFoundTicketError
+        return ticket
+
+    def complete(self, ticket_id: Id):
+        ticket = self._ticket_repository.find_by_id(ticket_id)
+        if ticket is None:
+            raise NotFoundTicketError
+
+        # BOARDING → COMPLETED 상태 변경
+        ticket.complete()
+
+        return self._ticket_repository.update(ticket)
