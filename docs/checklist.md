@@ -228,77 +228,68 @@
 ## 4. 게스트하우스 & 자동 체크인
 
 ### Guesthouse 모델 구현
-- [ ] Guesthouse 엔티티 생성 (guesthouse_id, city_id, name, guesthouse_type, description, image_url, is_active)
-- [ ] 값 객체 생성 (GuesthouseType: NORMAL - 추후 확장 가능)
-- [ ] GuesthouseRepository 인터페이스 (domain/repositories/guesthouse.py)
-- [ ] SqlAlchemyGuesthouseRepository 구현체 (infrastructure/repositories/guesthouse.py)
-- [ ] Guesthouse ORM 모델 (infrastructure/db/guesthouse_model.py)
-- [ ] Guesthouse 테이블 마이그레이션
+- [x] Guesthouse 엔티티 생성 (guesthouse_id, city_id, name, guesthouse_type, description, image_url, is_active)
+- [x] 값 객체 생성 (GuesthouseType: NORMAL - 추후 확장 가능)
+- [x] GuesthouseRepository 인터페이스 (domain/repositories/guesthouse.py)
+- [x] SqlAlchemyGuesthouseRepository 구현체 (infrastructure/repositories/guesthouse.py)
+- [x] Guesthouse ORM 모델 (infrastructure/db/guesthouse_model.py)
+- [x] Guesthouse 테이블 마이그레이션
 
 ### Room 모델 구현
-- [ ] Room 엔티티 생성 (room_id, guesthouse_id, max_capacity, current_capacity, status, created_at, updated_at, deleted_at)
-- [ ] RoomRepository 인터페이스 (domain/repositories/room.py)
-- [ ] RoomSyncRepository 인터페이스 (domain/repositories/room_sync.py) - Celery용 동기 버전
-- [ ] SqlAlchemyRoomRepository 구현체 (infrastructure/repositories/room.py)
-- [ ] SqlAlchemyRoomSyncRepository 구현체 (infrastructure/repositories/room_sync.py)
-- [ ] Room ORM 모델 (infrastructure/db/room_model.py)
-- [ ] Room 테이블 마이그레이션
-- [ ] Soft delete 지원 (deleted_at)
+- [x] Room 엔티티 생성 (room_id, guesthouse_id, max_capacity, current_capacity, status, created_at, updated_at, deleted_at)
+- [x] RoomRepository 인터페이스 (domain/repositories/room.py)
+- [x] RoomSyncRepository 인터페이스 (domain/repositories/room_sync.py) - Celery용 동기 버전
+- [x] SqlAlchemyRoomRepository 구현체 (infrastructure/repositories/room.py)
+- [x] SqlAlchemyRoomSyncRepository 구현체 (infrastructure/repositories/room_sync.py)
+- [x] Room ORM 모델 (infrastructure/db/room_model.py)
+- [x] Room 테이블 마이그레이션
+- [x] Soft delete 지원 (deleted_at)
 
 ### RoomStay 모델 구현
-- [ ] RoomStay 엔티티 생성 (room_stay_id, room_id, user_id, ticket_id, check_in_at, scheduled_checkout_at, actual_checkout_at, extension_count, total_extension_cost, status)
-- [ ] 값 객체 생성 (RoomStayStatus: CHECKED_IN, CHECKED_OUT, EXTENDED)
-- [ ] RoomStayRepository 인터페이스 (domain/repositories/room_stay.py)
-- [ ] RoomStaySyncRepository 인터페이스 (domain/repositories/room_stay_sync.py) - Celery용 동기 버전
-- [ ] SqlAlchemyRoomStayRepository 구현체 (infrastructure/repositories/room_stay.py)
-- [ ] SqlAlchemyRoomStaySyncRepository 구현체 (infrastructure/repositories/room_stay_sync.py)
-- [ ] RoomStay ORM 모델 (infrastructure/db/room_stay_model.py)
-- [ ] RoomStay 테이블 마이그레이션
+- [x] RoomStay 엔티티 생성 (room_stay_id, room_id, user_id, ticket_id, check_in_at, scheduled_checkout_at, actual_checkout_at, extension_count, total_extension_cost, status)
+- [x] 값 객체 생성 (RoomStayStatus: CHECKED_IN, CHECKED_OUT, EXTENDED)
+- [x] RoomStayRepository 인터페이스 (domain/repositories/room_stay.py)
+- [x] RoomStaySyncRepository 인터페이스 (domain/repositories/room_stay_sync.py) - Celery용 동기 버전
+- [x] SqlAlchemyRoomStayRepository 구현체 (infrastructure/repositories/room_stay.py)
+- [x] SqlAlchemyRoomStaySyncRepository 구현체 (infrastructure/repositories/room_stay_sync.py)
+- [x] RoomStay ORM 모델 (infrastructure/db/room_stay_model.py)
+- [x] RoomStay 테이블 마이그레이션
 
 ### GuesthouseRepository 구현
-- [ ] ID로 게스트하우스 조회
-- [ ] 도시 ID로 게스트하우스 조회 (도시당 1개)
-- [ ] 활성 게스트하우스 조회
+- [x] ID로 게스트하우스 조회
+- [x] 도시 ID로 게스트하우스 조회 (도시당 1개)
+- [x] 활성 게스트하우스 조회
 
 ### RoomRepository 구현
-- [ ] ID로 룸 조회
-- [ ] 게스트하우스별 가용 룸 조회 (current_capacity < max_capacity, deleted_at IS NULL, status = AVAILABLE)
-- [ ] 룸 생성
-- [ ] 룸 정원 업데이트 (current_capacity 증가/감소)
-- [ ] 룸 상태 업데이트 (AVAILABLE ↔ FULL)
-- [ ] 룸 soft delete (deleted_at 설정)
+- [x] ID로 룸 조회
+- [x] 게스트하우스별 가용 룸 조회 (current_capacity < max_capacity, deleted_at IS NULL, status = AVAILABLE)
+- [x] 룸 생성
+- [x] 룸 정원 업데이트 (current_capacity 증가/감소)
+- [x] 룸 상태 업데이트 (AVAILABLE ↔ FULL)
+- [x] 룸 soft delete (deleted_at 설정)
 
 ### RoomStayRepository 구현
-- [ ] 체류 생성
-- [ ] 사용자 ID로 활성 체류 조회 (status = ACTIVE)
-- [ ] 룸 ID로 활성 체류 목록 조회
-- [ ] 티켓 ID로 체류 조회
-- [ ] 체크아웃 예정 체류 조회 (scheduled_checkout_at 기준)
-- [ ] 체류 상태 업데이트
+- [x] 체류 생성
+- [x] 사용자 ID로 활성 체류 조회 (status = ACTIVE)
+- [x] 룸 ID로 활성 체류 목록 조회
+- [x] 티켓 ID로 체류 조회
+- [x] 체크아웃 예정 체류 조회 (scheduled_checkout_at 기준)
+- [x] 체류 상태 업데이트
 
-### RoomAssignmentService 도메인 서비스 구현
-- [ ] RoomAssignmentService 도메인 서비스 (domain/services/room_assignment.py)
-  - [ ] assign_room() 메서드: 가용 룸 찾기 또는 새 룸 생성 후 배정
-  - [ ] find_available_room() 메서드: 6명 미만 가용 룸 조회
-  - [ ] create_new_room() 메서드: 새 룸 생성 (max_capacity=6)
-- [ ] Race Condition 방지 (SELECT FOR UPDATE 또는 트랜잭션 격리)
-- [ ] 룸 정원 업데이트 (current_capacity 증가)
-- [ ] 6명 도달 시 룸 상태 FULL로 변경
+### 도메인 서비스 구현
+- [x] GuestHouseSyncService
+- [x] RoomSyncService
+- [x] RoomStaySyncService
 
 ### 자동 체크인 로직 구현 (Celery Task)
-- [ ] check_in_task 태스크 (worker/tasks/check_in.py)
-  - [ ] 티켓 COMPLETED 상태 확인
-  - [ ] 해당 도시의 게스트하우스 조회
-  - [ ] RoomAssignmentService로 룸 배정
-  - [ ] RoomStay 생성 (check_in_at = now, scheduled_checkout_at = now + 24h)
-  - [ ] Room.current_capacity 증가
-- [ ] complete_ticket_task에서 check_in_task 호출 연동
+- [x] check_in_task 태스크 (worker/tasks/check_in.py)
+  - [x] 티켓 COMPLETED 상태 확인
+  - [x] 해당 도시의 게스트하우스 조회
+  - [x] RoomAssignmentService로 룸 배정
+  - [x] RoomStay 생성 (check_in_at = now, scheduled_checkout_at = now + 24h)
+  - [x] Room.current_capacity 증가
+- [x] complete_ticket_task에서 check_in_task 호출 연동
 - [ ] 자동 체크아웃 스케줄링 (scheduled_checkout_at 시점에 checkout_task 예약)
-
-### CheckInService 도메인 서비스 구현
-- [ ] CheckInService 도메인 서비스 (domain/services/check_in.py)
-  - [ ] check_in() 메서드: 티켓 완료 후 자동 체크인 처리
-  - [ ] get_active_stay() 메서드: 사용자의 현재 활성 체류 조회
 
 ### 게스트하우스 시드 데이터 생성
 - [ ] 시드 스크립트 작성 (scripts/seed_guesthouses.py)
@@ -306,13 +297,11 @@
 - [ ] 로렌시아 게스트하우스
 
 ### UseCase 구현
-- [ ] GetGuesthouseByCityUseCase (application/use_cases/guesthouses/get_guesthouse_by_city.py)
-- [ ] GetActiveStayUseCase (application/use_cases/room_stays/get_active_stay.py)
+- [ ] GetCurrentStayUseCase (application/use_cases/room_stays/get_current_stay.py)
 - [ ] GetRoomMembersUseCase (application/use_cases/rooms/get_room_members.py) - 같은 방 멤버 조회
 
 ### API 엔드포인트 구현
-- [ ] GET /api/v1/guesthouses/{city_id} (도시별 게스트하우스 조회)
-- [ ] GET /api/v1/room-stays/active (내 활성 체류 조회)
+- [ ] GET /api/v1/room-stays/current (내 활성 체류 조회)
 - [ ] GET /api/v1/rooms/{room_id}/members (같은 방 멤버 조회)
 
 ### 테스트 작성
