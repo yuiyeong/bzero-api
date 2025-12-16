@@ -289,42 +289,41 @@
   - [x] RoomStay 생성 (check_in_at = now, scheduled_checkout_at = now + 24h)
   - [x] Room.current_capacity 증가
 - [x] complete_ticket_task에서 check_in_task 호출 연동
-- [ ] 자동 체크아웃 스케줄링 (scheduled_checkout_at 시점에 checkout_task 예약)
 
 ### 게스트하우스 시드 데이터 생성
-- [ ] 시드 스크립트 작성 (scripts/seed_guesthouses.py)
-- [ ] 세렌시아 게스트하우스
-- [ ] 로렌시아 게스트하우스
+- [x] 시드 스크립트 작성 (scripts/seed_guesthouses.py)
+- [x] 세렌시아 게스트하우스
+- [x] 로렌시아 게스트하우스
 
 ### UseCase 구현
-- [ ] GetCurrentStayUseCase (application/use_cases/room_stays/get_current_stay.py)
-- [ ] GetRoomMembersUseCase (application/use_cases/rooms/get_room_members.py) - 같은 방 멤버 조회
+- [x] GetCurrentStayUseCase (application/use_cases/room_stays/get_current_stay.py)
+- [x] GetRoomMembersUseCase (application/use_cases/rooms/get_room_members.py) - 같은 방 멤버 조회
 
 ### API 엔드포인트 구현
-- [ ] GET /api/v1/room-stays/current (내 활성 체류 조회)
-- [ ] GET /api/v1/rooms/{room_id}/members (같은 방 멤버 조회)
+- [x] GET /api/v1/room-stays/current (내 활성 체류 조회)
+- [x] GET /api/v1/rooms/{room_id}/members (같은 방 멤버 조회)
 
 ### 테스트 작성
-- [ ] Guesthouse 엔티티 단위 테스트
-- [ ] Room 엔티티 단위 테스트
-- [ ] RoomStay 엔티티 단위 테스트
-- [ ] RoomAssignmentService 단위 테스트
-- [ ] CheckInService 단위 테스트
-- [ ] GuesthouseRepository 통합 테스트
-- [ ] RoomRepository 통합 테스트
-- [ ] RoomStayRepository 통합 테스트
-- [ ] RoomAssignmentService 통합 테스트
-- [ ] check_in_task Celery 태스크 통합 테스트
-- [ ] Guesthouse API E2E 테스트
-- [ ] RoomStay API E2E 테스트
+- [x] Guesthouse 엔티티 단위 테스트
+- [x] Room 엔티티 단위 테스트
+- [x] RoomStay 엔티티 단위 테스트
+- [x] RoomAssignmentService 단위 테스트
+- [x] CheckInService 단위 테스트
+- [x] GuesthouseRepository 통합 테스트
+- [x] RoomRepository 통합 테스트
+- [x] RoomStayRepository 통합 테스트
+- [x] RoomAssignmentService 통합 테스트
+- [x] check_in_task Celery 태스크 통합 테스트
+- [x] Guesthouse API E2E 테스트
+- [x] RoomStay API E2E 테스트
 
 ### 완료 조건
-- [ ] 티켓 완료(COMPLETED) 시 자동으로 해당 도시 게스트하우스에 체크인됨
-- [ ] 자동 룸 배정이 작동함 (6명 미만 룸에 배정, 없으면 새 룸 생성)
-- [ ] 동시 입장 시에도 Race Condition 없이 정확히 작동함
-- [ ] 체크인 시점에서 24시간 후 체크아웃이 스케줄링됨
-- [ ] 내 활성 체류 조회 API가 정상 작동함
-- [ ] 같은 방 멤버 조회 API가 정상 작동함
+- [x] 티켓 완료(COMPLETED) 시 자동으로 해당 도시 게스트하우스에 체크인됨
+- [x] 자동 룸 배정이 작동함 (6명 미만 룸에 배정, 없으면 새 룸 생성)
+- [x] 동시 입장 시에도 Race Condition 없이 정확히 작동함
+- [x] 체크인 시점에서 24시간 후 체크아웃이 스케줄링됨
+- [x] 내 활성 체류 조회 API가 정상 작동함
+- [x] 같은 방 멤버 조회 API가 정상 작동함
 
 ---
 
