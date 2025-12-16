@@ -86,6 +86,15 @@ class SqlAlchemyUserRepository(UserRepository):
 
         return self._to_entity(model)
 
+    async def find_all_by_user_ids(self, user_ids: tuple[Id]) -> list[User]:
+        stmt = select(UserModel).where(
+            UserModel.user_id.in_([uid.value for uid in user_ids]),
+            UserModel.deleted_at.is_(None),
+        )
+        result = await self._session.execute(stmt)
+        models = result.scalars().all()
+        return [self._to_entity(model) for model in models]
+
     @staticmethod
     def _to_model(entity: User) -> UserModel:
         return UserModel(

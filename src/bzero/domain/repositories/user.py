@@ -28,3 +28,7 @@ class UserRepository(ABC):
     @abstractmethod
     async def update(self, user: User) -> User:
         """사용자 정보 업데이트"""
+
+    @abstractmethod
+    async def find_all_by_user_ids(self, user_ids: tuple[Id]) -> list[User]:
+        """user_ids 에 해당하는 User 가져오기"""

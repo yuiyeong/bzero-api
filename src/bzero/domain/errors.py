@@ -15,14 +15,21 @@ class ErrorCode(str, Enum):
     INSUFFICIENT_BALANCE = "잔액이 부족합니다."
     INVALID_CITY_STATUS = "도시 상태가 잘못되었습니다."
     INVALID_AIRSHIP_STATUS = "비행선 상태가 잘못되었습니다."
+    ALREADY_COMPLETED_TICKET = "이미 완료된 티켓입니다."
+    INVALID_ROOM_STATUS = "방의 상태가 잘못되었습니다."
+    ROOM_CAPACITY_LOCK_CONFLICT = "방 수용 인원 업데이트 중 잠금 충돌이 발생했습니다."
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
     FORBIDDEN_TICKET = "티켓을 가져올 수 없는 사용자입니다."
+    FORBIDDEN_ROOM_FOR_USER = "사용자가 접근할 수 없는 방입니다."
 
     CITY_NOT_FOUND = "찾을 수 없는 도시입니다."
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
     NOT_FOUND_AIRSHIP = "찾을 수 없는 비행선입니다."
     NOT_FOUND_TICKET = "찾을 수 없는 티켓입니다."
+    NOT_FOUND_GUEST_HOUSE = "게스트 하우스를 찾을 수 없습니다."
+    NOT_FOUND_ROOM = "방을 찾을 수 없습니다."
+    NOT_FOUND_ROOM_STAY = "체류 정보가 없습니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
@@ -59,6 +66,11 @@ class DuplicatedError(BeZeroError):
 class ForbiddenTicketError(AccessDeniedError):
     def __init__(self):
         super().__init__(ErrorCode.FORBIDDEN_TICKET)
+
+
+class ForbiddenRoomForUserError(AccessDeniedError):
+    def __init__(self):
+        super().__init__(ErrorCode.FORBIDDEN_ROOM_FOR_USER)
 
 
 class InvalidIdError(BadRequestError):
@@ -111,6 +123,21 @@ class InvalidAirshipStatusError(BadRequestError):
         super().__init__(ErrorCode.INVALID_AIRSHIP_STATUS)
 
 
+class AlreadyCompletedTicketError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.ALREADY_COMPLETED_TICKET)
+
+
+class InvalidRoomStatusError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_ROOM_STATUS)
+
+
+class RoomCapacityLockError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.ROOM_CAPACITY_LOCK_CONFLICT)
+
+
 class CityNotFoundError(NotFoundError):
     def __init__(self):
         super().__init__(ErrorCode.CITY_NOT_FOUND)
@@ -129,6 +156,21 @@ class NotFoundAirshipError(NotFoundError):
 class NotFoundTicketError(NotFoundError):
     def __init__(self):
         super().__init__(ErrorCode.NOT_FOUND_TICKET)
+
+
+class NotFoundGuestHouseError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_GUEST_HOUSE)
+
+
+class NotFoundRoomError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_ROOM)
+
+
+class NotFoundRoomStayError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_ROOM_STAY)
 
 
 class DuplicatedRewardError(DuplicatedError):

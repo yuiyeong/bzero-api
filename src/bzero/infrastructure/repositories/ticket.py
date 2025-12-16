@@ -1,23 +1,17 @@
-"""티켓 리포지토리 구현체 (비동기).
-
-SQLAlchemy AsyncSession을 사용하는 티켓 리포지토리 구현입니다.
-FastAPI와 같은 비동기 환경에서 사용됩니다.
-"""
-
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from bzero.domain.entities import Ticket
-from bzero.domain.errors import NotFoundTicketError
-from bzero.domain.repositories.ticket import TicketRepository
+from bzero.domain.repositories.ticket import TicketRepository, TicketSyncRepository
 from bzero.domain.value_objects import Id, TicketStatus
-from bzero.infrastructure.repositories.ticket_base import TicketRepositoryBase
+from bzero.infrastructure.repositories.ticket_core import TicketRepositoryCore
 
 
-class SqlAlchemyTicketRepository(TicketRepositoryBase, TicketRepository):
+class SqlAlchemyTicketRepository(TicketRepository):
     """SQLAlchemy 기반 티켓 리포지토리 (비동기).
 
-    TicketRepositoryBase에서 쿼리 생성 및 변환 로직을 상속받고,
-    AsyncSession을 사용하여 비동기 DB 작업을 수행합니다.
+    TicketRepositoryCore의 동기 메서드를 run_sync로 호출합니다.
+    이 패턴을 통해 로직 중복 없이 비동기 인터페이스를 제공합니다.
 
     Attributes:
         _session: SQLAlchemy AsyncSession 인스턴스
@@ -40,13 +34,7 @@ class SqlAlchemyTicketRepository(TicketRepositoryBase, TicketRepository):
         Returns:
             생성된 티켓 (DB에서 생성된 타임스탬프 포함)
         """
-        model = self.to_model(ticket)
-
-        self._session.add(model)
-        await self._session.flush()
-        await self._session.refresh(model)
-
-        return self.to_entity(model)
+        return await self._session.run_sync(TicketRepositoryCore.create, ticket)
 
     async def update(self, ticket: Ticket) -> Ticket:
         """티켓을 업데이트합니다.
@@ -60,14 +48,7 @@ class SqlAlchemyTicketRepository(TicketRepositoryBase, TicketRepository):
         Raises:
             NotFoundTicketError: 티켓을 찾을 수 없는 경우
         """
-        stmt = self._query_update(ticket)
-
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-
-        if model is None:
-            raise NotFoundTicketError
-        return self.to_entity(model)
+        return await self._session.run_sync(TicketRepositoryCore.update, ticket)
 
     async def find_by_id(self, ticket_id: Id) -> Ticket | None:
         """ID로 티켓을 조회합니다.
@@ -78,11 +59,7 @@ class SqlAlchemyTicketRepository(TicketRepositoryBase, TicketRepository):
         Returns:
             조회된 티켓 또는 None
         """
-        stmt = self._query_find_by_id(ticket_id)
-
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        return self.to_entity(model) if model else None
+        return await self._session.run_sync(TicketRepositoryCore.find_by_id, ticket_id)
 
     async def find_all_by_user_id(self, user_id: Id, offset: int = 0, limit: int = 100) -> list[Ticket]:
         """사용자의 모든 티켓을 조회합니다.
@@ -95,11 +72,7 @@ class SqlAlchemyTicketRepository(TicketRepositoryBase, TicketRepository):
         Returns:
             티켓 목록 (출발일시 내림차순 정렬)
         """
-        stmt = self._query_find_all_by_user_id(user_id, offset, limit)
-
-        result = await self._session.execute(stmt)
-        models = result.scalars().all()
-        return [self.to_entity(model) for model in models]
+        return await self._session.run_sync(TicketRepositoryCore.find_all_by_user_id, user_id, offset, limit)
 
     async def find_all_by_user_id_and_status(
         self, user_id: Id, status: TicketStatus, offset: int = 0, limit: int = 100
@@ -115,11 +88,13 @@ class SqlAlchemyTicketRepository(TicketRepositoryBase, TicketRepository):
         Returns:
             티켓 목록 (출발일시 내림차순 정렬)
         """
-        stmt = self._query_find_all_by_user_id_and_status(user_id, status, offset, limit)
-
-        result = await self._session.execute(stmt)
-        models = result.scalars().all()
-        return [self.to_entity(model) for model in models]
+        return await self._session.run_sync(
+            TicketRepositoryCore.find_all_by_user_id_and_status,
+            user_id,
+            status,
+            offset,
+            limit,
+        )
 
     async def count_by(self, user_id: Id | None = None, status: TicketStatus | None = None) -> int:
         """조건에 맞는 티켓 개수를 조회합니다.
@@ -131,6 +106,48 @@ class SqlAlchemyTicketRepository(TicketRepositoryBase, TicketRepository):
         Returns:
             조건에 맞는 티켓 개수
         """
-        stmt = self._query_count_by(user_id, status)
-        result = await self._session.execute(stmt)
-        return result.scalar_one()
+        return await self._session.run_sync(TicketRepositoryCore.count_by, user_id, status)
+
+
+class SqlAlchemyTicketSyncRepository(TicketSyncRepository):
+    """SQLAlchemy 기반 티켓 리포지토리 (동기).
+
+    TicketRepositoryCore의 동기 메서드를 직접 호출합니다.
+    주로 Celery 백그라운드 태스크에서 사용됩니다.
+
+    Attributes:
+        _session: SQLAlchemy Session 인스턴스
+    """
+
+    def __init__(self, session: Session):
+        """리포지토리를 초기화합니다.
+
+        Args:
+            session: SQLAlchemy Session 인스턴스
+        """
+        self._session = session
+
+    def find_by_id(self, ticket_id: Id) -> Ticket | None:
+        """ID로 티켓을 조회합니다.
+
+        Args:
+            ticket_id: 조회할 티켓 ID
+
+        Returns:
+            조회된 티켓 또는 None
+        """
+        return TicketRepositoryCore.find_by_id(self._session, ticket_id)
+
+    def update(self, ticket: Ticket) -> Ticket:
+        """티켓을 업데이트합니다.
+
+        Args:
+            ticket: 업데이트할 티켓 엔티티
+
+        Returns:
+            업데이트된 티켓
+
+        Raises:
+            NotFoundTicketError: 티켓을 찾을 수 없는 경우
+        """
+        return TicketRepositoryCore.update(self._session, ticket)

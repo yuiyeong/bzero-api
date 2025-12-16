@@ -117,6 +117,6 @@ Thumbs.db
 
 # Ruff cache
 .ruff_cache/
-.claude
+.claude/settings.local.json
 .env
 .serena

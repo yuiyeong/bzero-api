@@ -59,12 +59,15 @@ bzero-api/
 │   │   ├── database.py      # DB 연결 설정 (비동기/동기)
 │   │   └── loggers.py       # 로깅 설정
 │   │
-│   ├── worker/              # Celery 백그라운드 작업
-│   │   ├── app.py           # Celery 앱 설정
-│   │   └── tasks/           # 태스크 모듈
+│   ├── worker/              # Celery 백그라운드 작업 (Application Layer와 대응)
+│   │   ├── app.py           # Celery 앱 설정 (FastAPI main.py에 대응)
+│   │   └── tasks/           # 태스크 모듈 (use_cases에 대응, 도메인별 폴더 구조)
 │   │       ├── base.py      # FailoverTask 베이스 클래스
 │   │       ├── names.py     # 태스크 이름 상수
-│   │       └── ticket.py    # 티켓 관련 태스크
+│   │       ├── tickets/     # 티켓 관련 태스크
+│   │       │   └── task_complete_ticket.py
+│   │       └── room_stays/  # 룸 스테이 관련 태스크
+│   │           └── task_check_in.py
 │   │
 │   └── main.py              # FastAPI 앱 진입점
 │
@@ -97,12 +100,17 @@ bzero-api/
 
 ```
 Presentation → Application → Domain ← Infrastructure
+     ↓
+  Worker (Celery Tasks)
 ```
 
 - **Domain**: 순수 비즈니스 로직 (외부 의존성 없음)
-- **Application**: 유스케이스 (도메인 엔티티 조합)
+- **Application**: 유스케이스 (도메인 서비스 조합, 비동기)
 - **Infrastructure**: DB, 외부 API 연동 (Domain 인터페이스 구현)
-- **Presentation**: HTTP 요청/응답 처리
+- **Presentation**: HTTP 요청/응답 처리 (FastAPI)
+- **Worker**: 백그라운드 태스크 처리 (Celery, Application Layer와 대응)
+  - `worker/app.py` → `main.py`에 대응 (앱 설정)
+  - `worker/tasks/` → `application/use_cases/`에 대응 (비즈니스 로직 조합)
 
 ---
 
@@ -145,7 +153,7 @@ uv run dev
 10. 테스트 작성
 ```
 
-### 현재 구현 상태 (2025-12-10 기준)
+### 현재 구현 상태 (2025-12-16 기준)
 
 #### ✅ 완료된 기능
 
@@ -157,26 +165,35 @@ uv run dev
 
 **도메인 계층**
 
-- **엔티티**: User, UserIdentity, City, PointTransaction, Airship, Ticket
+- **엔티티**: User, UserIdentity, City, PointTransaction, Airship, Ticket, GuestHouse, Room, RoomStay
     - 모든 엔티티에 `create()` 팩토리 메서드 패턴 적용
 - **값 객체**:
     - 공통: Id (UUID v7)
     - User: Email, Nickname, Profile, Balance, AuthProvider
     - PointTransaction: TransactionType, TransactionStatus, TransactionReason, TransactionReference
     - Ticket: TicketStatus, CitySnapshot, AirshipSnapshot
-- **도메인 서비스**: UserService, PointTransactionService, CityService, AirshipService, TicketService
-- **리포지토리 인터페이스**: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository,
-  AirshipRepository, TicketRepository, TicketSyncRepository (동기)
+    - GuestHouse: GuestHouseType
+    - RoomStay: RoomStayStatus
+- **도메인 서비스** (비동기/동기 분리):
+    - 비동기: UserService, PointTransactionService, CityService, AirshipService, TicketService, RoomStayService
+    - 동기(Sync): TicketSyncService, GuestHouseSyncService, RoomSyncService, RoomStaySyncService
+- **리포지토리 인터페이스** (비동기/동기 분리):
+    - 비동기: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository,
+      AirshipRepository, TicketRepository, GuestHouseRepository, RoomRepository, RoomStayRepository
+    - 동기(Sync): TicketSyncRepository, GuestHouseSyncRepository, RoomSyncRepository, RoomStaySyncRepository
 - **포트 인터페이스**: TaskScheduler (백그라운드 작업 스케줄링)
 
 **인프라 계층**
 
 - **ORM 모델**: UserModel, UserIdentityModel, CityModel, PointTransactionModel, AirshipModel, TicketModel,
-  TaskFailureLogModel
-- **리포지토리 구현체**: SqlAlchemyUserRepository, SqlAlchemyUserIdentityRepository, SqlAlchemyCityRepository,
-  SqlAlchemyPointTransactionRepository, SqlAlchemyAirshipRepository, SqlAlchemyTicketRepository,
-  SqlAlchemyTicketSyncRepository, SqlAlchemyTaskFailureLogRepository
-- **베이스 클래스**: TicketRepositoryBase (티켓 리포지토리 공통 로직)
+  TaskFailureLogModel, GuestHouseModel, RoomModel, RoomStayModel
+- **리포지토리 구현체**:
+    - 비동기: SqlAlchemyUserRepository, SqlAlchemyUserIdentityRepository, SqlAlchemyCityRepository,
+      SqlAlchemyPointTransactionRepository, SqlAlchemyAirshipRepository, SqlAlchemyTicketRepository,
+      SqlAlchemyGuestHouseRepository, SqlAlchemyRoomRepository, SqlAlchemyRoomStayRepository
+    - 동기(Sync): SqlAlchemyTicketSyncRepository, SqlAlchemyGuestHouseSyncRepository,
+      SqlAlchemyRoomSyncRepository, SqlAlchemyRoomStaySyncRepository
+- **Core 클래스** (공통 로직 추출): TicketRepositoryCore, GuestHouseRepositoryCore, RoomRepositoryCore, RoomStayRepositoryCore
 - **어댑터**: CeleryTaskScheduler (TaskScheduler 구현체)
 - **인증**: Supabase JWT 검증 (verify_supabase_jwt, extract_user_id_from_jwt)
 
@@ -188,7 +205,9 @@ uv run dev
     - Airship: GetAvailableAirshipsUseCase
     - Ticket: PurchaseTicketUseCase, GetTicketsByUserUseCase, GetTicketDetailUseCase, GetCurrentBoardingTicketUseCase,
       CancelTicketUseCase
-- **결과 객체**: UserResult, CityResult, AirshipResult, TicketResult, PaginatedResult
+    - Room: GetRoomMembersUseCase
+    - RoomStay: GetCurrentStayUseCase
+- **결과 객체**: UserResult, CityResult, AirshipResult, TicketResult, RoomStayResult, PaginatedResult
 
 **프레젠테이션 계층**
 
@@ -204,17 +223,21 @@ uv run dev
     - `GET /api/v1/tickets/current` - 현재 탑승 중인 티켓 조회
     - `GET /api/v1/tickets/{ticket_id}` - 티켓 상세 조회
     - `POST /api/v1/tickets/{ticket_id}/cancel` - 티켓 취소
-- **Pydantic 스키마**: UserResponse, CityResponse, AirshipResponse, TicketResponse
+    - `GET /api/v1/rooms/{room_id}/members` - 룸 멤버 조회
+    - `GET /api/v1/room-stays/current` - 현재 체류 정보 조회
+- **Pydantic 스키마**: UserResponse, CityResponse, AirshipResponse, TicketResponse, RoomStayResponse
 - **의존성 주입**: DBSession, CurrentJWTPayload, CurrentUserService, CurrentPointTransactionService, CurrentCityService,
-  CurrentAirshipService, CurrentTicketService, CurrentTaskScheduler
+  CurrentAirshipService, CurrentTicketService, CurrentTaskScheduler, CurrentRoomStayService
 - **미들웨어**: 로깅, 에러 핸들링
 
 **Celery Worker**
 
-- **태스크**: complete_ticket_task (도착 시 자동 티켓 완료 처리)
+- **태스크** (도메인별 폴더 구조):
+    - `tickets/task_complete_ticket` - 도착 시 자동 티켓 완료 처리
+    - `room_stays/task_check_in` - 도착 시 자동 게스트하우스 룸 체크인
 - **Failover 처리**: FailoverTask 베이스 클래스 (acks_late, reject_on_worker_lost, 실패 로그 DB 저장)
 
-**마이그레이션** (7개)
+**마이그레이션** (10개)
 
 - 0001_create_user.py
 - 0002_create_city.py (base_cost_points, base_duration_hours 포함)
@@ -223,25 +246,28 @@ uv run dev
 - 0005_create_airship.py
 - 0006_create_ticket.py
 - 0008_create_taskfailurelog.py
+- 0009_create_guesthouse.py
+- 0010_create_room.py
+- 0011_create_roomstay.py
 
 **테스트**
 
 - 단위 테스트:
     - 엔티티: City, Airship, Ticket
-    - 서비스: UserService, PointTransactionService, AirshipService, TicketService
+    - 서비스: UserService, PointTransactionService, AirshipService, TicketService, GuestHouseService, RoomService, RoomStayService
     - 유스케이스: City, Airship
 - 통합 테스트:
     - 리포지토리: UserRepository, UserIdentityRepository, CityRepository, PointTransactionRepository, AirshipRepository,
-      TicketRepository
-    - 서비스: PointTransactionService, AirshipService, TicketService
+      TicketRepository, GuestHouseRepository, RoomRepository, RoomStayRepository
+    - 서비스: PointTransactionService, AirshipService, TicketService, TicketSyncService, GuestHouseSyncService, RoomSyncService, RoomStaySyncService
     - 유스케이스: Ticket
-    - Celery 태스크: complete_ticket_task
-- E2E 테스트: User API, City API, Airship API, Ticket API
+    - Celery 태스크: task_complete_ticket, task_check_in
+- E2E 테스트: User API, City API, Airship API, Ticket API, Room API, RoomStay API
 
 #### 🚧 진행 예정
 
-- 게스트하우스 및 룸 시스템
 - 채팅 시스템
+- 체크아웃 시스템
 
 자세한 진행 상황은 `docs/checklist.md` 참조
 
@@ -428,7 +454,188 @@ class CityService:
 
 ---
 
+## 비동기/동기 서비스 및 리포지토리 패턴
+
+이 프로젝트는 **비동기**(FastAPI/Presentation)와 **동기**(Celery Worker) 두 가지 실행 환경을 지원합니다.
+이를 위해 서비스와 리포지토리를 비동기/동기 버전으로 분리하고, 공통 로직은 Core 클래스로 추출합니다.
+
+### 아키텍처 개요
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Domain Layer                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Repository Interface (ABC)         │  Service                          │
+│  ├── TicketRepository (비동기)       │  ├── TicketService (비동기)        │
+│  └── TicketSyncRepository (동기)    │  └── TicketSyncService (동기)      │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    ↑
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       Infrastructure Layer                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│  TicketRepositoryCore (공통 로직)                                        │
+│       ↑                    ↑                                            │
+│  SqlAlchemyTicketRepository    SqlAlchemyTicketSyncRepository           │
+│  (비동기, run_sync 사용)        (동기, 직접 호출)                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Repository 패턴
+
+#### 1. Domain Layer - 인터페이스 분리
+
+```python
+# domain/repositories/ticket.py
+class TicketRepository(ABC):
+    """비동기 리포지토리 인터페이스 (Presentation/Application Layer용)"""
+    @abstractmethod
+    async def find_by_id(self, ticket_id: Id) -> Ticket | None: ...
+
+    @abstractmethod
+    async def update(self, ticket: Ticket) -> Ticket: ...
+
+class TicketSyncRepository(ABC):
+    """동기 리포지토리 인터페이스 (Worker Layer용)"""
+    @abstractmethod
+    def find_by_id(self, ticket_id: Id) -> Ticket | None: ...
+
+    @abstractmethod
+    def update(self, ticket: Ticket) -> Ticket: ...
+```
+
+#### 2. Infrastructure Layer - Core 클래스로 공통 로직 추출
+
+```python
+# infrastructure/repositories/ticket_core.py
+class TicketRepositoryCore:
+    """쿼리 빌더, 변환 메서드 등 공통 로직"""
+
+    @staticmethod
+    def _query_find_by_id(session: Session, ticket_id: Id) -> Select:
+        return select(TicketModel).where(TicketModel.ticket_id == ticket_id.value)
+
+    @staticmethod
+    def to_entity(model: TicketModel) -> Ticket: ...
+
+    @staticmethod
+    def to_model(entity: Ticket) -> TicketModel: ...
+
+    # 동기 메서드로 구현 (비동기 버전에서 run_sync로 호출)
+    @staticmethod
+    def find_by_id(session: Session, ticket_id: Id) -> Ticket | None:
+        stmt = TicketRepositoryCore._query_find_by_id(session, ticket_id)
+        result = session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return TicketRepositoryCore.to_entity(model) if model else None
+```
+
+#### 3. Infrastructure Layer - 비동기/동기 구현체
+
+```python
+# infrastructure/repositories/ticket.py
+
+class SqlAlchemyTicketRepository(TicketRepository):
+    """비동기 구현체 - Core 메서드를 run_sync로 호출"""
+
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def find_by_id(self, ticket_id: Id) -> Ticket | None:
+        return await self._session.run_sync(TicketRepositoryCore.find_by_id, ticket_id)
+
+
+class SqlAlchemyTicketSyncRepository(TicketSyncRepository):
+    """동기 구현체 - Core 메서드를 직접 호출"""
+
+    def __init__(self, session: Session):
+        self._session = session
+
+    def find_by_id(self, ticket_id: Id) -> Ticket | None:
+        return TicketRepositoryCore.find_by_id(self._session, ticket_id)
+```
+
+### Service 패턴
+
+서비스도 비동기/동기 버전으로 분리합니다.
+
+```python
+# domain/services/ticket.py
+
+class TicketService:
+    """비동기 서비스 (Presentation/Application Layer용)"""
+
+    def __init__(self, ticket_repository: TicketRepository):
+        self._ticket_repository = ticket_repository
+
+    async def get_ticket_by_id(self, ticket_id: Id) -> Ticket:
+        ticket = await self._ticket_repository.find_by_id(ticket_id)
+        if ticket is None:
+            raise NotFoundTicketError
+        return ticket
+
+
+class TicketSyncService:
+    """동기 서비스 (Worker Layer용)"""
+
+    def __init__(self, ticket_sync_repository: TicketSyncRepository):
+        self._ticket_repository = ticket_sync_repository
+
+    def get_ticket_by_id(self, ticket_id: Id) -> Ticket:
+        ticket = self._ticket_repository.find_by_id(ticket_id)
+        if ticket is None:
+            raise NotFoundTicketError
+        return ticket
+```
+
+### 사용 예시
+
+#### Presentation Layer (비동기)
+
+```python
+# presentation/api/tickets.py
+@router.get("/{ticket_id}")
+async def get_ticket(ticket_id: str, ticket_service: CurrentTicketService):
+    return await ticket_service.get_ticket_by_id(Id.from_hex(ticket_id))
+```
+
+#### Worker Layer (동기)
+
+```python
+# worker/tasks/tickets/task_complete_ticket.py
+@shared_task(name=COMPLETE_TICKET_TASK_NAME, base=FailoverTask)
+def task_complete_ticket(ticket_id: str) -> dict:
+    with get_sync_db_session() as session:
+        ticket_service = TicketSyncService(SqlAlchemyTicketSyncRepository(session))
+        ticket = ticket_service.complete(Id.from_hex(ticket_id))
+        session.commit()
+    return {"ticket_id": ticket_id, "result": "success"}
+```
+
+### 핵심 원칙
+
+1. **Core 클래스는 동기 메서드로 구현**: `run_sync`를 통해 비동기에서도 호출 가능
+2. **비동기 리포지토리는 `run_sync` 사용**: `await self._session.run_sync(Core.method, args)`
+3. **동기 리포지토리는 직접 호출**: `Core.method(self._session, args)`
+4. **서비스는 각각의 리포지토리 타입만 의존**: 비동기 서비스 → 비동기 리포지토리, 동기 서비스 → 동기 리포지토리
+5. **Worker에서는 반드시 동기 버전 사용**: Celery는 비동기를 지원하지 않음
+
+---
+
 ## Celery Task 작성 가이드라인
+
+### Worker와 Application Layer의 대응 관계
+
+Worker 계층은 Application Layer(유스케이스)와 대응되는 구조를 가집니다.
+
+| Application Layer | Worker Layer |
+|-------------------|--------------|
+| `main.py` | `worker/app.py` |
+| `application/use_cases/` | `worker/tasks/` |
+| `application/use_cases/tickets/` | `worker/tasks/tickets/` |
+| `application/use_cases/room_stays/` | `worker/tasks/room_stays/` |
+| 유스케이스 클래스 | 태스크 함수 |
+| 비동기 서비스 사용 | 동기 서비스 사용 |
+| `TicketService` | `TicketSyncService` |
 
 ### 아키텍처 개요
 
@@ -437,25 +644,27 @@ Application (UseCase) → Domain Port (TaskScheduler) ← Infrastructure Adapter
                                                                     ↓
                                                             Worker (Celery Task)
                                                                     ↓
-                                                      Sync Repository (DB 작업)
+                                                      Sync Service + Sync Repository
 ```
 
 - **유스케이스**: `TaskScheduler` 포트를 통해 백그라운드 작업 예약
 - **어댑터**: `CeleryTaskScheduler`가 실제 Celery `send_task` 호출
-- **Worker**: 독립 프로세스로 실행, 동기 리포지토리 사용
+- **Worker**: 독립 프로세스로 실행, **동기 서비스와 동기 리포지토리** 사용
 
 ### 새 Celery Task 작성 순서
 
 ```
 1. 태스크 이름 상수 정의 (worker/tasks/names.py)
-2. 동기 리포지토리 인터페이스 작성 (domain/repositories/*_sync.py) - 필요시
-3. 동기 리포지토리 구현체 작성 (infrastructure/repositories/*_sync.py) - 필요시
-4. 태스크 함수 작성 (worker/tasks/*.py)
-5. 태스크 export (worker/tasks/__init__.py)
-6. 포트 인터페이스에 메서드 추가 (domain/ports/task_scheduler.py)
-7. 어댑터에 메서드 구현 (infrastructure/adapters/celery_task_scheduler.py)
-8. 유스케이스에서 포트 호출
-9. 테스트 작성 (tests/integration/worker/tasks/)
+2. 동기 리포지토리 인터페이스 작성 (domain/repositories/*.py) - *SyncRepository
+3. 동기 리포지토리 구현체 작성 (infrastructure/repositories/*.py) - SqlAlchemy*SyncRepository
+   - Core 클래스가 없으면 먼저 생성 (*_core.py)
+4. 동기 서비스 작성 (domain/services/*.py) - *SyncService
+5. 태스크 폴더 및 파일 생성 (worker/tasks/{도메인}/task_{동작}.py)
+6. 태스크 export (worker/tasks/__init__.py, worker/tasks/{도메인}/__init__.py)
+7. 포트 인터페이스에 메서드 추가 (domain/ports/task_scheduler.py)
+8. 어댑터에 메서드 구현 (infrastructure/adapters/celery_task_scheduler.py)
+9. 유스케이스에서 포트 호출
+10. 테스트 작성 (tests/integration/worker/tasks/{도메인}/)
 ```
 
 ### 필수 규칙
@@ -465,13 +674,30 @@ Application (UseCase) → Domain Port (TaskScheduler) ← Infrastructure Adapter
 ```python
 # src/bzero/worker/tasks/names.py
 # 태스크 이름은 반드시 상수로 정의 (태스크 정의와 send_task 양쪽에서 사용)
-COMPLETE_TICKET_TASK_NAME = "bzero.worker.tasks.ticket.complete_ticket_task"
+# 형식: "bzero.worker.tasks.{도메인}.{함수명}"
+COMPLETE_TICKET_TASK_NAME = "bzero.worker.tasks.tickets.task_complete_ticket"
+CHECK_IN_TASK_NAME = "bzero.worker.tasks.room_stays.task_check_in"
 ```
 
-#### 2. FailoverTask 베이스 클래스 상속
+#### 2. 도메인별 폴더 구조
+
+```
+worker/tasks/
+├── __init__.py          # 태스크 함수들 export
+├── base.py              # FailoverTask 베이스 클래스
+├── names.py             # 태스크 이름 상수
+├── tickets/             # 티켓 도메인
+│   ├── __init__.py
+│   └── task_complete_ticket.py
+└── room_stays/          # 룸 스테이 도메인
+    ├── __init__.py
+    └── task_check_in.py
+```
+
+#### 3. FailoverTask 베이스 클래스 상속
 
 ```python
-# src/bzero/worker/tasks/ticket.py
+# src/bzero/worker/tasks/tickets/task_complete_ticket.py
 from bzero.worker.tasks.base import FailoverTask
 
 
@@ -482,7 +708,7 @@ from bzero.worker.tasks.base import FailoverTask
     retry_backoff=True,  # 점진적 재시도 간격
     retry_kwargs={"max_retries": 3},  # 최대 재시도 횟수
 )
-def complete_ticket_task(ticket_id: str) -> dict:
+def task_complete_ticket(ticket_id: str) -> dict:
     ...
 ```
 
@@ -492,19 +718,47 @@ def complete_ticket_task(ticket_id: str) -> dict:
 - `reject_on_worker_lost = True`: 워커 손실 시 재큐잉
 - `on_failure`: 최종 실패 시 `TaskFailureLogModel`에 로그 저장
 
-#### 3. 동기 세션 사용 (Celery는 비동기 미지원)
+#### 4. 동기 세션과 동기 서비스 사용
+
+태스크는 유스케이스처럼 **여러 도메인 서비스를 조합**하여 비즈니스 로직을 수행합니다.
 
 ```python
-# 태스크 내에서 동기 세션 사용
-from bzero.core.database import get_sync_db_session
+# worker/tasks/room_stays/task_check_in.py
+@shared_task(name=CHECK_IN_TASK_NAME, base=FailoverTask, ...)
+def task_check_in(ticket_id: str) -> dict:
+    """도시 도착 시 게스트하우스 룸에 체크인하는 태스크"""
 
-with get_sync_db_session() as session:
-    repository = SqlAlchemyTicketSyncRepository(session)
-    # DB 작업...
-    session.commit()  # 명시적 커밋 필수
+    with get_sync_db_session() as session:
+        # 1. 동기 서비스 인스턴스 생성 (유스케이스의 의존성 주입과 유사)
+        ticket_service = TicketSyncService(
+            ticket_sync_repository=SqlAlchemyTicketSyncRepository(session),
+        )
+        guest_house_service = GuestHouseSyncService(
+            guest_house_sync_repository=SqlAlchemyGuestHouseSyncRepository(session),
+        )
+        room_service = RoomSyncService(
+            room_sync_repository=SqlAlchemyRoomSyncRepository(session),
+            timezone=get_settings().timezone,
+        )
+        room_stay_service = RoomStaySyncService(
+            room_stay_sync_repository=SqlAlchemyRoomStaySyncRepository(session),
+            timezone=get_settings().timezone,
+        )
+
+        # 2. 도메인 서비스 조합 (유스케이스 패턴)
+        ticket = ticket_service.get_ticket_by_id(Id.from_hex(ticket_id))
+        guest_house = guest_house_service.get_guest_house_in_city(ticket.city_snapshot.city_id)
+        room = room_service.get_or_create_room_for_update(guest_house.guest_house_id)
+        updated_room = room_service.occupy_room(room)
+        room_stay = room_stay_service.assign_room(ticket, updated_room)
+
+        # 3. 명시적 커밋 필수
+        session.commit()
+
+    return {"ticket_id": ticket_id, "room_stay_id": room_stay.room_stay_id.to_hex()}
 ```
 
-#### 4. 멱등성 보장
+#### 5. 멱등성 보장
 
 ```python
 # 이미 처리된 상태면 성공으로 반환 (중복 실행 안전)
@@ -512,7 +766,7 @@ if ticket.status in (TicketStatus.COMPLETED, TicketStatus.CANCELLED):
     return {"ticket_id": ticket_id, "result": "success"}
 ```
 
-#### 5. 예외 처리 패턴
+#### 6. 예외 처리 패턴
 
 ```python
 def some_task(param: str) -> dict:
@@ -537,7 +791,7 @@ def some_task(param: str) -> dict:
     }
 ```
 
-#### 6. 포트/어댑터 패턴 준수
+#### 7. 포트/어댑터 패턴 준수
 
 ```python
 # src/bzero/domain/ports/task_scheduler.py
