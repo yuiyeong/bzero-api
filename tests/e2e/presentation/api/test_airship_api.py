@@ -111,6 +111,8 @@ class TestGetAvailableAirships:
         assert "name" in first_airship
         assert "description" in first_airship
         assert "image_url" in first_airship
+        assert "cost_factor" in first_airship
+        assert "duration_factor" in first_airship
         assert "created_at" in first_airship
         assert "updated_at" in first_airship
 
@@ -118,6 +120,8 @@ class TestGetAvailableAirships:
         assert first_airship["name"] == "일반 비행선"
         assert first_airship["description"] == "편안한 속도로 여행하는 일반 비행선입니다."
         assert first_airship["image_url"] == "https://example.com/normal_airship.jpg"
+        assert first_airship["cost_factor"] == 1
+        assert first_airship["duration_factor"] == 1
 
     async def test_get_available_airships_with_pagination(
         self, client: AsyncClient, sample_airships: list[AirshipModel]
