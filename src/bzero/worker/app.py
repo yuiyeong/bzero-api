@@ -8,6 +8,7 @@ Redis를 브로커와 결과 백엔드로 사용하며, 동기 DB 연결을 관�
 """
 
 from celery import Celery
+from celery.schedules import crontab
 from celery.signals import worker_process_init, worker_process_shutdown
 
 from bzero.core.database import close_sync_db_connection, setup_sync_db_connection
@@ -49,6 +50,13 @@ def create_celery_app() -> Celery:
         task_soft_time_limit=15 * 60,  # 15분 소프트 타임아웃
         # Kombu 연결 버그 수정
         broker_connection_retry_on_startup=True,
+        # Celery Beat 스케줄 설정
+        beat_schedule={
+            "delete-expired-messages-daily": {
+                "task": "bzero.worker.tasks.chat_messages.task_delete_expired_messages",
+                "schedule": crontab(hour=0, minute=0),  # 매일 자정에 실행
+            },
+        },
     )
 
     # bzero.worker.tasks 모듈에서 태스크 자동 발견

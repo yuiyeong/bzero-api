@@ -331,58 +331,139 @@
 
 ### ChatMessage 모델 구현
 - [ ] ChatMessage 엔티티 생성 (message_id, room_id, user_id, content, card_id, message_type, is_system, expires_at)
+  - [ ] 팩토리 메서드: create() (일반 메시지)
+  - [ ] 팩토리 메서드: create_system_message() (시스템 메시지)
+  - [ ] 팩토리 메서드: create_card_shared_message() (카드 공유 메시지)
+  - [ ] 만료 시간 자동 계산 (created_at + 3일)
 - [ ] 값 객체 생성 (MessageContent, MessageType)
 - [ ] ChatMessage 테이블 마이그레이션
+  - [ ] 인덱스: (room_id, created_at), (expires_at)
 
 ### ConversationCard 모델 구현
-- [ ] ConversationCard 엔티티 생성 (card_id, city_id, question, category, phase, is_active)
+- [ ] ConversationCard 엔티티 생성 (card_id, city_id, question, category, is_active)
+  - [ ] 팩토리 메서드: create()
+  - [ ] activate(), deactivate() 메서드
 - [ ] ConversationCard 테이블 마이그레이션
+  - [ ] 인덱스: (city_id, is_active)
 
 ### ChatMessageRepository 구현
+- [ ] ChatMessageRepository 인터페이스 (비동기)
+- [ ] ChatMessageSyncRepository 인터페이스 (동기, Celery용)
+- [ ] ChatMessageRepositoryCore (공통 로직)
+- [ ] SqlAlchemyChatMessageRepository 구현체 (비동기)
+- [ ] SqlAlchemyChatMessageSyncRepository 구현체 (동기)
 - [ ] 메시지 생성
-- [ ] 룸별 최근 메시지 조회 (페이지네이션, 50개)
+- [ ] 룸별 최근 메시지 조회 (cursor 기반 페이지네이션, 기본 50개)
 - [ ] 만료된 메시지 조회 및 삭제 (3일 경과)
 
 ### ConversationCardRepository 구현
-- [ ] 도시별 카드 조회
-- [ ] 활성 카드 조회
-- [ ] 랜덤 카드 선택
+- [ ] ConversationCardRepository 인터페이스 (비동기)
+- [ ] SqlAlchemyConversationCardRepository 구현체
+- [ ] 도시별 활성 카드 조회
+- [ ] 공용 활성 카드 조회
+- [ ] 랜덤 카드 선택 (도시별/공용)
 
 ### 대화 카드 시드 데이터 생성
-- [ ] 세렌시아 카드 10장
-- [ ] 로렌시아 카드 10장
-- [ ] 공용 카드 10장
+- [ ] 시드 스크립트 작성 (scripts/seed_conversation_cards.py)
+- [ ] 세렌시아 카드 2-3장 (샘플)
+- [ ] 로렌시아 카드 2-3장 (샘플)
+- [ ] 공용 카드 2-3장 (샘플)
 
-### RateLimitingService 구현
-- [ ] Redis 기반 Rate Limiting
+### Redis 설정
+- [ ] Redis 클라이언트 설정 (core/redis.py)
+- [ ] get_redis_client() 팩토리 함수
+- [ ] 의존성 주입 설정
+
+### RateLimiter 구현 (포트/어댑터 패턴)
+- [ ] RateLimiter 포트 인터페이스 (domain/ports/rate_limiter.py)
+- [ ] RedisRateLimiter 어댑터 구현 (infrastructure/adapters/redis_rate_limiter.py)
+- [ ] Redis 기반 Rate Limiting (SET NX)
 - [ ] 메시지 전송 제한 (2초에 1회)
 - [ ] 키 형식: `rate_limit:chat:{user_id}:{room_id}`
+- [ ] TTL: 2초
 - [ ] 제한 초과 시 429 에러
 
-### MessageExpirationService 구현
-- [ ] 3일 경과 메시지 검색
-- [ ] 만료 메시지 일괄 삭제
-- [ ] Celery 배치 작업 (매일 실행)
+### 도메인 서비스 구현
+- [ ] ChatMessageService (비동기)
+  - [ ] send_message() 메서드
+  - [ ] share_conversation_card() 메서드
+  - [ ] get_message_history() 메서드 (cursor 기반)
+  - [ ] create_system_message() 메서드
+- [ ] ChatMessageSyncService (동기, Celery용)
+  - [ ] delete_expired_messages() 메서드
+- [ ] ConversationCardService (비동기)
+  - [ ] get_random_card() 메서드
+  - [ ] get_active_cards_by_city() 메서드
+
+### UseCase 구현
+- [ ] SendMessageUseCase (application/use_cases/chat_messages/send_message.py)
+  - [ ] Rate Limit 검증
+  - [ ] RoomStay 검증 (현재 체류 중인 룸만 가능)
+  - [ ] 메시지 생성 및 저장
+- [ ] GetMessageHistoryUseCase (application/use_cases/chat_messages/get_message_history.py)
+  - [ ] cursor 기반 페이지네이션
+  - [ ] User 정보 조인 (nickname, profile)
+- [ ] GetRandomCardUseCase (application/use_cases/conversation_cards/get_random_card.py)
+  - [ ] 도시별/공용 카드 랜덤 선택
+- [ ] ShareCardUseCase (application/use_cases/chat_messages/share_card.py)
+  - [ ] 카드 공유 메시지 생성
 
 ### WebSocket 구현
-- [ ] WebSocket 연결 관리
+- [ ] WebSocket 연결 관리 (presentation/websocket/chat.py)
+- [ ] ConnectionManager (룸별 연결 관리)
+- [ ] JWT 인증
+- [ ] Ping/Pong 하트비트 (30초 주기, 60초 타임아웃)
+- [ ] 이벤트 핸들러:
+  - [ ] on_connect (JWT 검증, RoomStay 검증, 입장 시스템 메시지)
+  - [ ] on_disconnect (퇴장 시스템 메시지)
+  - [ ] on_send_message (Rate Limit → 메시지 저장 → 브로드캐스트)
+  - [ ] on_share_card (카드 공유 메시지 → 브로드캐스트)
+  - [ ] on_ping (Pong 응답)
 - [ ] 룸별 채널 관리
 - [ ] 실시간 메시지 브로드캐스트
-- [ ] 접속자 수 업데이트
+
+### Celery Worker 구현
+- [ ] task_delete_expired_messages 태스크 (worker/tasks/chat_messages/task_delete_expired_messages.py)
+- [ ] 3일 경과 메시지 검색 및 soft delete
+- [ ] Celery Beat 스케줄 설정 (매일 자정 실행)
 
 ### API 엔드포인트 구현
-- [ ] POST /api/chat/messages (메시지 전송)
-- [ ] GET /api/chat/messages/{room_id} (채팅 히스토리)
-- [ ] GET /api/chat/cards/random/{city_id} (랜덤 카드 뽑기)
-- [ ] POST /api/chat/cards/share (카드 공유)
-- [ ] WebSocket /ws/chat/{room_id}
+- [ ] Pydantic 스키마 (presentation/schemas/chat_message.py, conversation_card.py)
+  - [ ] ChatMessageResponse
+  - [ ] ConversationCardResponse
+  - [ ] MessageHistoryResponse (messages, next_cursor)
+- [ ] GET /api/v1/rooms/{room_id}/messages (채팅 히스토리, cursor 파라미터)
+- [ ] GET /api/v1/cities/{city_id}/conversation-cards/random (랜덤 카드 뽑기)
+- [ ] WebSocket /ws/rooms/{room_id}/chat
+- [ ] 의존성 주입 설정
+  - [ ] CurrentChatMessageService
+  - [ ] CurrentConversationCardService
+  - [ ] CurrentRateLimiter
+
+### 테스트 작성
+- [ ] ChatMessage 엔티티 단위 테스트
+- [ ] ConversationCard 엔티티 단위 테스트
+- [ ] ChatMessageService 단위 테스트
+- [ ] RateLimiter 단위 테스트
+- [ ] ChatMessageRepository 통합 테스트
+- [ ] ConversationCardRepository 통합 테스트
+- [ ] WebSocket 연결 통합 테스트
+- [ ] Rate Limiting 통합 테스트
+- [ ] Celery task_delete_expired_messages 통합 테스트
+- [ ] 메시지 전송 E2E 테스트
+- [ ] 카드 공유 E2E 테스트
+- [ ] 페이지네이션 E2E 테스트
 
 ### 완료 조건
 - [ ] 채팅 메시지가 DB에 저장됨
-- [ ] 채팅 히스토리 조회가 작동함
-- [ ] 3일 이전 메시지가 자동 삭제됨
+- [ ] 채팅 히스토리 조회가 작동함 (cursor 기반 무한 스크롤)
+- [ ] 3일 이전 메시지가 자동 삭제됨 (Celery 배치 작업)
 - [ ] 대화 카드를 랜덤으로 뽑을 수 있음
 - [ ] WebSocket으로 실시간 메시지 전송이 작동함
+- [ ] 시스템 메시지가 자동 생성됨 (입장/퇴장/카드 공유)
+- [ ] Rate Limiting이 작동함 (2초에 1회)
+- [ ] Ping/Pong 하트비트가 작동함
+- [ ] 모든 테스트가 통과함
 
 ---
 
