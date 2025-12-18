@@ -485,10 +485,17 @@ class TestRoomStayRepositoryFindCheckedInByUserId:
     async def test_find_checked_in_by_user_id_success(
         self,
         room_stay_repository: SqlAlchemyRoomStayRepository,
+        test_session: AsyncSession,
         sample_user: UserModel,
         sample_room_stays: list[RoomStayModel],
     ):
         """사용자의 체크인된 룸 스테이를 조회할 수 있어야 합니다."""
+        # Given: EXTENDED 상태를 CHECKED_OUT으로 변경하여 CHECKED_IN만 남김
+        extended_room_stay = sample_room_stays[2]  # EXTENDED 상태
+        extended_room_stay.status = RoomStayStatus.CHECKED_OUT.value
+        extended_room_stay.actual_check_out_at = datetime.now()
+        await test_session.flush()
+
         # When
         room_stay = await room_stay_repository.find_checked_in_by_user_id(Id(str(sample_user.user_id)))
 
@@ -497,6 +504,28 @@ class TestRoomStayRepositoryFindCheckedInByUserId:
         assert str(room_stay.user_id.value) == str(sample_user.user_id)
         assert room_stay.status == RoomStayStatus.CHECKED_IN
 
+    async def test_find_checked_in_by_user_id_returns_extended_status(
+        self,
+        room_stay_repository: SqlAlchemyRoomStayRepository,
+        test_session: AsyncSession,
+        sample_user: UserModel,
+        sample_room_stays: list[RoomStayModel],
+    ):
+        """EXTENDED 상태인 룸 스테이도 조회되어야 합니다."""
+        # Given: CHECKED_IN과 EXTENDED 상태를 모두 CHECKED_OUT으로 변경
+        for room_stay in sample_room_stays[:2]:  # CHECKED_IN과 CHECKED_OUT
+            room_stay.status = RoomStayStatus.CHECKED_OUT.value
+            room_stay.actual_check_out_at = datetime.now()
+        await test_session.flush()
+
+        # When: EXTENDED 상태만 남음
+        room_stay = await room_stay_repository.find_checked_in_by_user_id(Id(str(sample_user.user_id)))
+
+        # Then: EXTENDED 상태가 조회됨
+        assert room_stay is not None
+        assert str(room_stay.user_id.value) == str(sample_user.user_id)
+        assert room_stay.status == RoomStayStatus.EXTENDED
+
     async def test_find_checked_in_by_user_id_returns_none_when_no_checked_in(
         self,
         room_stay_repository: SqlAlchemyRoomStayRepository,
@@ -504,14 +533,14 @@ class TestRoomStayRepositoryFindCheckedInByUserId:
         sample_room_stays: list[RoomStayModel],
     ):
         """체크인된 룸 스테이가 없으면 None을 반환해야 합니다."""
-        # Given: CHECKED_IN 상태를 CHECKED_OUT으로 변경
-        room_stay_model = sample_room_stays[0]
-        room_stay_model.status = RoomStayStatus.CHECKED_OUT.value
-        room_stay_model.actual_check_out_at = datetime.now()
+        # Given: 모든 룸 스테이를 CHECKED_OUT으로 변경
+        for room_stay in sample_room_stays:
+            room_stay.status = RoomStayStatus.CHECKED_OUT.value
+            room_stay.actual_check_out_at = datetime.now()
         await test_session.flush()
 
         # When
-        room_stay = await room_stay_repository.find_checked_in_by_user_id(Id(str(room_stay_model.user_id)))
+        room_stay = await room_stay_repository.find_checked_in_by_user_id(Id(str(sample_room_stays[0].user_id)))
 
         # Then
         assert room_stay is None
@@ -530,9 +559,10 @@ class TestRoomStayRepositoryFindAllCheckedInByRoomId:
         # When
         room_stays = await room_stay_repository.find_all_checked_in_by_room_id(Id(str(sample_room.room_id)))
 
-        # Then: CHECKED_IN 상태 1개만 조회됨
-        assert len(room_stays) == 1
-        assert all(rs.status == RoomStayStatus.CHECKED_IN for rs in room_stays)
+        # Then: CHECKED_IN, EXTENDED 상태 2개 조회됨 (CHECKED_OUT 제외)
+        assert len(room_stays) == 2
+        assert all(rs.status in (RoomStayStatus.CHECKED_IN, RoomStayStatus.EXTENDED) for rs in room_stays)
+        assert all(rs.status != RoomStayStatus.CHECKED_OUT for rs in room_stays)
 
     async def test_find_all_checked_in_by_room_id_empty_when_no_checked_in(
         self,
@@ -542,10 +572,10 @@ class TestRoomStayRepositoryFindAllCheckedInByRoomId:
         sample_room_stays: list[RoomStayModel],
     ):
         """체크인된 룸 스테이가 없으면 빈 리스트를 반환해야 합니다."""
-        # Given: CHECKED_IN 상태를 CHECKED_OUT으로 변경
-        room_stay_model = sample_room_stays[0]
-        room_stay_model.status = RoomStayStatus.CHECKED_OUT.value
-        room_stay_model.actual_check_out_at = datetime.now()
+        # Given: 모든 룸 스테이를 CHECKED_OUT으로 변경
+        for room_stay in sample_room_stays:
+            room_stay.status = RoomStayStatus.CHECKED_OUT.value
+            room_stay.actual_check_out_at = datetime.now()
         await test_session.flush()
 
         # When
@@ -626,7 +656,46 @@ class TestRoomStayRepositoryFindAllDueForCheckOut:
 
         # Then: 체크아웃 예정 시간이 지난 룸 스테이만 조회됨
         assert len(room_stays) >= 1
-        assert all(rs.status == RoomStayStatus.CHECKED_IN for rs in room_stays)
+        assert all(rs.status in (RoomStayStatus.CHECKED_IN, RoomStayStatus.EXTENDED) for rs in room_stays)
+        assert all(rs.status != RoomStayStatus.CHECKED_OUT for rs in room_stays)
+
+    async def test_find_all_due_for_check_out_includes_extended_status(
+        self,
+        room_stay_repository: SqlAlchemyRoomStayRepository,
+        test_session: AsyncSession,
+        sample_user: UserModel,
+        sample_city: CityModel,
+        sample_guest_house: GuestHouseModel,
+        sample_room: RoomModel,
+        sample_ticket: TicketModel,
+    ):
+        """체크아웃 예정 시간이 지난 EXTENDED 상태 룸 스테이도 조회되어야 합니다."""
+        # Given: 체크아웃 예정 시간이 지난 EXTENDED 상태 룸 스테이 생성
+        now = datetime.now(tz=UTC)
+        room_stay_model = RoomStayModel(
+            room_stay_id=uuid7(),
+            user_id=sample_user.user_id,
+            city_id=sample_city.city_id,
+            guest_house_id=sample_guest_house.guest_house_id,
+            room_id=sample_room.room_id,
+            ticket_id=sample_ticket.ticket_id,
+            status=RoomStayStatus.EXTENDED.value,
+            check_in_at=now - timedelta(hours=25),
+            scheduled_check_out_at=now - timedelta(hours=1),  # 1시간 전
+            actual_check_out_at=None,
+            extension_count=1,
+            created_at=now - timedelta(hours=25),
+            updated_at=now,
+        )
+        test_session.add(room_stay_model)
+        await test_session.flush()
+
+        # When
+        room_stays = await room_stay_repository.find_all_due_for_check_out(before=now)
+
+        # Then: EXTENDED 상태도 조회됨
+        extended_stays = [rs for rs in room_stays if rs.status == RoomStayStatus.EXTENDED]
+        assert len(extended_stays) >= 1
 
     async def test_find_all_due_for_check_out_empty_when_no_results(
         self,

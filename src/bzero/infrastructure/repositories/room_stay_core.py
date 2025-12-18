@@ -45,7 +45,7 @@ class RoomStayRepositoryCore:
         """사용자의 체크인된 룸 스테이를 조회하는 쿼리를 생성합니다."""
         return select(RoomStayModel).where(
             RoomStayModel.user_id == user_id.value,
-            RoomStayModel.status == RoomStayStatus.CHECKED_IN.value,
+            RoomStayModel.status != RoomStayStatus.CHECKED_OUT.value,
             RoomStayModel.deleted_at.is_(None),
         )
 
@@ -56,7 +56,7 @@ class RoomStayRepositoryCore:
         """룸의 체크인된 모든 룸 스테이를 조회하는 쿼리를 생성합니다."""
         return select(RoomStayModel).where(
             RoomStayModel.room_id == room_id.value,
-            RoomStayModel.status == RoomStayStatus.CHECKED_IN.value,
+            RoomStayModel.status != RoomStayStatus.CHECKED_OUT.value,
             RoomStayModel.deleted_at.is_(None),
         )
 
@@ -75,7 +75,7 @@ class RoomStayRepositoryCore:
         """체크아웃 예정 시간이 지난 룸 스테이를 조회하는 쿼리를 생성합니다."""
         return select(RoomStayModel).where(
             RoomStayModel.scheduled_check_out_at < before,
-            RoomStayModel.status == RoomStayStatus.CHECKED_IN.value,
+            RoomStayModel.status != RoomStayStatus.CHECKED_OUT.value,
             RoomStayModel.deleted_at.is_(None),
         )
 

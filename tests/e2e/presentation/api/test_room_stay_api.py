@@ -233,6 +233,52 @@ class TestGetCurrentStay:
         assert "scheduled_check_out_at" in data
         assert data["actual_check_out_at"] is None
 
+    async def test_get_current_stay_returns_extended_status(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        test_session: AsyncSession,
+        sample_city: CityModel,
+        sample_airship: AirshipModel,
+        sample_guest_house: GuestHouseModel,
+        sample_room: RoomModel,
+    ):
+        """EXTENDED 상태인 체류도 조회되어야 합니다."""
+        # Given: 사용자 생성
+        response = await client.post("/api/v1/users/me", headers=auth_headers)
+        user_id = response.json()["data"]["user_id"]
+
+        # 사용자 모델 조회
+        result = await test_session.execute(select(UserModel).where(UserModel.user_id == Id.from_hex(user_id).value))
+        user_model = result.scalar_one()
+
+        # EXTENDED 상태 체류 생성
+        room_stay = await create_user_with_room_stay(
+            test_session,
+            user_model,
+            sample_city,
+            sample_airship,
+            sample_guest_house,
+            sample_room,
+        )
+
+        # EXTENDED 상태로 변경
+        room_stay.status = RoomStayStatus.EXTENDED.value
+        room_stay.extension_count = 1
+        await test_session.commit()
+        await test_session.refresh(room_stay)
+
+        # When
+        response = await client.get("/api/v1/room-stays/current", headers=auth_headers)
+
+        # Then
+        assert response.status_code == 200
+        data = response.json()["data"]
+
+        assert data["room_stay_id"] == room_stay.room_stay_id.hex
+        assert data["status"] == RoomStayStatus.EXTENDED.value
+        assert data["extension_count"] == 1
+
     async def test_get_current_stay_returns_none_when_not_staying(
         self,
         client: AsyncClient,
