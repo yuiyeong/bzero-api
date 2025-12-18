@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings>=2.11.0",
     "pyjwt>=2.10.1",
     "python-dotenv>=1.2.1",
+    "python-socketio[asyncio]>=5.11.0",
     "redis>=5.2.1",
     "sqlalchemy[postgresql-asyncpg]>=2.0.44",
     "uuid-utils>=0.11.1",
