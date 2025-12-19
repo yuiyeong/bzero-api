@@ -441,50 +441,75 @@
 ## 7. 개인 숙소
 
 ### Diary 모델 구현
-- [ ] Diary 엔티티 생성 (diary_id, user_id, title, content, mood, diary_date, city_id, has_earned_points)
+- [ ] Diary 엔티티 생성 (diary_id, user_id, room_stay_id, city_id, guesthouse_id, title, content, mood)
 - [ ] 값 객체 생성 (DiaryContent, DiaryMood)
 - [ ] Diary 테이블 마이그레이션
-- [ ] UNIQUE(user_id, diary_date) 제약 조건
+- [ ] UNIQUE(room_stay_id) 제약 조건 - 체류당 1개
 
-### Questionnaire 모델 구현
-- [ ] Questionnaire 엔티티 생성 (questionnaire_id, user_id, city_id, question_1_answer, question_2_answer, question_3_answer, has_earned_points)
-- [ ] 값 객체 생성 (QuestionAnswer)
+### CityQuestion 모델 구현
+- [ ] CityQuestion 엔티티 생성 (city_question_id, city_id, question_text, display_order, is_active)
+- [ ] CityQuestion 테이블 마이그레이션
+- [ ] 초기 시드 데이터 생성 (세렌시아, 로렌시아 질문)
+
+### Questionnaire 모델 구현 (1문 1답)
+- [ ] Questionnaire 엔티티 생성 (questionnaire_id, user_id, room_stay_id, city_question_id, answer_text, city_id, guesthouse_id)
+- [ ] 값 객체 생성 (QuestionnaireAnswer)
 - [ ] Questionnaire 테이블 마이그레이션
-- [ ] UNIQUE(user_id, city_id) 제약 조건
+- [ ] UNIQUE(room_stay_id, city_question_id) 제약 조건 - 체류당 질문당 1개
 
 ### DiaryRepository 구현
 - [ ] 일기 생성
 - [ ] 사용자별 일기 조회
-- [ ] 특정 날짜 일기 조회 (중복 방지)
+- [ ] 체류별 일기 조회 (room_stay_id로 중복 방지)
+- [ ] 일기 수정
+- [ ] 일기 삭제 (soft delete)
+
+### CityQuestionRepository 구현
+- [ ] 도시별 활성 질문 목록 조회 (display_order 순)
+- [ ] 질문 저장
+- [ ] 질문 수정 (is_active 변경 포함)
+- [ ] 질문 삭제 (soft delete)
 
 ### QuestionnaireRepository 구현
 - [ ] 문답지 생성
 - [ ] 사용자별 문답지 조회
-- [ ] 도시별 문답지 조회 (중복 방지)
+- [ ] 체류별 문답지 조회 (room_stay_id)
+- [ ] 체류 + 질문별 문답지 조회 (중복 방지)
+- [ ] 문답지 수정
+- [ ] 문답지 삭제 (soft delete)
 
 ### CityQuestionService 구현
-- [ ] 도시별 질문 관리 (코드 기반)
-- [ ] 세렌시아 질문 3개
-- [ ] 로렌시아 질문 3개
+- [ ] 도시별 질문 관리 (DB 기반)
+- [ ] 도시 ID로 활성 질문 목록 조회 (display_order 순)
+- [ ] 질문 추가/수정/비활성화 (관리자)
 
 ### 일기/문답지 작성 로직 구현
-- [ ] 일기 작성 (하루 1회 포인트 획득)
-- [ ] 문답지 작성 (도시별 1회 포인트 획득)
+- [ ] 일기 작성 (체류당 1회 포인트 획득 50P)
+- [ ] 문답지 답변 작성 (답변당 포인트 획득 50P)
 - [ ] 포인트 지급 (PointTransactionService)
-- [ ] 중복 포인트 지급 방지
+- [ ] 일기: room_stay_id UNIQUE로 중복 방지
+- [ ] 문답지: (room_stay_id, city_question_id) UNIQUE로 중복 방지
 
 ### API 엔드포인트 구현
-- [ ] POST /api/diary (일기 작성)
-- [ ] GET /api/diary/today (오늘 일기 조회)
-- [ ] GET /api/questionnaire/questions/{city_id} (도시별 질문 조회)
-- [ ] POST /api/questionnaire (문답지 작성)
-- [ ] GET /api/questionnaire/{city_id} (도시별 문답지 조회)
+- [ ] POST /api/diaries (일기 작성)
+- [ ] GET /api/diaries (사용자 일기 목록)
+- [ ] GET /api/diaries/{diary_id} (일기 상세)
+- [ ] PATCH /api/diaries/{diary_id} (일기 수정)
+- [ ] DELETE /api/diaries/{diary_id} (일기 삭제)
+- [ ] GET /api/city-questions?city_id={city_id} (도시별 질문 조회)
+- [ ] POST /api/questionnaires (문답지 답변 작성)
+- [ ] GET /api/questionnaires (사용자 문답지 목록)
+- [ ] GET /api/questionnaires/{questionnaire_id} (문답지 상세)
+- [ ] PATCH /api/questionnaires/{questionnaire_id} (문답지 수정)
+- [ ] DELETE /api/questionnaires/{questionnaire_id} (문답지 삭제)
 
 ### 완료 조건
-- [ ] 일기 작성 시 포인트가 지급됨
-- [ ] 문답지 작성 시 포인트가 지급됨
-- [ ] 중복 포인트 지급이 방지됨
+- [ ] 일기 작성 시 포인트가 지급됨 (체류당 1회 50P)
+- [ ] 문답지 답변 작성 시 포인트가 지급됨 (답변당 50P)
+- [ ] 일기: room_stay_id UNIQUE로 중복 작성 방지
+- [ ] 문답지: (room_stay_id, city_question_id) UNIQUE로 중복 작성 방지
 - [ ] 일기와 문답지가 DB에 저장됨
+- [ ] 수정/삭제가 정상 동작함
 
 ---
 
@@ -492,8 +517,8 @@
 
 ### 포인트 규칙 검증
 - [ ] 회원가입 시 1000P 지급 확인
-- [ ] 일기 작성 시 50P 지급 (하루 1회)
-- [ ] 문답지 작성 시 50P 지급 (도시별 1회)
+- [ ] 일기 작성 시 50P 지급 (체류당 1회)
+- [ ] 문답지 답변 작성 시 50P 지급 (답변당)
 - [ ] 티켓 구매 시 포인트 차감 (300P/500P)
 - [ ] 체류 연장 시 포인트 차감 (300P)
 
