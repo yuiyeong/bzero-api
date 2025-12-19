@@ -14,6 +14,7 @@ from bzero.core.database import get_async_db_session
 from bzero.domain.services import ConversationCardService
 from bzero.infrastructure.repositories.conversation_card import SqlAlchemyConversationCardRepository
 
+
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 

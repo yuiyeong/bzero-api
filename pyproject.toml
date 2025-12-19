@@ -54,3 +54,8 @@ addopts = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "aiohttp>=3.13.2",
+]

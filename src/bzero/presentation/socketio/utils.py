@@ -1,38 +1,16 @@
 """Socket.IO 핸들러용 유틸리티"""
 import logging
-from contextlib import asynccontextmanager
 from typing import Any
 
 import socketio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bzero.core.database import get_async_db_session
+from bzero.domain.errors import BeZeroError
+from bzero.domain.value_objects import Id
+from bzero.presentation.api.dependencies import create_room_stay_service
+
 
 logger = logging.getLogger(__name__)
-
-
-@asynccontextmanager
-async def get_db_session():
-    """Socket.IO 핸들러용 DB 세션 컨텍스트 매니저.
-
-    자동으로 commit/rollback을 처리합니다.
-
-    사용 예:
-        async with get_db_session() as session:
-            # ... 비즈니스 로직 ...
-
-    Yields:
-        AsyncSession: 데이터베이스 세션
-    """
-    async for session in get_async_db_session():
-        try:
-            yield session
-            await session.commit()
-        except Exception as e:
-            await session.rollback()
-            logger.error(f"Database error: {e}")
-            raise
-        break
 
 
 async def get_session_data(
@@ -60,3 +38,25 @@ async def get_session_data(
         raise ValueError("Invalid session data")
 
     return session_data
+
+
+async def verify_room_access(user_id: str, room_id: str, session: AsyncSession) -> None:
+    """사용자가 해당 룸에 접근 권한이 있는지 검증합니다.
+
+    Args:
+        user_id: 사용자 ID (hex)
+        room_id: 룸 ID (hex)
+        session: DB 세션
+
+    Raises:
+        ValueError: 접근 권한이 없는 경우
+    """
+    room_stay_service = create_room_stay_service(session)
+
+    try:
+        await room_stay_service.get_stays_by_user_id_and_room_id(
+            user_id=Id.from_hex(user_id),
+            room_id=Id.from_hex(room_id),
+        )
+    except BeZeroError as e:
+        raise ValueError(f"Access denied: {e.code.value}") from e

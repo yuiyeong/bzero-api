@@ -13,17 +13,16 @@ from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.entities import City, GuestHouse, Room, RoomStay, Ticket
 from bzero.domain.value_objects import Id
-from bzero.domain.value_objects.airship import AirshipSnapshot
-from bzero.domain.value_objects.city import CitySnapshot
 from bzero.domain.value_objects.room_stay import RoomStayStatus
-from bzero.domain.value_objects.ticket import TicketStatus
+from bzero.domain.value_objects.ticket import AirshipSnapshot, CitySnapshot, TicketStatus
+from bzero.infrastructure.db.airship_model import AirshipModel
 from bzero.infrastructure.db.city_model import CityModel
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 from bzero.infrastructure.db.room_model import RoomModel
 from bzero.infrastructure.db.room_stay_model import RoomStayModel
 from bzero.infrastructure.db.ticket_model import TicketModel
 from bzero.infrastructure.db.user_model import UserModel
-from bzero.presentation.socketio import sio, sio_demo
+from bzero.presentation.socketio import sio
 
 # Socket.IO 클라이언트 설정
 DEMO_ROOM_ID = "00000000-0000-0000-0000-000000000000"
@@ -131,36 +130,60 @@ async def sample_room(test_session: AsyncSession, sample_guest_house: GuestHouse
 
 
 @pytest.fixture
+async def sample_airship(test_session: AsyncSession) -> AirshipModel:
+    """테스트용 비행선 fixture."""
+    now = datetime.now()
+    airship = AirshipModel(
+        airship_id=uuid7(),
+        name="테스트 비행선",
+        description="테스트용 비행선입니다",
+        image_url="https://example.com/airship.jpg",
+        cost_factor=100,
+        duration_factor=100,
+        is_active=True,
+        display_order=1,
+        created_at=now,
+        updated_at=now,
+    )
+    test_session.add(airship)
+    await test_session.flush()
+    return airship
+
+
+@pytest.fixture
 async def sample_ticket(
     test_session: AsyncSession,
     sample_user: UserModel,
     sample_city: CityModel,
+    sample_airship: AirshipModel,
 ) -> TicketModel:
     """테스트용 티켓 fixture."""
     settings = get_settings()
     now = datetime.now(settings.timezone)
-
     ticket = TicketModel(
         ticket_id=uuid7(),
         user_id=sample_user.user_id,
+        # City snapshot fields
         city_id=sample_city.city_id,
-        status="boarding",
+        city_name=sample_city.name,
+        city_theme=sample_city.theme,
+        city_description=sample_city.description,
+        city_image_url=sample_city.image_url,
+        city_base_cost_points=sample_city.base_cost_points,
+        city_base_duration_hours=sample_city.base_duration_hours,
+        # Airship snapshot fields
+        airship_id=sample_airship.airship_id,
+        airship_name=sample_airship.name,
+        airship_description=sample_airship.description,
+        airship_image_url=sample_airship.image_url,
+        airship_cost_factor=sample_airship.cost_factor,
+        airship_duration_factor=sample_airship.duration_factor,
+        # Ticket fields
+        ticket_number=f"T-{str(uuid7())[:8]}",
         cost_points=100,
-        duration_hours=24,
-        boarding_time=now,
-        scheduled_arrival_time=now + timedelta(hours=24),
-        airship_snapshot={
-            "airship_id": str(uuid7()),
-            "name": "테스트 비행선",
-            "theme": "standard",
-            "image_url": "https://example.com/airship.jpg",
-        },
-        city_snapshot={
-            "city_id": str(sample_city.city_id),
-            "name": sample_city.name,
-            "theme": sample_city.theme,
-            "image_url": sample_city.image_url,
-        },
+        status="boarding",
+        departure_datetime=now,
+        arrival_datetime=now + timedelta(hours=24),
         created_at=now,
         updated_at=now,
     )
@@ -173,6 +196,8 @@ async def sample_ticket(
 async def sample_room_stay(
     test_session: AsyncSession,
     sample_user: UserModel,
+    sample_city: CityModel,
+    sample_guest_house: GuestHouseModel,
     sample_room: RoomModel,
     sample_ticket: TicketModel,
 ) -> RoomStayModel:
@@ -183,11 +208,14 @@ async def sample_room_stay(
     room_stay = RoomStayModel(
         room_stay_id=uuid7(),
         user_id=sample_user.user_id,
+        city_id=sample_city.city_id,
+        guest_house_id=sample_guest_house.guest_house_id,
         room_id=sample_room.room_id,
         ticket_id=sample_ticket.ticket_id,
-        status="staying",
-        check_in_time=now,
-        scheduled_check_out_time=now + timedelta(hours=24),
+        status="checked_in",
+        check_in_at=now,
+        scheduled_check_out_at=now + timedelta(hours=24),
+        extension_count=0,
         created_at=now,
         updated_at=now,
     )
@@ -204,14 +232,14 @@ def mock_jwt_token(sample_user: UserModel, settings) -> str:
     payload = {
         "sub": str(sample_user.user_id),
         "email": sample_user.email,
-        "aud": settings.auth.supabase_jwt_audience,
+        "aud": "authenticated",  # Supabase audience
         "exp": datetime.now().timestamp() + 3600,
     }
 
     return jwt.encode(
         payload,
         settings.auth.supabase_jwt_secret.get_secret_value(),
-        algorithm="HS256",
+        algorithm=settings.auth.jwt_algorithm,
     )
 
 
@@ -224,31 +252,42 @@ def mock_jwt_token(sample_user: UserModel, settings) -> str:
 async def test_demo_connect_success(demo_client: socketio.AsyncClient):
     """데모 연결 성공 테스트."""
     # Given: Socket.IO 서버가 실행 중
-    connected = False
+    connected_event_received = False
+    user_id_received = None
     system_message_received = False
 
-    @demo_client.on("system_message")
+    @demo_client.on("connected", namespace="/demo")
+    async def on_connected(data):
+        nonlocal connected_event_received, user_id_received
+        assert "user_id" in data
+        connected_event_received = True
+        user_id_received = data["user_id"]
+
+    @demo_client.on("system_message", namespace="/demo")
     async def on_system_message(data):
         nonlocal system_message_received
         assert "message" in data
         assert "입장했습니다" in data["message"]["content"]
         system_message_received = True
 
-    @demo_client.event
-    async def connect():
-        nonlocal connected
-        connected = True
-
     # When: 데모 서버에 연결
     await demo_client.connect(
-        "http://localhost:8000/ws-demo",
-        socketio_path="/socket.io/demo",
+        "http://localhost:8000",
+        socketio_path="/ws/socket.io/",
+        namespaces=["/demo"],
     )
+    await asyncio.sleep(0.5)  # 연결 완료 대기
 
-    # Then: 연결 성공 및 입장 시스템 메시지 수신
-    await asyncio.sleep(1)  # 시스템 메시지 수신 대기
-    assert connected
+    # Then: 연결 성공 및 connected 이벤트 수신
     assert demo_client.connected
+    assert connected_event_received
+    assert user_id_received is not None
+
+    # When: 룸에 참여
+    await demo_client.emit("join_room", {"room_id": DEMO_ROOM_ID}, namespace="/demo")
+    await asyncio.sleep(0.5)  # 시스템 메시지 수신 대기
+
+    # Then: 입장 시스템 메시지 수신
     assert system_message_received
 
     await demo_client.disconnect()
@@ -261,20 +300,25 @@ async def test_demo_send_message_success(demo_client: socketio.AsyncClient):
     message_received = False
     received_data = None
 
-    @demo_client.on("new_message")
+    @demo_client.on("new_message", namespace="/demo")
     async def on_new_message(data):
         nonlocal message_received, received_data
         message_received = True
         received_data = data
 
     await demo_client.connect(
-        "http://localhost:8000/ws-demo",
-        socketio_path="/socket.io/demo",
+        "http://localhost:8000",
+        socketio_path="/ws/socket.io/",
+        namespaces=["/demo"],
     )
     await asyncio.sleep(0.5)
 
+    # 룸에 참여
+    await demo_client.emit("join_room", {"room_id": DEMO_ROOM_ID}, namespace="/demo")
+    await asyncio.sleep(0.5)
+
     # When: 메시지 전송
-    await demo_client.emit("send_message", {"content": "안녕하세요"})
+    await demo_client.emit("send_message", {"content": "안녕하세요"}, namespace="/demo")
 
     # Then: 메시지 브로드캐스트 수신
     await asyncio.sleep(1)
@@ -293,22 +337,23 @@ async def test_demo_rate_limiting(demo_client: socketio.AsyncClient):
     error_received = False
     error_data = None
 
-    @demo_client.on("error")
+    @demo_client.on("error", namespace="/demo")
     async def on_error(data):
         nonlocal error_received, error_data
         error_received = True
         error_data = data
 
     await demo_client.connect(
-        "http://localhost:8000/ws-demo",
-        socketio_path="/socket.io/demo",
+        "http://localhost:8000",
+        socketio_path="/ws/socket.io/",
+        namespaces=["/demo"],
     )
     await asyncio.sleep(0.5)
 
     # When: 연속으로 2번 메시지 전송 (2초 제한)
-    await demo_client.emit("send_message", {"content": "첫 번째"})
+    await demo_client.emit("send_message", {"content": "첫 번째"}, namespace="/demo")
     await asyncio.sleep(0.1)
-    await demo_client.emit("send_message", {"content": "두 번째"})
+    await demo_client.emit("send_message", {"content": "두 번째"}, namespace="/demo")
 
     # Then: Rate limit 에러 수신
     await asyncio.sleep(1)
@@ -325,7 +370,7 @@ async def test_demo_disconnect(demo_client: socketio.AsyncClient):
     system_message_received = False
     disconnect_message = None
 
-    @demo_client.on("system_message")
+    @demo_client.on("system_message", namespace="/demo")
     async def on_system_message(data):
         nonlocal system_message_received, disconnect_message
         if "퇴장했습니다" in data["message"]["content"]:
@@ -333,8 +378,9 @@ async def test_demo_disconnect(demo_client: socketio.AsyncClient):
             disconnect_message = data
 
     await demo_client.connect(
-        "http://localhost:8000/ws-demo",
-        socketio_path="/socket.io/demo",
+        "http://localhost:8000",
+        socketio_path="/ws/socket.io/",
+        namespaces=["/demo"],
     )
     await asyncio.sleep(0.5)
 
@@ -359,10 +405,13 @@ async def test_auth_connect_success(
     sample_room: RoomModel,
     sample_room_stay: RoomStayModel,
     mock_jwt_token: str,
+    test_session: AsyncSession,
 ):
     """인증 연결 성공 테스트."""
     # Given: 유효한 JWT 토큰과 룸 접근 권한
-    connected = False
+    # 테스트 데이터를 커밋하여 Socket.IO 핸들러가 볼 수 있도록 함
+    await test_session.commit()
+
     system_message_received = False
 
     @auth_client.on("system_message")
@@ -372,25 +421,25 @@ async def test_auth_connect_success(
         assert "입장했습니다" in data["message"]["content"]
         system_message_received = True
 
-    @auth_client.event
-    async def connect():
-        nonlocal connected
-        connected = True
-
     # When: 인증 정보와 함께 연결
     await auth_client.connect(
-        "http://localhost:8000/ws",
-        socketio_path="/socket.io",
+        "http://localhost:8000",
+        socketio_path="/ws/socket.io/",
         auth={
             "token": mock_jwt_token,
             "room_id": str(sample_room.room_id),
         },
     )
+    await asyncio.sleep(0.5)
 
     # Then: 연결 성공
-    await asyncio.sleep(1)
-    assert connected
     assert auth_client.connected
+
+    # When: 룸에 참여
+    await auth_client.emit("join_room", {"room_id": str(sample_room.room_id)})
+    await asyncio.sleep(0.5)
+
+    # Then: 입장 시스템 메시지 수신
     assert system_message_received
 
     await auth_client.disconnect()
@@ -410,8 +459,8 @@ async def test_auth_connect_failure_no_token(auth_client: socketio.AsyncClient):
     # When: 토큰 없이 연결
     try:
         await auth_client.connect(
-            "http://localhost:8000/ws",
-            socketio_path="/socket.io",
+            "http://localhost:8000",
+            socketio_path="/ws/socket.io/",
             auth={},
         )
     except socketio.exceptions.ConnectionError:
@@ -439,8 +488,8 @@ async def test_auth_connect_failure_invalid_token(
     # When: 잘못된 토큰으로 연결
     try:
         await auth_client.connect(
-            "http://localhost:8000/ws",
-            socketio_path="/socket.io",
+            "http://localhost:8000",
+            socketio_path="/ws/socket.io/",
             auth={
                 "token": "invalid_token",
                 "room_id": str(sample_room.room_id),
@@ -461,9 +510,13 @@ async def test_auth_send_message_success(
     sample_room: RoomModel,
     sample_room_stay: RoomStayModel,
     mock_jwt_token: str,
+    test_session: AsyncSession,
 ):
     """인증 메시지 전송 성공 테스트."""
     # Given: 인증 서버에 연결
+    # 테스트 데이터를 커밋하여 Socket.IO 핸들러가 볼 수 있도록 함
+    await test_session.commit()
+
     message_received = False
     received_data = None
 
@@ -474,13 +527,17 @@ async def test_auth_send_message_success(
         received_data = data
 
     await auth_client.connect(
-        "http://localhost:8000/ws",
-        socketio_path="/socket.io",
+        "http://localhost:8000",
+        socketio_path="/ws/socket.io/",
         auth={
             "token": mock_jwt_token,
             "room_id": str(sample_room.room_id),
         },
     )
+    await asyncio.sleep(0.5)
+
+    # 룸에 참여
+    await auth_client.emit("join_room", {"room_id": str(sample_room.room_id)})
     await asyncio.sleep(0.5)
 
     # When: 메시지 전송
@@ -527,6 +584,9 @@ async def test_auth_get_history_success(
     test_session.add(message)
     await test_session.flush()
 
+    # 테스트 데이터를 커밋하여 Socket.IO 핸들러가 볼 수 있도록 함
+    await test_session.commit()
+
     history_received = False
     received_history = None
 
@@ -537,8 +597,8 @@ async def test_auth_get_history_success(
         received_history = data
 
     await auth_client.connect(
-        "http://localhost:8000/ws",
-        socketio_path="/socket.io",
+        "http://localhost:8000",
+        socketio_path="/ws/socket.io/",
         auth={
             "token": mock_jwt_token,
             "room_id": str(sample_room.room_id),

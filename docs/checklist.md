@@ -331,96 +331,95 @@
 
 ### ChatMessage 모델 구현
 - [ ] ChatMessage 엔티티 생성 (message_id, room_id, user_id, content, card_id, message_type, is_system, expires_at)
-  - [ ] 팩토리 메서드: create() (일반 메시지)
-  - [ ] 팩토리 메서드: create_system_message() (시스템 메시지)
-  - [ ] 팩토리 메서드: create_card_shared_message() (카드 공유 메시지)
-  - [ ] 만료 시간 자동 계산 (created_at + 3일)
 - [ ] 값 객체 생성 (MessageContent, MessageType)
 - [ ] ChatMessage 테이블 마이그레이션
-  - [ ] 인덱스: (room_id, created_at), (expires_at)
 
 ### ConversationCard 모델 구현
-- [ ] ConversationCard 엔티티 생성 (card_id, city_id, question, category, is_active)
-  - [ ] 팩토리 메서드: create()
-  - [ ] activate(), deactivate() 메서드
+- [ ] ConversationCard 엔티티 생성 (card_id, city_id, question, category, phase, is_active)
 - [ ] ConversationCard 테이블 마이그레이션
-  - [ ] 인덱스: (city_id, is_active)
 
 ### ChatMessageRepository 구현
-- [ ] ChatMessageRepository 인터페이스 (비동기)
-- [ ] ChatMessageSyncRepository 인터페이스 (동기, Celery용)
-- [ ] ChatMessageRepositoryCore (공통 로직)
-- [ ] SqlAlchemyChatMessageRepository 구현체 (비동기)
-- [ ] SqlAlchemyChatMessageSyncRepository 구현체 (동기)
 - [ ] 메시지 생성
-- [ ] 룸별 최근 메시지 조회 (cursor 기반 페이지네이션, 기본 50개)
+- [ ] 룸별 최근 메시지 조회 (페이지네이션, 50개)
 - [ ] 만료된 메시지 조회 및 삭제 (3일 경과)
 
 ### ConversationCardRepository 구현
-- [ ] ConversationCardRepository 인터페이스 (비동기)
-- [ ] SqlAlchemyConversationCardRepository 구현체
-- [ ] 도시별 활성 카드 조회
-- [ ] 공용 활성 카드 조회
-- [ ] 랜덤 카드 선택 (도시별/공용)
+- [ ] 도시별 카드 조회
+- [ ] 활성 카드 조회
+- [ ] 랜덤 카드 선택
 
 ### 대화 카드 시드 데이터 생성
-- [ ] 시드 스크립트 작성 (scripts/seed_conversation_cards.py)
-- [ ] 세렌시아 카드 2-3장 (샘플)
-- [ ] 로렌시아 카드 2-3장 (샘플)
-- [ ] 공용 카드 2-3장 (샘플)
+- [ ] 세렌시아 카드 10장
+- [ ] 로렌시아 카드 10장
+- [ ] 공용 카드 10장
 
-### Redis 설정
-- [ ] Redis 클라이언트 설정 (core/redis.py)
-- [ ] get_redis_client() 팩토리 함수
-- [ ] 의존성 주입 설정
-
-### RateLimiter 구현 (포트/어댑터 패턴)
-- [ ] RateLimiter 포트 인터페이스 (domain/ports/rate_limiter.py)
-- [ ] RedisRateLimiter 어댑터 구현 (infrastructure/adapters/redis_rate_limiter.py)
-- [ ] Redis 기반 Rate Limiting (SET NX)
+### RateLimitingService 구현
+- [ ] Redis 기반 Rate Limiting
 - [ ] 메시지 전송 제한 (2초에 1회)
 - [ ] 키 형식: `rate_limit:chat:{user_id}:{room_id}`
-- [ ] TTL: 2초
 - [ ] 제한 초과 시 429 에러
 
-### 도메인 서비스 구현
-- [ ] ChatMessageService (비동기)
-  - [ ] send_message() 메서드
-  - [ ] share_conversation_card() 메서드
-  - [ ] get_message_history() 메서드 (cursor 기반)
-  - [ ] create_system_message() 메서드
-- [ ] ChatMessageSyncService (동기, Celery용)
-  - [ ] delete_expired_messages() 메서드
-- [ ] ConversationCardService (비동기)
-  - [ ] get_random_card() 메서드
-  - [ ] get_active_cards_by_city() 메서드
+### MessageExpirationService 구현
+- [ ] 3일 경과 메시지 검색
+- [ ] 만료 메시지 일괄 삭제
+- [ ] Celery 배치 작업 (매일 실행)
 
-### UseCase 구현
-- [ ] SendMessageUseCase (application/use_cases/chat_messages/send_message.py)
-  - [ ] Rate Limit 검증
-  - [ ] RoomStay 검증 (현재 체류 중인 룸만 가능)
-  - [ ] 메시지 생성 및 저장
-- [ ] GetMessageHistoryUseCase (application/use_cases/chat_messages/get_message_history.py)
-  - [ ] cursor 기반 페이지네이션
-  - [ ] User 정보 조인 (nickname, profile)
-- [ ] GetRandomCardUseCase (application/use_cases/conversation_cards/get_random_card.py)
-  - [ ] 도시별/공용 카드 랜덤 선택
-- [ ] ShareCardUseCase (application/use_cases/chat_messages/share_card.py)
-  - [ ] 카드 공유 메시지 생성
+### Socket.IO 마이그레이션 (#116) ✅
 
-### WebSocket 구현
-- [ ] WebSocket 연결 관리 (presentation/websocket/chat.py)
-- [ ] ConnectionManager (룸별 연결 관리)
-- [ ] JWT 인증
-- [ ] Ping/Pong 하트비트 (30초 주기, 60초 타임아웃)
-- [ ] 이벤트 핸들러:
-  - [ ] on_connect (JWT 검증, RoomStay 검증, 입장 시스템 메시지)
-  - [ ] on_disconnect (퇴장 시스템 메시지)
-  - [ ] on_send_message (Rate Limit → 메시지 저장 → 브로드캐스트)
-  - [ ] on_share_card (카드 공유 메시지 → 브로드캐스트)
-  - [ ] on_ping (Pong 응답)
-- [ ] 룸별 채널 관리
-- [ ] 실시간 메시지 브로드캐스트
+> 상세 계획: `docs/websocket-to-socketio-migration.md`
+
+#### Phase 1: Socket.IO 추가 (WebSocket 유지) ✅
+- [x] 패키지 설치: `uv add "python-socketio[asyncio]>=5.11.0"`
+- [x] 디렉토리 구조 생성: `src/bzero/presentation/socketio/`
+- [x] Socket.IO 서버 초기화 (`server.py`)
+  - [x] 메인 Socket.IO 서버 (인증 필요, `/ws/socket.io`)
+  - [x] 데모 Socket.IO 서버 (인증 불필요, `/ws-demo/socket.io/demo`)
+  - [x] 하트비트 설정 (pingInterval=25s, pingTimeout=60s)
+- [x] 유틸리티 및 미들웨어 (`utils.py`, `middleware.py`)
+  - [x] DB 세션 컨텍스트 매니저
+  - [x] JWT 토큰 검증 함수
+  - [x] 룸 접근 권한 검증 함수
+- [x] 인증 채팅 핸들러 (`handlers/chat.py`)
+  - [x] @sio.event connect (JWT 검증, RoomStay 검증, 입장 시스템 메시지)
+  - [x] @sio.event disconnect (퇴장 시스템 메시지)
+  - [x] @sio.on('send_message') (Rate Limit → 메시지 저장 → 브로드캐스트)
+  - [x] @sio.on('share_card') (카드 공유 메시지 → 브로드캐스트)
+  - [x] @sio.on('get_history') (메시지 히스토리 조회)
+- [x] 데모 채팅 핸들러 (`handlers/demo.py`)
+  - [x] 임시 user_id 생성 및 데모 룸 참여
+  - [x] 메시지 브로드캐스트 (DB 저장 없음)
+  - [x] Rate Limiting
+- [x] FastAPI 통합 (`main.py`)
+  - [x] `app.mount("/ws", sio_app)` 추가
+  - [x] `app.mount("/ws-demo", sio_demo_app)` 추가
+- [x] REST API 분리 (`api/chat.py`)
+  - [x] WebSocket 엔드포인트 제거
+  - [x] GET /api/v1/chat/cities/{city_id}/conversation-cards/random만 유지
+- [x] 테스트 작성
+  - [x] `scripts/test_chat_socketio.py` 작성
+  - [x] `tests/integration/presentation/test_socketio_handlers.py` 작성
+  - [x] 데모 연결 테스트
+  - [x] 인증 연결 테스트
+  - [x] 메시지 전송/수신 테스트
+  - [x] Rate Limiting 테스트
+  - [x] 재연결 테스트
+
+#### Phase 2: 프론트엔드 전환 ✅
+- [x] Socket.IO Client 적용 (`static/chat_demo.html`)
+  - [x] Socket.IO CDN 추가
+  - [x] io() 연결 설정
+  - [x] 재연결 이벤트 핸들러 추가
+  - [x] ping/pong 로직 제거 (자동 관리)
+- [x] 사용자 테스트
+
+#### Phase 3: WebSocket 제거 ✅
+- [x] `presentation/api/chat_demo.py` 삭제
+- [x] `presentation/websocket/` 디렉토리 삭제
+- [x] `scripts/test_chat_websocket.py` 삭제
+- [x] `api/__init__.py`에서 `chat_demo_router` import 제거
+- [x] 문서 업데이트
+  - [x] `scripts/CHAT_DEMO_GUIDE.md` 업데이트
+  - [x] `CLAUDE.md` 업데이트
 
 ### Celery Worker 구현
 - [ ] task_delete_expired_messages 태스크 (worker/tasks/chat_messages/task_delete_expired_messages.py)
@@ -432,9 +431,12 @@
   - [ ] ChatMessageResponse
   - [ ] ConversationCardResponse
   - [ ] MessageHistoryResponse (messages, next_cursor)
-- [ ] GET /api/v1/rooms/{room_id}/messages (채팅 히스토리, cursor 파라미터)
-- [ ] GET /api/v1/cities/{city_id}/conversation-cards/random (랜덤 카드 뽑기)
-- [ ] WebSocket /ws/rooms/{room_id}/chat
+- [ ] REST API
+  - [ ] GET /api/v1/chat/cities/{city_id}/conversation-cards/random (랜덤 카드 뽑기)
+- [ ] Socket.IO (실시간 통신)
+  - [ ] `/ws/socket.io` - 인증 채팅 (JWT 필요)
+  - [ ] `/ws-demo/socket.io/demo` - 데모 채팅 (인증 불필요)
+  - [ ] 이벤트: connect, disconnect, send_message, share_card, get_history
 - [ ] 의존성 주입 설정
   - [ ] CurrentChatMessageService
   - [ ] CurrentConversationCardService
@@ -456,13 +458,17 @@
 
 ### 완료 조건
 - [ ] 채팅 메시지가 DB에 저장됨
-- [ ] 채팅 히스토리 조회가 작동함 (cursor 기반 무한 스크롤)
-- [ ] 3일 이전 메시지가 자동 삭제됨 (Celery 배치 작업)
+- [ ] 채팅 히스토리 조회가 작동함
+- [ ] 3일 이전 메시지가 자동 삭제됨
 - [ ] 대화 카드를 랜덤으로 뽑을 수 있음
-- [ ] WebSocket으로 실시간 메시지 전송이 작동함
+- [ ] Socket.IO로 실시간 메시지 전송이 작동함
+  - [ ] `/ws/socket.io`에서 인증 채팅 작동 (JWT 필요)
+  - [ ] `/ws-demo/socket.io/demo`에서 데모 채팅 작동 (인증 불필요)
+  - [ ] 자동 재연결 기능 작동
+  - [ ] 하트비트 자동 관리 (수동 ping/pong 불필요)
 - [ ] 시스템 메시지가 자동 생성됨 (입장/퇴장/카드 공유)
 - [ ] Rate Limiting이 작동함 (2초에 1회)
-- [ ] Ping/Pong 하트비트가 작동함
+- [ ] 기존 WebSocket 코드가 제거됨
 - [ ] 모든 테스트가 통과함
 
 ---
