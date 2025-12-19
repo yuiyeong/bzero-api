@@ -1,7 +1,7 @@
 """채팅 REST API.
 
 대화 카드 관련 REST API 엔드포인트를 제공합니다.
-실시간 채팅은 Socket.IO를 사용합니다 (/ws, /ws-demo).
+실시간 채팅은 Socket.IO를 사용합니다 (/ws).
 """
 
 from typing import Annotated

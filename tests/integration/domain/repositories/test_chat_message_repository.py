@@ -128,6 +128,7 @@ class TestChatMessageRepository:
             content=MessageContent("안녕하세요!"),
             created_at=now,
             updated_at=now,
+            expires_at=now + timedelta(days=3),
         )
 
         # When: 메시지 생성
@@ -156,6 +157,7 @@ class TestChatMessageRepository:
             content=MessageContent("사용자가 입장했습니다."),
             created_at=now,
             updated_at=now,
+            expires_at=now + timedelta(days=3),
         )
 
         # When: 메시지 생성
@@ -183,6 +185,7 @@ class TestChatMessageRepository:
             content=MessageContent(sample_card.question),
             created_at=now,
             updated_at=now,
+            expires_at=now + timedelta(days=3),
         )
 
         # When: 메시지 생성

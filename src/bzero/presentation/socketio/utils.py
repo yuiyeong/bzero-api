@@ -40,18 +40,22 @@ async def get_session_data(
     return session_data
 
 
-async def verify_room_access(user_id: str, room_id: str, session: AsyncSession) -> None:
+async def verify_room_access(
+    user_id: str, room_id: str, session: AsyncSession, room_stay_service=None
+) -> None:
     """사용자가 해당 룸에 접근 권한이 있는지 검증합니다.
 
     Args:
         user_id: 사용자 ID (hex)
         room_id: 룸 ID (hex)
         session: DB 세션
+        room_stay_service: RoomStay 서비스 (선택적, 제공되지 않으면 자동 생성)
 
     Raises:
         ValueError: 접근 권한이 없는 경우
     """
-    room_stay_service = create_room_stay_service(session)
+    if room_stay_service is None:
+        room_stay_service = create_room_stay_service(session)
 
     try:
         await room_stay_service.get_stays_by_user_id_and_room_id(

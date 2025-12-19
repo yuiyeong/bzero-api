@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from bzero.application.use_cases.chat_messages import (
+    CreateSystemMessageUseCase,
     GetMessageHistoryUseCase,
     SendMessageUseCase,
     ShareCardUseCase,
@@ -10,14 +11,14 @@ from bzero.application.use_cases.chat_messages import (
 from bzero.core.database import get_async_db_session
 from bzero.core.settings import get_settings
 from bzero.domain.errors import BeZeroError
-from bzero.domain.value_objects import Id
-from bzero.domain.value_objects.chat_message import MessageContent
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.presentation.api.dependencies import (
     create_chat_message_service,
     create_conversation_card_service,
     create_room_stay_service,
 )
+from bzero.presentation.socketio.constants import SystemMessage
+from bzero.presentation.socketio.error_codes import SocketIOErrorCode
 from bzero.presentation.socketio.server import get_socketio_server
 from bzero.presentation.socketio.utils import get_session_data, verify_room_access
 
@@ -60,9 +61,9 @@ async def connect(sid: str, environ: dict, auth: dict | None):
                 secret=settings.auth.supabase_jwt_secret.get_secret_value(),
                 algorithm=settings.auth.jwt_algorithm,
             )
-        except Exception as e:
-            logger.warning(f"JWT verification failed: {e}")
-            raise ConnectionRefusedError("Invalid token") from e
+        except Exception:
+            logger.info("JWT verification failed")
+            raise ConnectionRefusedError("Invalid token")
 
         user_id = payload["sub"]
 
@@ -106,28 +107,25 @@ async def disconnect(sid: str):
         # 퇴장 시스템 메시지 전송
         async with get_async_db_session() as session:
             chat_message_service = create_chat_message_service(session)
+            use_case = CreateSystemMessageUseCase(session, chat_message_service)
 
-            system_message = await chat_message_service.create_system_message(
-                room_id=Id.from_hex(room_id),
-                content=MessageContent("사용자가 퇴장했습니다."),
+            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
+            result = await use_case.execute(
+                room_id=room_id,
+                content=SystemMessage.USER_LEFT,
             )
 
             await sio.emit(
                 "system_message",
                 {
                     "message": {
-                        "message_id": system_message.message_id.to_hex(),
-                        "content": system_message.content.value,
-                        "created_at": system_message.created_at.isoformat(),
+                        "message_id": result.message_id,
+                        "content": result.content,
+                        "created_at": result.created_at.isoformat(),
                     }
                 },
                 room=room_id,
             )
-
-            await session.commit()
-
-        # 룸에서 퇴장
-        sio.leave_room(sid, room_id)
 
         logger.info(f"User {user_id} disconnected from room {room_id}")
 
@@ -148,7 +146,7 @@ async def handle_join_room(sid: str, data: dict[str, Any]):
     session_data = await get_session_data(sio, sid)
     user_id = session_data["user_id"]
     if room_id != session_data["room_id"]:
-        await sio.emit("error", {"error": "ROOM_ID_MISMATCH"}, to=sid)
+        await sio.emit("error", {"error": SocketIOErrorCode.ROOM_ID_MISMATCH}, to=sid)
         return
     try:
         # 룸 접근 권한 검증
@@ -163,29 +161,29 @@ async def handle_join_room(sid: str, data: dict[str, Any]):
         # 입장 시스템 메시지 전송
         async with get_async_db_session() as session:
             chat_message_service = create_chat_message_service(session)
+            use_case = CreateSystemMessageUseCase(session, chat_message_service)
 
-            system_message = await chat_message_service.create_system_message(
-                room_id=Id.from_hex(room_id),
-                content=MessageContent("사용자가 입장했습니다."),
+            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
+            result = await use_case.execute(
+                room_id=room_id,
+                content=SystemMessage.USER_JOINED,
             )
 
             await sio.emit(
                 "system_message",
                 {
                     "message": {
-                        "message_id": system_message.message_id.to_hex(),
-                        "content": system_message.content.value,
-                        "created_at": system_message.created_at.isoformat(),
+                        "message_id": result.message_id,
+                        "content": result.content,
+                        "created_at": result.created_at.isoformat(),
                     }
                 },
                 room=room_id,
             )
 
-            await session.commit()
-
     except Exception as e:
         logger.error(f"Join room error: {e}")
-        await sio.emit("error", {"error": "INTERNAL_ERROR"}, to=sid)
+        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)
 
 
 @sio.on("send_message")
@@ -204,14 +202,15 @@ async def handle_send_message(sid: str, data: dict[str, Any]):
 
         content = data.get("content")
         if not content:
-            await sio.emit("error", {"error": "MISSING_CONTENT"}, to=sid)
+            await sio.emit("error", {"error": SocketIOErrorCode.MISSING_CONTENT}, to=sid)
             return
 
         # 메시지 전송 (기존 UseCase 100% 재사용)
         async with get_async_db_session() as session:
             chat_message_service = create_chat_message_service(session)
-
             use_case = SendMessageUseCase(session, chat_message_service)
+
+            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
             result = await use_case.execute(user_id, room_id, content)
 
             # 룸 전체에 브로드캐스트
@@ -229,13 +228,11 @@ async def handle_send_message(sid: str, data: dict[str, Any]):
                 room=room_id,
             )
 
-            await session.commit()
-
     except BeZeroError as e:
         await sio.emit("error", {"error": e.code.value}, to=sid)
     except Exception as e:
         logger.error(f"Send message error: {e}")
-        await sio.emit("error", {"error": "INTERNAL_ERROR"}, to=sid)
+        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)
 
 
 @sio.on("share_card")
@@ -253,7 +250,7 @@ async def handle_share_card(sid: str, data: dict[str, Any]):
 
         card_id = data.get("card_id")
         if not card_id:
-            await sio.emit("error", {"error": "MISSING_CARD_ID"}, to=sid)
+            await sio.emit("error", {"error": SocketIOErrorCode.MISSING_CARD_ID}, to=sid)
             return
 
         async with get_async_db_session() as session:
@@ -261,6 +258,8 @@ async def handle_share_card(sid: str, data: dict[str, Any]):
             conversation_card_service = create_conversation_card_service(session)
 
             use_case = ShareCardUseCase(session, chat_message_service, conversation_card_service)
+
+            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
             result = await use_case.execute(user_id, room_id, card_id)
 
             await sio.emit(
@@ -278,13 +277,11 @@ async def handle_share_card(sid: str, data: dict[str, Any]):
                 room=room_id,
             )
 
-            await session.commit()
-
     except BeZeroError as e:
         await sio.emit("error", {"error": e.code.value}, to=sid)
     except Exception as e:
         logger.error(f"Share card error: {e}")
-        await sio.emit("error", {"error": "INTERNAL_ERROR"}, to=sid)
+        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)
 
 
 @sio.on("get_history")
@@ -330,10 +327,8 @@ async def handle_get_history(sid: str, data: dict[str, Any]):
                 to=sid,
             )
 
-            await session.commit()
-
     except BeZeroError as e:
         await sio.emit("error", {"error": e.code.value}, to=sid)
     except Exception as e:
         logger.error(f"Get history error: {e}")
-        await sio.emit("error", {"error": "INTERNAL_ERROR"}, to=sid)
+        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)

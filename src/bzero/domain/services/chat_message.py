@@ -3,7 +3,7 @@
 채팅 메시지의 전송, 조회, 카드 공유 등 핵심 비즈니스 로직을 처리합니다.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from bzero.domain.entities import ChatMessage
@@ -12,6 +12,9 @@ from bzero.domain.ports.rate_limiter import RateLimiter
 from bzero.domain.repositories.chat_message import ChatMessageRepository
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent, MessageType
+
+# 메시지 보관 기간 (일)
+MESSAGE_RETENTION_DAYS = 3
 
 
 class ChatMessageService:
@@ -42,6 +45,17 @@ class ChatMessageService:
         self._chat_message_repository = chat_message_repository
         self._rate_limiter = rate_limiter
         self._timezone = timezone
+
+    def _calculate_expires_at(self, created_at: datetime) -> datetime:
+        """메시지 만료 일시를 계산합니다.
+
+        Args:
+            created_at: 메시지 생성 일시
+
+        Returns:
+            만료 일시 (생성 시간 + MESSAGE_RETENTION_DAYS일)
+        """
+        return created_at + timedelta(days=MESSAGE_RETENTION_DAYS)
 
     async def send_message(
         self,
@@ -82,6 +96,7 @@ class ChatMessageService:
             content=content,
             created_at=current,
             updated_at=current,
+            expires_at=self._calculate_expires_at(current),
         )
         return await self._chat_message_repository.create(message)
 
@@ -127,6 +142,7 @@ class ChatMessageService:
             content=MessageContent(card_question),
             created_at=current,
             updated_at=current,
+            expires_at=self._calculate_expires_at(current),
         )
         return await self._chat_message_repository.create(message)
 
@@ -153,6 +169,7 @@ class ChatMessageService:
             content=content,
             created_at=current,
             updated_at=current,
+            expires_at=self._calculate_expires_at(current),
         )
         return await self._chat_message_repository.create(message)
 

@@ -5,7 +5,7 @@
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent, MessageType
@@ -49,6 +49,7 @@ class ChatMessage:
         content: MessageContent,
         created_at: datetime,
         updated_at: datetime,
+        expires_at: datetime,
         card_id: Id | None = None,
     ) -> "ChatMessage":
         """일반 메시지를 생성합니다.
@@ -59,12 +60,12 @@ class ChatMessage:
             content: 메시지 내용
             created_at: 생성 일시
             updated_at: 수정 일시
+            expires_at: 만료 일시
             card_id: 선택적으로 첨부할 카드 ID
 
         Returns:
             새로 생성된 ChatMessage 엔티티 (message_type: TEXT)
         """
-        expires_at = created_at + timedelta(days=3)
         return cls(
             message_id=Id(),
             room_id=room_id,
@@ -86,6 +87,7 @@ class ChatMessage:
         content: MessageContent,
         created_at: datetime,
         updated_at: datetime,
+        expires_at: datetime,
     ) -> "ChatMessage":
         """시스템 메시지를 생성합니다.
 
@@ -96,11 +98,11 @@ class ChatMessage:
             content: 메시지 내용 (예: "서연님이 입장하셨습니다")
             created_at: 생성 일시
             updated_at: 수정 일시
+            expires_at: 만료 일시
 
         Returns:
             새로 생성된 시스템 메시지 (message_type: SYSTEM, user_id: None)
         """
-        expires_at = created_at + timedelta(days=3)
         return cls(
             message_id=Id(),
             room_id=room_id,
@@ -124,6 +126,7 @@ class ChatMessage:
         content: MessageContent,
         created_at: datetime,
         updated_at: datetime,
+        expires_at: datetime,
     ) -> "ChatMessage":
         """대화 카드 공유 메시지를 생성합니다.
 
@@ -134,11 +137,11 @@ class ChatMessage:
             content: 카드 질문 내용
             created_at: 생성 일시
             updated_at: 수정 일시
+            expires_at: 만료 일시
 
         Returns:
             새로 생성된 카드 공유 메시지 (message_type: CARD_SHARED)
         """
-        expires_at = created_at + timedelta(days=3)
         return cls(
             message_id=Id(),
             room_id=room_id,
