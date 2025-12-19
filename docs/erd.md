@@ -333,12 +333,23 @@ erDiagram
     DIARY {
         uuid diary_id PK
         uuid user_id FK "NOT NULL, USER"
+        uuid room_stay_id FK "NOT NULL, ROOM_STAY, UNIQUE, 체류당 1개"
+        uuid city_id FK "NOT NULL, CITY, 비정규화"
+        uuid guesthouse_id FK "NOT NULL, GUESTHOUSE, 비정규화"
         varchar_255 title "NULL"
-        text content "NOT NULL, 최대 500자"
-        varchar_50 mood "NULL, 이모지"
-        date diary_date "NOT NULL"
-        uuid city_id FK "NULL, CITY"
-        boolean has_earned_points "NOT NULL, DEFAULT FALSE, 하루 1회 50P"
+        text content "NOT NULL"
+        varchar_20 mood "NULL, 이모지"
+        datetime created_at "NOT NULL, DEFAULT NOW()"
+        datetime updated_at "NOT NULL, DEFAULT NOW()"
+        datetime deleted_at "NULL"
+    }
+
+    CITY_QUESTION {
+        uuid city_question_id PK
+        uuid city_id FK "NOT NULL, CITY"
+        text question_text "NOT NULL"
+        int display_order "NOT NULL, 표시 순서"
+        boolean is_active "NOT NULL, DEFAULT TRUE"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
         datetime deleted_at "NULL"
@@ -347,11 +358,11 @@ erDiagram
     QUESTIONNAIRE {
         uuid questionnaire_id PK
         uuid user_id FK "NOT NULL, USER"
-        uuid city_id FK "NOT NULL, CITY"
-        text question_1_answer "NULL, 최대 200자"
-        text question_2_answer "NULL, 최대 200자"
-        text question_3_answer "NULL, 최대 200자"
-        boolean has_earned_points "NOT NULL, DEFAULT FALSE, 도시별 1회 50P"
+        uuid room_stay_id FK "NOT NULL, ROOM_STAY"
+        uuid city_question_id FK "NOT NULL, CITY_QUESTION"
+        text answer_text "NULL, 길이 제한 없음"
+        uuid city_id FK "NOT NULL, CITY, 비정규화"
+        uuid guesthouse_id FK "NOT NULL, GUESTHOUSE, 비정규화"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
         datetime deleted_at "NULL"
@@ -400,12 +411,18 @@ erDiagram
     CITY ||--o{ TICKET: "목적지"
     CITY ||--o{ GUESTHOUSE: "게스트하우스"
     CITY ||--o{ CONVERSATION_CARD: "테마"
-    CITY ||--o{ QUESTIONNAIRE: "질문지"
+    CITY ||--o{ CITY_QUESTION: "질문"
+    CITY ||--o{ QUESTIONNAIRE: "비정규화"
     CITY ||--o{ DIARY: "작성도시"
+    CITY_QUESTION ||--o{ QUESTIONNAIRE: "답변"
     AIRSHIP ||--o{ TICKET: "비행선 타입"
     GUESTHOUSE ||--o{ ROOM: "방"
     GUESTHOUSE ||--o{ DIRECT_MESSAGE_ROOM: "소속"
+    GUESTHOUSE ||--o{ DIARY: "게스트하우스"
+    GUESTHOUSE ||--o{ QUESTIONNAIRE: "비정규화"
     TICKET ||--o| ROOM_STAY: "체크인"
+    ROOM_STAY ||--o| DIARY: "일기"
+    ROOM_STAY ||--o{ QUESTIONNAIRE: "문답지"
     ROOM ||--o{ ROOM_STAY: "숙박자"
     ROOM ||--o{ CHAT_MESSAGE: "메시지"
     ROOM ||--o{ DIRECT_MESSAGE_ROOM: "1:1대화"
@@ -488,12 +505,16 @@ erDiagram
 
 ### DIARY
 
-- 인덱스: `(user_id, diary_date)` UK, `(user_id, created_at)`
+- 인덱스: `(room_stay_id)` UK, `(user_id)`, `(user_id, created_at)`
+
+### CITY_QUESTION
+
+- 인덱스: `(city_id, is_active, display_order)` - 도시별 활성 질문 조회
 
 ### QUESTIONNAIRE
 
-- 인덱스: `(user_id, city_id)` UK
-- 질문: 코드에서 관리 (도시별 3개)
+- 인덱스: `(room_stay_id, city_question_id)` UK - 체류당 질문당 1개 답변
+- 인덱스: `(user_id)`, `(user_id, created_at)` - 사용자별 조회
 
 ---
 
@@ -508,15 +529,15 @@ erDiagram
 ### UNIQUE 제약 (미구현)
 
 - ROOM: `(guesthouse_id, room_number)`
-- DIARY: `(user_id, diary_date)` - 하루 1개
-- QUESTIONNAIRE: `(user_id, city_id)` - 도시별 1개
+- DIARY: `(room_stay_id)` - 체류당 1개
+- QUESTIONNAIRE: `(room_stay_id, city_question_id)` - 체류당 질문당 1개
 
 ### 데이터 제약
 
 - 닉네임: 2-10자
 - 메시지 내용: 300자
-- 일기 내용: 500자
-- 문답지 답변: 200자
+- 일기 제목: 255자
+- 일기 기분(mood): 20자
 - 룸 최대 인원: 6명
 
 ### 자동 처리 (미구현)

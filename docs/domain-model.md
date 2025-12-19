@@ -318,23 +318,24 @@ graph TB
 
 **엔티티**:
 - Diary (일기)
-- Questionnaire (문답지)
+- CityQuestion (도시별 질문 - 관리자 관리)
+- Questionnaire (문답지 - 1문 1답)
 
 **값 객체**:
-- DiaryContent (최대 500자)
+- DiaryContent (내용)
 - DiaryMood (이모지)
-- QuestionnaireAnswer (최대 200자)
-- DiaryDate
+- QuestionnaireAnswer (답변 내용)
 
 **불변식**:
-- 일기는 하루 1개 (user_id, diary_date 유일)
-- 문답지는 도시별 1개 (user_id, city_id 유일)
-- 일기는 500자, 문답지 답변은 200자
+- 일기는 체류당 1개 (room_stay_id 유일)
+- 일기는 도시 체류 중일 때만 작성 가능
+- 문답지는 체류당 질문당 1개 (room_stay_id, city_question_id 유일)
+- 문답지는 도시 체류 중일 때만 작성 가능
 - 일기/문답지는 본인만 조회 가능
 
 **도메인 로직**:
-- **일기 작성**: 하루 1회 포인트 획득 (50P)
-- **문답지 작성**: 도시별 1회 포인트 획득 (50P)
+- **일기 작성**: 체류당 1회 포인트 획득 (50P), 수정은 언제든 가능
+- **문답지 작성**: 답변당 포인트 획득 (50P), 수정은 언제든 가능
 
 ### 7. Point Aggregate
 
@@ -710,41 +711,59 @@ PURCHASED → BOARDING → COMPLETED
 **식별자**: diary_id (UUID v7)
 
 **속성**:
-- user_id: UUID (FK)
-- title: String (nullable)
+- user_id: UUID (FK, NOT NULL)
+- room_stay_id: UUID (FK, NOT NULL, UNIQUE) - 체류당 1개
+- city_id: UUID (FK, NOT NULL) - 비정규화/스냅샷
+- guesthouse_id: UUID (FK, NOT NULL) - 비정규화/스냅샷
+- title: String (nullable, 최대 255자)
 - content: DiaryContent (VO)
-- mood: DiaryMood (VO)
-- diary_date: Date
-- city_id: UUID (FK, nullable)
-- has_earned_points: Boolean
+- mood: DiaryMood (VO, nullable, 최대 20자)
 
 **책임**:
-- 일기 작성
-- 하루 1회 포인트 획득 제한
+- 일기 작성 (도시 체류 중일 때만 가능)
+- 일기 수정 (언제 어디서든 가능)
+- 체류당 1회 포인트 획득 제한
 - 본인만 조회 가능
 
 **불변식**:
-- (user_id, diary_date) 유일
+- (room_stay_id) 유일 - 체류당 1개
 
-### Questionnaire (문답지)
+### CityQuestion (도시별 질문)
+
+**식별자**: city_question_id (UUID v7)
+
+**속성**:
+- city_id: UUID (FK, NOT NULL)
+- question_text: String (NOT NULL)
+- display_order: Integer (NOT NULL) - 표시 순서
+- is_active: Boolean (NOT NULL, DEFAULT TRUE)
+
+**책임**:
+- 도시별 질문 관리
+- 질문 활성화/비활성화
+
+**불변식**:
+- 질문은 도시에 종속
+
+### Questionnaire (문답지 - 1문 1답)
 
 **식별자**: questionnaire_id (UUID v7)
 
 **속성**:
-- user_id: UUID (FK)
-- city_id: UUID (FK)
-- question_1_answer: QuestionAnswer (VO)
-- question_2_answer: QuestionAnswer (VO)
-- question_3_answer: QuestionAnswer (VO)
-- has_earned_points: Boolean
+- user_id: UUID (FK, NOT NULL)
+- room_stay_id: UUID (FK, NOT NULL) - 체류 정보
+- city_question_id: UUID (FK, NOT NULL) - 어떤 질문에 대한 답변인지
+- answer_text: QuestionnaireAnswer (VO, nullable)
+- city_id: UUID (FK, NOT NULL) - 비정규화/스냅샷
+- guesthouse_id: UUID (FK, NOT NULL) - 비정규화/스냅샷
 
 **책임**:
-- 문답지 작성
-- 도시별 1회 포인트 획득 제한
+- 문답지 답변 작성
+- 답변당 포인트 획득 (50P)
 - 본인만 조회 가능
 
 **불변식**:
-- (user_id, city_id) 유일
+- (room_stay_id, city_question_id) 유일 - 체류당 질문당 1개 답변
 
 ### PointTransaction (포인트 거래)
 
@@ -877,7 +896,7 @@ PURCHASED → BOARDING → COMPLETED
 **속성**: value (String)
 
 **검증**:
-- 최대 500자
+- 길이 제한 없음
 
 ### DiaryMood
 
@@ -886,12 +905,12 @@ PURCHASED → BOARDING → COMPLETED
 **검증**:
 - 이모지 선택
 
-### QuestionAnswer
+### QuestionnaireAnswer
 
 **속성**: value (String)
 
 **검증**:
-- 최대 200자
+- 길이 제한 없음
 
 ### TransactionType
 
@@ -1126,6 +1145,11 @@ PURCHASED → BOARDING → COMPLETED
 **책임**: 도시별 문답지 질문 관리
 
 **주요 로직**:
+- **질문 조회**: 도시 ID로 활성화된 질문 목록 조회 (display_order 순)
+- **질문 관리**: 질문 추가, 수정, 비활성화 (관리자)
+- 질문은 DB에 저장 (CITY_QUESTION 테이블)
+
+**초기 시드 데이터 예시**:
 - **세렌시아 (관계의 도시)**:
   1. "요즘 나에게 힘이 되어주는 사람은?"
   2. "최근에 누군가와 나눈 의미 있는 대화는?"
@@ -1134,7 +1158,6 @@ PURCHASED → BOARDING → COMPLETED
   1. "요즘 나를 가장 지치게 하는 것은?"
   2. "나만의 휴식 방법이 있다면?"
   3. "회복이 필요할 때 가장 먼저 하고 싶은 일은?"
-- 질문은 코드에서 관리 (DB 저장 불필요)
 
 ---
 
@@ -1264,18 +1287,34 @@ PURCHASED → BOARDING → COMPLETED
 **주요 기능**:
 - ID로 일기 조회
 - 사용자별 일기 조회
-- 특정 날짜 일기 조회 (중복 방지)
+- 체류별 일기 조회 (room_stay_id로 중복 방지)
 - 일기 저장
+- 일기 수정
+- 일기 삭제 (soft delete)
+
+### CityQuestionRepository
+
+**책임**: 도시별 질문의 영속성 관리
+
+**주요 기능**:
+- ID로 질문 조회
+- 도시별 활성 질문 목록 조회 (display_order 순)
+- 질문 저장
+- 질문 수정 (is_active 변경 포함)
+- 질문 삭제 (soft delete)
 
 ### QuestionnaireRepository
 
-**책임**: 문답지의 영속성 관리
+**책임**: 문답지 답변의 영속성 관리
 
 **주요 기능**:
 - ID로 문답지 조회
 - 사용자별 문답지 조회
-- 도시별 문답지 조회 (중복 방지)
+- 체류별 문답지 조회 (room_stay_id)
+- 체류 + 질문별 문답지 조회 (중복 방지)
 - 문답지 저장
+- 문답지 수정
+- 문답지 삭제 (soft delete)
 
 ### PointTransactionRepository
 
@@ -1333,8 +1372,8 @@ PURCHASED → BOARDING → COMPLETED
 
 **획득**:
 - 회원가입: 1000P (최초 1회)
-- 일기 작성: 50P (하루 1회)
-- 문답지 작성: 50P (도시별 1회)
+- 일기 작성: 50P (체류당 1회)
+- 문답지 답변: 50P (답변당)
 
 **사용**:
 - 비행선 티켓: City.base_cost_points × Airship.cost_factor
@@ -1357,7 +1396,8 @@ PURCHASED → BOARDING → COMPLETED
 
 ### 일기/문답지 규칙
 
-1. 일기는 하루 1개 (user_id, diary_date 유일)
-2. 문답지는 도시별 1개 (user_id, city_id 유일)
-3. 일기는 500자, 문답지 답변은 200자
-4. 본인만 조회 가능
+1. 일기는 체류당 1개 (room_stay_id 유일)
+2. 일기는 도시 체류 중일 때만 작성 가능, 수정은 언제든 가능
+3. 문답지는 체류당 질문당 1개 (room_stay_id, city_question_id 유일)
+4. 문답지는 도시 체류 중일 때만 작성 가능, 수정은 언제든 가능
+5. 본인만 조회 가능
