@@ -49,13 +49,31 @@ class Diary:
 
     def __post_init__(self) -> None:
         """유효성 검사를 수행합니다."""
+        self._validate_title(self.title)
+        self._validate_content(self.content)
 
-        # 제목 유효성 검사
-        if not self.title or len(self.title) > self.MAX_TITLE_LENGTH:
+    def _validate_title(self, title: str) -> None:
+        """제목 유효성을 검사합니다.
+
+        Args:
+            title: 검사할 제목
+
+        Raises:
+            InvalidDiaryContentError: 제목이 비어있거나 최대 길이를 초과한 경우
+        """
+        if not title or len(title) > self.MAX_TITLE_LENGTH:
             raise InvalidDiaryContentError
 
-        # 내용 유효성 검사
-        if not self.content:
+    def _validate_content(self, content: str) -> None:
+        """내용 유효성을 검사합니다.
+
+        Args:
+            content: 검사할 내용
+
+        Raises:
+            InvalidDiaryContentError: 내용이 비어있는 경우
+        """
+        if not content:
             raise InvalidDiaryContentError
 
     def update_content(
