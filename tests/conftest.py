@@ -43,6 +43,7 @@ from bzero.infrastructure.db.room_model import RoomModel  # noqa: F401
 from bzero.infrastructure.db.room_stay_model import RoomStayModel  # noqa: F401
 from bzero.infrastructure.db.chat_message_model import ChatMessageModel  # noqa: F401
 from bzero.infrastructure.db.conversation_card_model import ConversationCardModel  # noqa: F401
+from bzero.infrastructure.db.diary_model import DiaryModel  # noqa: F401
 
 
 async def ensure_test_database_exists(settings: Settings) -> None:
