@@ -20,7 +20,13 @@ from bzero.presentation.api.dependencies import (
 from bzero.presentation.socketio.constants import SystemMessage
 from bzero.presentation.socketio.error_codes import SocketIOErrorCode
 from bzero.presentation.socketio.server import get_socketio_server
-from bzero.presentation.socketio.utils import get_session_data, verify_room_access
+from bzero.presentation.socketio.utils import (
+    emit_new_message,
+    emit_system_message,
+    get_session_data,
+    handle_socketio_error,
+    verify_room_access,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -92,7 +98,7 @@ async def connect(sid: str, environ: dict, auth: dict | None):
 
 
 @sio.event
-async def disconnect(sid: str):
+async def disconnect(sid: str, reason: Any = None):
     """클라이언트 연결 해제 이벤트.
 
     Args:
@@ -115,22 +121,8 @@ async def disconnect(sid: str):
                 content=SystemMessage.USER_LEFT,
             )
 
-            await sio.emit(
-                "system_message",
-                {
-                    "message": {
-                        "message_id": result.message_id,
-                        "content": result.content,
-                        "created_at": result.created_at.isoformat(),
-                    }
-                },
-                room=room_id,
-            )
-
-        logger.info(f"User {user_id} disconnected from room {room_id}")
-
     except Exception as e:
-        logger.error(f"Disconnect error: {e}")
+        await handle_socketio_error(sio, sid, e)
 
 
 @sio.on("join_room")
@@ -169,21 +161,10 @@ async def handle_join_room(sid: str, data: dict[str, Any]):
                 content=SystemMessage.USER_JOINED,
             )
 
-            await sio.emit(
-                "system_message",
-                {
-                    "message": {
-                        "message_id": result.message_id,
-                        "content": result.content,
-                        "created_at": result.created_at.isoformat(),
-                    }
-                },
-                room=room_id,
-            )
+            await emit_system_message(sio, room_id, result)
 
     except Exception as e:
-        logger.error(f"Join room error: {e}")
-        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)
+        await handle_socketio_error(sio, sid, e)
 
 
 @sio.on("send_message")
@@ -214,25 +195,10 @@ async def handle_send_message(sid: str, data: dict[str, Any]):
             result = await use_case.execute(user_id, room_id, content)
 
             # 룸 전체에 브로드캐스트
-            await sio.emit(
-                "new_message",
-                {
-                    "message": {
-                        "message_id": result.message_id,
-                        "user_id": result.user_id,
-                        "content": result.content,
-                        "message_type": result.message_type,
-                        "created_at": result.created_at.isoformat(),
-                    }
-                },
-                room=room_id,
-            )
+            await emit_new_message(sio, room_id, result)
 
-    except BeZeroError as e:
-        await sio.emit("error", {"error": e.code.value}, to=sid)
     except Exception as e:
-        logger.error(f"Send message error: {e}")
-        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)
+        await handle_socketio_error(sio, sid, e)
 
 
 @sio.on("share_card")
@@ -262,26 +228,10 @@ async def handle_share_card(sid: str, data: dict[str, Any]):
             # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
             result = await use_case.execute(user_id, room_id, card_id)
 
-            await sio.emit(
-                "new_message",
-                {
-                    "message": {
-                        "message_id": result.message_id,
-                        "user_id": result.user_id,
-                        "content": result.content,
-                        "card_id": result.card_id,
-                        "message_type": result.message_type,
-                        "created_at": result.created_at.isoformat(),
-                    }
-                },
-                room=room_id,
-            )
+            await emit_new_message(sio, room_id, result)
 
-    except BeZeroError as e:
-        await sio.emit("error", {"error": e.code.value}, to=sid)
     except Exception as e:
-        logger.error(f"Share card error: {e}")
-        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)
+        await handle_socketio_error(sio, sid, e)
 
 
 @sio.on("get_history")
@@ -310,25 +260,9 @@ async def handle_get_history(sid: str, data: dict[str, Any]):
             # 요청한 클라이언트에게만 응답
             await sio.emit(
                 "history",
-                {
-                    "messages": [
-                        {
-                            "message_id": msg.message_id,
-                            "user_id": msg.user_id,
-                            "content": msg.content,
-                            "card_id": msg.card_id,
-                            "message_type": msg.message_type,
-                            "is_system": msg.is_system,
-                            "created_at": msg.created_at.isoformat(),
-                        }
-                        for msg in results
-                    ]
-                },
+                {"messages": [msg.to_dict() for msg in results]},
                 to=sid,
             )
 
-    except BeZeroError as e:
-        await sio.emit("error", {"error": e.code.value}, to=sid)
     except Exception as e:
-        logger.error(f"Get history error: {e}")
-        await sio.emit("error", {"error": SocketIOErrorCode.INTERNAL_ERROR}, to=sid)
+        await handle_socketio_error(sio, sid, e)

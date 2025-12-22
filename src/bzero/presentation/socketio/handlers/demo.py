@@ -9,9 +9,16 @@ from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent
+from bzero.application.results import ChatMessageResult
 from bzero.presentation.api.dependencies import create_chat_message_service
+from bzero.presentation.socketio.error_codes import SocketIOErrorCode
 from bzero.presentation.socketio.server import get_socketio_server
-from bzero.presentation.socketio.utils import get_session_data
+from bzero.presentation.socketio.utils import (
+    emit_new_message,
+    emit_system_message,
+    get_session_data,
+    handle_socketio_error,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +74,7 @@ async def connect(sid: str, environ: dict):
 
 
 @sio.event(namespace=DEMO_NAMESPACE)
-async def disconnect(sid: str):
+async def disconnect(sid: str, reason: Any = None):
     """데모 연결 해제.
 
     Args:
@@ -86,17 +93,8 @@ async def disconnect(sid: str):
                 content=MessageContent(f"사용자 {user_id[:8]}... 님이 퇴장했습니다."),
             )
 
-            await sio.emit(
-                "system_message",
-                {
-                    "message": {
-                        "message_id": system_message.message_id.to_hex(),
-                        "content": system_message.content.value,
-                        "created_at": system_message.created_at.isoformat(),
-                    }
-                },
-                room=DEMO_ROOM_ID,
-                namespace=DEMO_NAMESPACE,
+            await emit_system_message(
+                sio, DEMO_ROOM_ID, ChatMessageResult.create_from(system_message), namespace=DEMO_NAMESPACE
             )
 
             await session.commit()
@@ -105,7 +103,7 @@ async def disconnect(sid: str):
         logger.info(f"Demo user {user_id} disconnected")
 
     except Exception as e:
-        logger.error(f"Demo disconnect error: {e}")
+        await handle_socketio_error(sio, sid, e, namespace=DEMO_NAMESPACE)
 
 
 @sio.on("join_room", namespace=DEMO_NAMESPACE)
@@ -115,7 +113,7 @@ async def handle_join_room(sid: str, data: dict[str, Any]):
     session_data = await get_session_data(sio, sid, namespace=DEMO_NAMESPACE)
     user_id = session_data["user_id"]
     if room_id != session_data["room_id"]:
-        await sio.emit("error", {"error": "ROOM_ID_MISMATCH"}, to=sid, namespace=DEMO_NAMESPACE)
+        await sio.emit("error", {"error": SocketIOErrorCode.ROOM_ID_MISMATCH.value}, to=sid, namespace=DEMO_NAMESPACE)
         return
     try:
         # 핵심 기능: 해당 sid를 room_id 그룹에 넣습니다.
@@ -132,23 +130,13 @@ async def handle_join_room(sid: str, data: dict[str, Any]):
                 content=MessageContent(f"사용자 {user_id[:8]}... 님이 입장했습니다."),
             )
 
-            await sio.emit(
-                "system_message",
-                {
-                    "message": {
-                        "message_id": system_message.message_id.to_hex(),
-                        "content": system_message.content.value,
-                        "created_at": system_message.created_at.isoformat(),
-                    }
-                },
-                room=room_id,
-                namespace=DEMO_NAMESPACE,
+            await emit_system_message(
+                sio, room_id, ChatMessageResult.create_from(system_message), namespace=DEMO_NAMESPACE
             )
 
             await session.commit()
     except Exception as e:
-        logger.error(f"Demo join room error: {e}")
-        await sio.emit("error", {"error": "INTERNAL_ERROR"}, to=sid, namespace=DEMO_NAMESPACE)
+        await handle_socketio_error(sio, sid, e, namespace=DEMO_NAMESPACE)
 
 
 @sio.on("send_message", namespace=DEMO_NAMESPACE)
@@ -165,7 +153,7 @@ async def handle_send_message(sid: str, data: dict[str, Any]):
 
         content = data.get("content")
         if not content:
-            await sio.emit("error", {"error": "MISSING_CONTENT"}, to=sid, namespace=DEMO_NAMESPACE)
+            await sio.emit("error", {"error": SocketIOErrorCode.MISSING_CONTENT.value}, to=sid, namespace=DEMO_NAMESPACE)
             return
 
         # Rate Limiting 체크
@@ -178,28 +166,28 @@ async def handle_send_message(sid: str, data: dict[str, Any]):
         )
 
         if not is_allowed:
-            await sio.emit("error", {"error": "RATE_LIMIT_EXCEEDED"}, to=sid, namespace=DEMO_NAMESPACE)
+            await sio.emit("error", {"error": SocketIOErrorCode.RATE_LIMIT_EXCEEDED.value}, to=sid, namespace=DEMO_NAMESPACE)
             return
 
         # 브로드캐스트 (DB 저장 없음)
         settings = get_settings()
         now = datetime.now(settings.timezone)
-
-        await sio.emit(
-            "new_message",
-            {
-                "message": {
-                    "message_id": str(uuid4()),
-                    "user_id": user_id,
-                    "content": content,
-                    "message_type": "text",
-                    "created_at": now.isoformat(),
-                }
-            },
-            room=DEMO_ROOM_ID,
-            namespace=DEMO_NAMESPACE,
+        
+        # 데모용 임시 결과 객체 생성
+        result = ChatMessageResult(
+            message_id=str(uuid4()),
+            room_id=DEMO_ROOM_ID,
+            user_id=user_id,
+            content=content,
+            card_id=None,
+            message_type="text",
+            is_system=False,
+            expires_at=now,  # 데모는 만료 없음
+            created_at=now,
+            updated_at=now,
         )
+
+        await emit_new_message(sio, DEMO_ROOM_ID, result, namespace=DEMO_NAMESPACE)
         logger.debug(f"Demo message sent - user: {user_id[:8]}..., content: {content}")
     except Exception as e:
-        logger.error(f"Demo send message error: {e}")
-        await sio.emit("error", {"error": "INTERNAL_ERROR"}, to=sid, namespace=DEMO_NAMESPACE)
+        await handle_socketio_error(sio, sid, e, namespace=DEMO_NAMESPACE)

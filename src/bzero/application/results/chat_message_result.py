@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from bzero.domain.entities import ChatMessage
 
@@ -21,6 +22,21 @@ class ChatMessageResult:
     expires_at: datetime
     created_at: datetime
     updated_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        """결과 객체를 딕셔너리로 변환합니다 (JSON 직렬화용)."""
+        return {
+            "message_id": self.message_id,
+            "room_id": self.room_id,
+            "user_id": self.user_id,
+            "content": self.content,
+            "card_id": self.card_id,
+            "message_type": self.message_type,
+            "is_system": self.is_system,
+            "expires_at": self.expires_at.isoformat(),
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
 
     @classmethod
     def create_from(cls, entity: ChatMessage) -> "ChatMessageResult":

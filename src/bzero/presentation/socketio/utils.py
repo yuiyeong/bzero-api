@@ -1,14 +1,21 @@
-"""Socket.IO 핸들러용 유틸리티"""
 import logging
 from typing import Any
 
 import socketio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bzero.domain.errors import BeZeroError
+from bzero.application.results import ChatMessageResult
+from bzero.domain.errors import (
+    AccessDeniedError,
+    BadRequestError,
+    BeZeroError,
+    NotFoundError,
+    RateLimitExceededError,
+    UnauthorizedError,
+)
 from bzero.domain.value_objects import Id
 from bzero.presentation.api.dependencies import create_room_stay_service
-
+from bzero.presentation.socketio.error_codes import SocketIOErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -64,3 +71,66 @@ async def verify_room_access(
         )
     except BeZeroError as e:
         raise ValueError(f"Access denied: {e.code.value}") from e
+
+
+async def handle_socketio_error(
+    sio: socketio.AsyncServer,
+    sid: str,
+    error: Exception,
+    namespace: str = "/",
+) -> None:
+    """도메인 에러를 Socket.IO 에러 응답으로 변환하여 전송합니다.
+
+    Args:
+        sio: Socket.IO 서버 인스턴스
+        sid: Session ID
+        error: 발생한 예외
+        namespace: 네임스페이스
+    """
+    if isinstance(error, RateLimitExceededError):
+        code = SocketIOErrorCode.RATE_LIMIT_EXCEEDED
+    elif isinstance(error, UnauthorizedError):
+        code = SocketIOErrorCode.UNAUTHORIZED
+    elif isinstance(error, AccessDeniedError):
+        code = SocketIOErrorCode.FORBIDDEN
+    elif isinstance(error, NotFoundError):
+        code = SocketIOErrorCode.NOT_FOUND
+    elif isinstance(error, BadRequestError):
+        code = SocketIOErrorCode.INVALID_PARAMETER
+    elif isinstance(error, BeZeroError):
+        code = SocketIOErrorCode.INTERNAL_ERROR
+    else:
+        logger.exception(f"Unexpected error in Socket.IO handler: {error}")
+        code = SocketIOErrorCode.INTERNAL_ERROR
+
+    await sio.emit("error", {"error": code.value}, to=sid, namespace=namespace)
+
+
+async def emit_system_message(
+    sio: socketio.AsyncServer,
+    room_id: str,
+    result: ChatMessageResult,
+    namespace: str = "/",
+) -> None:
+    """시스템 메시지를 룸에 브로드캐스트합니다."""
+    await sio.emit(
+        "system_message",
+        {"message": result.to_dict()},
+        room=room_id,
+        namespace=namespace,
+    )
+
+
+async def emit_new_message(
+    sio: socketio.AsyncServer,
+    room_id: str,
+    result: ChatMessageResult,
+    namespace: str = "/",
+) -> None:
+    """새 메시지(일반/카드)를 룸에 브로드캐스트합니다."""
+    await sio.emit(
+        "new_message",
+        {"message": result.to_dict()},
+        room=room_id,
+        namespace=namespace,
+    )
