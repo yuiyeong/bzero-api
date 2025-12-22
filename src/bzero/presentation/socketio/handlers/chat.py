@@ -2,267 +2,111 @@
 import logging
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from bzero.application.use_cases.chat_messages import (
     CreateSystemMessageUseCase,
     GetMessageHistoryUseCase,
     SendMessageUseCase,
     ShareCardUseCase,
 )
+from bzero.application.use_cases.room_stays import VerifyRoomAccessUseCase
 from bzero.core.database import get_async_db_session
-from bzero.core.settings import get_settings
-from bzero.domain.errors import BeZeroError
-from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.presentation.api.dependencies import (
     create_chat_message_service,
     create_conversation_card_service,
     create_room_stay_service,
 )
-from bzero.presentation.socketio.constants import SystemMessage
-from bzero.presentation.socketio.error_codes import SocketIOErrorCode
+from bzero.domain.value_objects.chat_message import SystemMessage
+from bzero.presentation.socketio.dependencies import socket_handler
+from bzero.presentation.schemas.chat_message import (
+    GetHistoryRequest,
+    SendMessageRequest,
+    ShareCardRequest,
+)
+from bzero.presentation.schemas.socketio import JoinRoomRequest
 from bzero.presentation.socketio.server import get_socketio_server
 from bzero.presentation.socketio.utils import (
     emit_new_message,
     emit_system_message,
-    get_session_data,
+    get_typed_session,
     handle_socketio_error,
-    verify_room_access,
 )
-
 
 logger = logging.getLogger(__name__)
 sio = get_socketio_server()
 
 
-@sio.event
-async def connect(sid: str, environ: dict, auth: dict | None):
-    """클라이언트 연결 이벤트.
-
-    Args:
-        sid: Session ID (Socket.IO 자동 생성)
-        environ: ASGI 환경 변수
-        auth: 인증 데이터 {'token': 'jwt_token', 'room_id': 'room_id'}
-
-    Returns:
-        True: 연결 허용
-
-    Raises:
-        ConnectionRefusedError: 인증 실패, 권한 없음 등
-    """
-    try:
-        # 1. 인증 데이터 확인
-        if not auth:
-            raise ConnectionRefusedError("No auth data provided")
-
-        token = auth.get("token")
-        room_id = auth.get("room_id")
-
-        if not token or not room_id:
-            raise ConnectionRefusedError("Missing token or room_id")
-
-        # 2. JWT 토큰 검증 (infrastructure/auth/jwt_utils 직접 사용)
-        settings = get_settings()
-        try:
-            payload = verify_supabase_jwt(
-                token=token,
-                secret=settings.auth.supabase_jwt_secret.get_secret_value(),
-                algorithm=settings.auth.jwt_algorithm,
-            )
-        except Exception:
-            logger.info("JWT verification failed")
-            raise ConnectionRefusedError("Invalid token")
-
-        user_id = payload["sub"]
-
-        # 3. 룸 접근 권한 검증
-        async with get_async_db_session() as session:
-            await verify_room_access(user_id, room_id, session)
-
-        # 4. 세션 데이터 저장
-        await sio.save_session(
-            sid,
-            {
-                "user_id": user_id,
-                "room_id": room_id,
-            },
-        )
-
-        logger.info(f"User {user_id} authenticated (sid: {sid})")
-        return True
-
-    except ValueError as e:
-        logger.warning(f"Connection refused: {e}")
-        raise ConnectionRefusedError(str(e)) from e
-    except Exception as e:
-        logger.error(f"Connection error: {e}")
-        raise ConnectionRefusedError("Internal server error") from e
-
-
-@sio.event
-async def disconnect(sid: str, reason: Any = None):
-    """클라이언트 연결 해제 이벤트.
-
-    Args:
-        sid: Session ID
-    """
-    try:
-        # 세션 데이터 조회
-        session_data = await get_session_data(sio, sid)
-        user_id = session_data["user_id"]
-        room_id = session_data["room_id"]
-
-        # 퇴장 시스템 메시지 전송
-        async with get_async_db_session() as session:
-            chat_message_service = create_chat_message_service(session)
-            use_case = CreateSystemMessageUseCase(session, chat_message_service)
-
-            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
-            result = await use_case.execute(
-                room_id=room_id,
-                content=SystemMessage.USER_LEFT,
-            )
-
-    except Exception as e:
-        await handle_socketio_error(sio, sid, e)
-
-
 @sio.on("join_room")
-async def handle_join_room(sid: str, data: dict[str, Any]):
-    """클라이언트가 룸에 참여하는 이벤트.
+@socket_handler(schema=JoinRoomRequest)
+async def handle_join_room(sid: str, request: JoinRoomRequest, db_session: AsyncSession):
+    """클라이언트가 룸에 참여하는 이벤트."""
+    session = await get_typed_session(sio, sid)
 
-    Args:
-        sid: Session ID
-        data: {'room_id': '룸 ID'}
-    """
-    # data는 클라이언트가 보낸 JSON 객체입니다. (예: {'room_id': '...'})
-    room_id = data.get("room_id")
-    session_data = await get_session_data(sio, sid)
-    user_id = session_data["user_id"]
-    if room_id != session_data["room_id"]:
-        await sio.emit("error", {"error": SocketIOErrorCode.ROOM_ID_MISMATCH}, to=sid)
-        return
-    try:
-        # 룸 접근 권한 검증
-        async with get_async_db_session() as session:
-            await verify_room_access(user_id, room_id, session)
+    if request.room_id != session.room_id:
+        raise ValueError("Room ID mismatch")
 
-        # 핵심 기능: 해당 sid를 room_id 그룹에 넣습니다.
-        await sio.enter_room(sid, room_id)
+    # 1. 룸 접근 권한 검증
+    room_stay_service = create_room_stay_service(db_session)
+    await VerifyRoomAccessUseCase(room_stay_service).execute(session.user_id, session.room_id)
 
-        logger.info(f"User {user_id} joined room {room_id}")
+    # 2. Socket.IO 룸 입장
+    await sio.enter_room(sid, session.room_id)
 
-        # 입장 시스템 메시지 전송
-        async with get_async_db_session() as session:
-            chat_message_service = create_chat_message_service(session)
-            use_case = CreateSystemMessageUseCase(session, chat_message_service)
-
-            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
-            result = await use_case.execute(
-                room_id=room_id,
-                content=SystemMessage.USER_JOINED,
-            )
-
-            await emit_system_message(sio, room_id, result)
-
-    except Exception as e:
-        await handle_socketio_error(sio, sid, e)
+    # 3. 입장 시스템 메시지 생성 및 브로드캐스트
+    chat_message_service = create_chat_message_service(db_session)
+    use_case = CreateSystemMessageUseCase(db_session, chat_message_service)
+    result = await use_case.execute(
+        room_id=session.room_id,
+        content=SystemMessage.USER_JOINED,
+    )
+    await emit_system_message(sio, session.room_id, result)
 
 
 @sio.on("send_message")
-async def handle_send_message(sid: str, data: dict[str, Any]):
-    """텍스트 메시지 전송 이벤트.
+@socket_handler(schema=SendMessageRequest)
+async def handle_send_message(sid: str, request: SendMessageRequest, db_session: AsyncSession):
+    """텍스트 메시지 전송 이벤트."""
+    session = await get_typed_session(sio, sid)
 
-    Args:
-        sid: Session ID
-        data: {'content': '메시지 내용'}
-    """
-    try:
-        # 세션 데이터 조회
-        session_data = await get_session_data(sio, sid)
-        user_id = session_data["user_id"]
-        room_id = session_data["room_id"]
+    chat_message_service = create_chat_message_service(db_session)
+    use_case = SendMessageUseCase(db_session, chat_message_service)
 
-        content = data.get("content")
-        if not content:
-            await sio.emit("error", {"error": SocketIOErrorCode.MISSING_CONTENT}, to=sid)
-            return
-
-        # 메시지 전송 (기존 UseCase 100% 재사용)
-        async with get_async_db_session() as session:
-            chat_message_service = create_chat_message_service(session)
-            use_case = SendMessageUseCase(session, chat_message_service)
-
-            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
-            result = await use_case.execute(user_id, room_id, content)
-
-            # 룸 전체에 브로드캐스트
-            await emit_new_message(sio, room_id, result)
-
-    except Exception as e:
-        await handle_socketio_error(sio, sid, e)
+    result = await use_case.execute(session.user_id, session.room_id, request.content)
+    await emit_new_message(sio, session.room_id, result)
 
 
 @sio.on("share_card")
-async def handle_share_card(sid: str, data: dict[str, Any]):
-    """카드 공유 이벤트.
+@socket_handler(schema=ShareCardRequest)
+async def handle_share_card(sid: str, request: ShareCardRequest, db_session: AsyncSession):
+    """카드 공유 이벤트."""
+    session = await get_typed_session(sio, sid)
 
-    Args:
-        sid: Session ID
-        data: {'card_id': '카드 ID'}
-    """
-    try:
-        session_data = await get_session_data(sio, sid)
-        user_id = session_data["user_id"]
-        room_id = session_data["room_id"]
+    chat_message_service = create_chat_message_service(db_session)
+    conversation_card_service = create_conversation_card_service(db_session)
+    use_case = ShareCardUseCase(db_session, chat_message_service, conversation_card_service)
 
-        card_id = data.get("card_id")
-        if not card_id:
-            await sio.emit("error", {"error": SocketIOErrorCode.MISSING_CARD_ID}, to=sid)
-            return
-
-        async with get_async_db_session() as session:
-            chat_message_service = create_chat_message_service(session)
-            conversation_card_service = create_conversation_card_service(session)
-
-            use_case = ShareCardUseCase(session, chat_message_service, conversation_card_service)
-
-            # 트랜잭션 커밋은 유스케이스 내부에서 처리됨
-            result = await use_case.execute(user_id, room_id, card_id)
-
-            await emit_new_message(sio, room_id, result)
-
-    except Exception as e:
-        await handle_socketio_error(sio, sid, e)
+    result = await use_case.execute(session.user_id, session.room_id, request.card_id)
+    await emit_new_message(sio, session.room_id, result)
 
 
 @sio.on("get_history")
-async def handle_get_history(sid: str, data: dict[str, Any]):
-    """메시지 히스토리 조회 이벤트.
+@socket_handler(schema=GetHistoryRequest)
+async def handle_get_history(sid: str, request: GetHistoryRequest, db_session: AsyncSession):
+    """메시지 히스토리 조회 이벤트."""
+    session = await get_typed_session(sio, sid)
 
-    Args:
-        sid: Session ID
-        data: {'cursor': '커서 (optional)', 'limit': 50}
-    """
-    try:
-        session_data = await get_session_data(sio, sid)
-        user_id = session_data["user_id"]
-        room_id = session_data["room_id"]
+    chat_message_service = create_chat_message_service(db_session)
+    room_stay_service = create_room_stay_service(db_session)
+    use_case = GetMessageHistoryUseCase(chat_message_service, room_stay_service)
 
-        cursor = data.get("cursor")
-        limit = data.get("limit", 50)
+    results = await use_case.execute(
+        session.user_id, session.room_id, request.cursor, request.limit
+    )
 
-        async with get_async_db_session() as session:
-            chat_message_service = create_chat_message_service(session)
-            room_stay_service = create_room_stay_service(session)
-
-            use_case = GetMessageHistoryUseCase(chat_message_service, room_stay_service)
-            results = await use_case.execute(user_id, room_id, cursor, limit)
-
-            # 요청한 클라이언트에게만 응답
-            await sio.emit(
-                "history",
-                {"messages": [msg.to_dict() for msg in results]},
-                to=sid,
-            )
-
-    except Exception as e:
-        await handle_socketio_error(sio, sid, e)
+    # 요청한 클라이언트에게만 응답
+    await sio.emit(
+        "history",
+        {"messages": [msg.to_dict() for msg in results]},
+        to=sid,
+    )

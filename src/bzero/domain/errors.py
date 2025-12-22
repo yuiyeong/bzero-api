@@ -20,6 +20,7 @@ class ErrorCode(str, Enum):
     INVALID_ROOM_STATUS = "방의 상태가 잘못되었습니다."
     ROOM_CAPACITY_LOCK_CONFLICT = "방 수용 인원 업데이트 중 잠금 충돌이 발생했습니다."
     RATE_LIMIT_EXCEEDED = "요청 제한을 초과했습니다."
+    ROOM_ID_MISMATCH = "룸 ID가 일치하지 않습니다."
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
     FORBIDDEN_TICKET = "티켓을 가져올 수 없는 사용자입니다."

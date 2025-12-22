@@ -23,3 +23,10 @@ class MessageContent:
     def __post_init__(self):
         if len(self.value) == 0 or len(self.value) > self.MAX_LENGTH:
             raise InvalidMessageContentError
+
+
+class SystemMessage:
+    """시스템 메시지 템플릿"""
+
+    USER_JOINED = "사용자가 입장했습니다."
+    USER_LEFT = "사용자가 퇴장했습니다."
