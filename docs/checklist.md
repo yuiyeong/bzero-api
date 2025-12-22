@@ -364,25 +364,112 @@
 - [ ] 만료 메시지 일괄 삭제
 - [ ] Celery 배치 작업 (매일 실행)
 
-### WebSocket 구현
-- [ ] WebSocket 연결 관리
-- [ ] 룸별 채널 관리
-- [ ] 실시간 메시지 브로드캐스트
-- [ ] 접속자 수 업데이트
+### Socket.IO 마이그레이션 (#116) ✅
+
+> 상세 계획: `docs/websocket-to-socketio-migration.md`
+
+#### Phase 1: Socket.IO 추가 (WebSocket 유지) ✅
+- [x] 패키지 설치: `uv add "python-socketio[asyncio]>=5.11.0"`
+- [x] 디렉토리 구조 생성: `src/bzero/presentation/socketio/`
+- [x] Socket.IO 서버 초기화 (`server.py`)
+  - [x] 메인 Socket.IO 서버 (인증 필요, `/ws/socket.io`)
+  - [x] 데모 Socket.IO 서버 (인증 불필요, `/ws-demo/socket.io/demo`)
+  - [x] 하트비트 설정 (pingInterval=25s, pingTimeout=60s)
+- [x] 유틸리티 및 미들웨어 (`utils.py`, `middleware.py`)
+  - [x] DB 세션 컨텍스트 매니저
+  - [x] JWT 토큰 검증 함수
+  - [x] 룸 접근 권한 검증 함수
+- [x] 인증 채팅 핸들러 (`handlers/chat.py`)
+  - [x] @sio.event connect (JWT 검증, RoomStay 검증, 입장 시스템 메시지)
+  - [x] @sio.event disconnect (퇴장 시스템 메시지)
+  - [x] @sio.on('send_message') (Rate Limit → 메시지 저장 → 브로드캐스트)
+  - [x] @sio.on('share_card') (카드 공유 메시지 → 브로드캐스트)
+  - [x] @sio.on('get_history') (메시지 히스토리 조회)
+- [x] 데모 채팅 핸들러 (`handlers/demo.py`)
+  - [x] 임시 user_id 생성 및 데모 룸 참여
+  - [x] 메시지 브로드캐스트 (DB 저장 없음)
+  - [x] Rate Limiting
+- [x] FastAPI 통합 (`main.py`)
+  - [x] `app.mount("/ws", sio_app)` 추가
+  - [x] `app.mount("/ws-demo", sio_demo_app)` 추가
+- [x] REST API 분리 (`api/chat.py`)
+  - [x] WebSocket 엔드포인트 제거
+  - [x] GET /api/v1/chat/cities/{city_id}/conversation-cards/random만 유지
+- [x] 테스트 작성
+  - [x] `scripts/test_chat_socketio.py` 작성
+  - [x] `tests/integration/presentation/test_socketio_handlers.py` 작성
+  - [x] 데모 연결 테스트
+  - [x] 인증 연결 테스트
+  - [x] 메시지 전송/수신 테스트
+  - [x] Rate Limiting 테스트
+  - [x] 재연결 테스트
+
+#### Phase 2: 프론트엔드 전환 ✅
+- [x] Socket.IO Client 적용 (`static/chat_demo.html`)
+  - [x] Socket.IO CDN 추가
+  - [x] io() 연결 설정
+  - [x] 재연결 이벤트 핸들러 추가
+  - [x] ping/pong 로직 제거 (자동 관리)
+- [x] 사용자 테스트
+
+#### Phase 3: WebSocket 제거 ✅
+- [x] `presentation/api/chat_demo.py` 삭제
+- [x] `presentation/websocket/` 디렉토리 삭제
+- [x] `scripts/test_chat_websocket.py` 삭제
+- [x] `api/__init__.py`에서 `chat_demo_router` import 제거
+- [x] 문서 업데이트
+  - [x] `scripts/CHAT_DEMO_GUIDE.md` 업데이트
+  - [x] `CLAUDE.md` 업데이트
+
+### Celery Worker 구현
+- [ ] task_delete_expired_messages 태스크 (worker/tasks/chat_messages/task_delete_expired_messages.py)
+- [ ] 3일 경과 메시지 검색 및 soft delete
+- [ ] Celery Beat 스케줄 설정 (매일 자정 실행)
 
 ### API 엔드포인트 구현
-- [ ] POST /api/chat/messages (메시지 전송)
-- [ ] GET /api/chat/messages/{room_id} (채팅 히스토리)
-- [ ] GET /api/chat/cards/random/{city_id} (랜덤 카드 뽑기)
-- [ ] POST /api/chat/cards/share (카드 공유)
-- [ ] WebSocket /ws/chat/{room_id}
+- [ ] Pydantic 스키마 (presentation/schemas/chat_message.py, conversation_card.py)
+  - [ ] ChatMessageResponse
+  - [ ] ConversationCardResponse
+  - [ ] MessageHistoryResponse (messages, next_cursor)
+- [ ] REST API
+  - [ ] GET /api/v1/chat/cities/{city_id}/conversation-cards/random (랜덤 카드 뽑기)
+- [ ] Socket.IO (실시간 통신)
+  - [ ] `/ws/socket.io` - 인증 채팅 (JWT 필요)
+  - [ ] `/ws-demo/socket.io/demo` - 데모 채팅 (인증 불필요)
+  - [ ] 이벤트: connect, disconnect, send_message, share_card, get_history
+- [ ] 의존성 주입 설정
+  - [ ] CurrentChatMessageService
+  - [ ] CurrentConversationCardService
+  - [ ] CurrentRateLimiter
+
+### 테스트 작성
+- [ ] ChatMessage 엔티티 단위 테스트
+- [ ] ConversationCard 엔티티 단위 테스트
+- [ ] ChatMessageService 단위 테스트
+- [ ] RateLimiter 단위 테스트
+- [ ] ChatMessageRepository 통합 테스트
+- [ ] ConversationCardRepository 통합 테스트
+- [ ] WebSocket 연결 통합 테스트
+- [ ] Rate Limiting 통합 테스트
+- [ ] Celery task_delete_expired_messages 통합 테스트
+- [ ] 메시지 전송 E2E 테스트
+- [ ] 카드 공유 E2E 테스트
+- [ ] 페이지네이션 E2E 테스트
 
 ### 완료 조건
 - [ ] 채팅 메시지가 DB에 저장됨
 - [ ] 채팅 히스토리 조회가 작동함
 - [ ] 3일 이전 메시지가 자동 삭제됨
 - [ ] 대화 카드를 랜덤으로 뽑을 수 있음
-- [ ] WebSocket으로 실시간 메시지 전송이 작동함
+- [ ] Socket.IO로 실시간 메시지 전송이 작동함
+  - [ ] `/ws/socket.io`에서 인증 채팅 작동 (JWT 필요)
+  - [ ] `/ws-demo/socket.io/demo`에서 데모 채팅 작동 (인증 불필요)
+  - [ ] 자동 재연결 기능 작동
+  - [ ] 하트비트 자동 관리 (수동 ping/pong 불필요)
+- [ ] 시스템 메시지가 자동 생성됨 (입장/퇴장/카드 공유)
+- [ ] Rate Limiting이 작동함 (2초에 1회)
+- [ ] 기존 WebSocket 코드가 제거됨
+- [ ] 모든 테스트가 통과함
 
 ---
 

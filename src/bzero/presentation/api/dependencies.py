@@ -7,18 +7,26 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.core.database import get_async_db_session
+from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.errors import UnauthorizedError
 from bzero.domain.ports import TaskScheduler
-from bzero.domain.services import AirshipService, TicketService
+from bzero.domain.services import (
+    AirshipService,
+    ChatMessageService,
+    ConversationCardService,
+    RoomStayService,
+    TicketService,
+)
 from bzero.domain.services.city import CityService
 from bzero.domain.services.point_transaction import PointTransactionService
-from bzero.domain.services.room_stay import RoomStayService
 from bzero.domain.services.user import UserService
-from bzero.infrastructure.adapters import CeleryTaskScheduler
+from bzero.infrastructure.adapters import CeleryTaskScheduler, RedisRateLimiter
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.airship import SqlAlchemyAirshipRepository
+from bzero.infrastructure.repositories.chat_message import SqlAlchemyChatMessageRepository
 from bzero.infrastructure.repositories.city import SqlAlchemyCityRepository
+from bzero.infrastructure.repositories.conversation_card import SqlAlchemyConversationCardRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayRepository
 from bzero.infrastructure.repositories.ticket import SqlAlchemyTicketRepository
@@ -156,6 +164,62 @@ def get_room_stay_service(
 def get_task_scheduler() -> TaskScheduler:
     """Create TaskScheduler instance."""
     return CeleryTaskScheduler()
+
+
+# =============================================================================
+# Socket.IO용 팩토리 함수 (세션 직접 전달)
+# =============================================================================
+
+
+def create_chat_message_service(session: AsyncSession) -> ChatMessageService:
+    """세션을 직접 받아 ChatMessageService를 생성합니다.
+
+    Socket.IO 핸들러에서 사용합니다.
+
+    Args:
+        session: DB 세션
+
+    Returns:
+        ChatMessageService 인스턴스
+    """
+    settings = get_settings()
+    return ChatMessageService(
+        chat_message_repository=SqlAlchemyChatMessageRepository(session),
+        rate_limiter=RedisRateLimiter(get_redis_client()),
+        timezone=settings.timezone,
+    )
+
+
+def create_conversation_card_service(session: AsyncSession) -> ConversationCardService:
+    """세션을 직접 받아 ConversationCardService를 생성합니다.
+
+    Socket.IO 핸들러에서 사용합니다.
+
+    Args:
+        session: DB 세션
+
+    Returns:
+        ConversationCardService 인스턴스
+    """
+    return ConversationCardService(
+        conversation_card_repository=SqlAlchemyConversationCardRepository(session),
+    )
+
+
+def create_room_stay_service(session: AsyncSession) -> RoomStayService:
+    """세션을 직접 받아 RoomStayService를 생성합니다.
+
+    Socket.IO 핸들러에서 사용합니다.
+
+    Args:
+        session: DB 세션
+
+    Returns:
+        RoomStayService 인스턴스
+    """
+    return RoomStayService(
+        room_stay_repository=SqlAlchemyRoomStayRepository(session),
+    )
 
 
 # Type aliases

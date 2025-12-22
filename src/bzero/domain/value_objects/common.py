@@ -12,6 +12,14 @@ class Id:
 
     value: UUID = field(default_factory=uuid7)
 
+    def __post_init__(self):
+        """문자열이 전달된 경우 UUID로 변환합니다."""
+        if isinstance(self.value, str):
+            try:
+                object.__setattr__(self, "value", UUID(self.value))
+            except (ValueError, AttributeError) as e:
+                raise InvalidIdError from e
+
     def extract_time(self) -> int:
         return self.value.time
 

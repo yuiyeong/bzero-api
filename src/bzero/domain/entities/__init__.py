@@ -1,5 +1,7 @@
 from bzero.domain.entities.airship import Airship
+from bzero.domain.entities.chat_message import ChatMessage
 from bzero.domain.entities.city import City
+from bzero.domain.entities.conversation_card import ConversationCard
 from bzero.domain.entities.guest_house import GuestHouse
 from bzero.domain.entities.point_transaction import PointTransaction
 from bzero.domain.entities.room import Room
@@ -11,7 +13,9 @@ from bzero.domain.entities.user_identity import UserIdentity
 
 __all__ = [
     "Airship",
+    "ChatMessage",
     "City",
+    "ConversationCard",
     "GuestHouse",
     "PointTransaction",
     "Room",

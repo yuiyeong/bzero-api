@@ -1,9 +1,11 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from bzero.core.database import close_db_connection, setup_db_connection
 from bzero.core.loggers import setup_loggers
@@ -11,6 +13,7 @@ from bzero.core.settings import Environment, get_settings
 from bzero.presentation.api import router as api_router
 from bzero.presentation.middleware.error_handler import setup_error_handlers
 from bzero.presentation.middleware.logging import LoggingMiddleware
+from bzero.presentation.socketio import sio_app
 
 
 @asynccontextmanager
@@ -52,8 +55,18 @@ def create_app() -> FastAPI:
 
     setup_error_handlers(b0, debug=settings.is_debug)
 
+    # Socket.IO 마운트 (API 라우터보다 먼저)
+    # - 기본 네임스페이스 "/" : 인증 필요
+    # - "/demo" 네임스페이스 : 인증 불필요 (데모용)
+    b0.mount("/ws", sio_app)
+
     # 라우터 등록
     b0.include_router(api_router)
+
+    # Static 파일 서빙 (채팅 데모용)
+    static_dir = Path(__file__).parent.parent.parent / "static"
+    if static_dir.exists():
+        b0.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     @b0.get("/")
     def check_health():

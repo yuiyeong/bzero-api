@@ -10,6 +10,7 @@ class ErrorCode(str, Enum):
     INVALID_EMAIL = "이메일 형식이 잘못되었습니다."
     INVALID_NICKNAME = "닉네임 형식이 잘못되었습니다."
     INVALID_PROFILE = "프로필 형식이 잘못되었습니다."
+    INVALID_MESSAGE_CONTENT = "메시지 내용이 잘못되었습니다."
     INVALID_POINT_TRANSACTION_STATUS = "트랜잭션 상태가 잘못되었습니다."
     INVALID_TICKET_STATUS = "티켓 상태가 잘못되었습니다."
     INSUFFICIENT_BALANCE = "잔액이 부족합니다."
@@ -18,6 +19,8 @@ class ErrorCode(str, Enum):
     ALREADY_COMPLETED_TICKET = "이미 완료된 티켓입니다."
     INVALID_ROOM_STATUS = "방의 상태가 잘못되었습니다."
     ROOM_CAPACITY_LOCK_CONFLICT = "방 수용 인원 업데이트 중 잠금 충돌이 발생했습니다."
+    RATE_LIMIT_EXCEEDED = "요청 제한을 초과했습니다."
+    ROOM_ID_MISMATCH = "룸 ID가 일치하지 않습니다."
 
     UNAUTHORIZED = "인증되지 않은 요청입니다."
     FORBIDDEN_TICKET = "티켓을 가져올 수 없는 사용자입니다."
@@ -30,6 +33,8 @@ class ErrorCode(str, Enum):
     NOT_FOUND_GUEST_HOUSE = "게스트 하우스를 찾을 수 없습니다."
     NOT_FOUND_ROOM = "방을 찾을 수 없습니다."
     NOT_FOUND_ROOM_STAY = "체류 정보가 없습니다."
+    NOT_FOUND_CHAT_MESSAGE = "찾을 수 없는 메시지입니다."
+    NOT_FOUND_CONVERSATION_CARD = "찾을 수 없는 대화 카드입니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
@@ -98,6 +103,11 @@ class InvalidProfileError(BadRequestError):
         super().__init__(ErrorCode.INVALID_PROFILE)
 
 
+class InvalidMessageContentError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_MESSAGE_CONTENT)
+
+
 class InvalidPointTransactionStatusError(BadRequestError):
     def __init__(self):
         super().__init__(ErrorCode.INVALID_POINT_TRANSACTION_STATUS)
@@ -138,6 +148,11 @@ class RoomCapacityLockError(BadRequestError):
         super().__init__(ErrorCode.ROOM_CAPACITY_LOCK_CONFLICT)
 
 
+class RateLimitExceededError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.RATE_LIMIT_EXCEEDED)
+
+
 class CityNotFoundError(NotFoundError):
     def __init__(self):
         super().__init__(ErrorCode.CITY_NOT_FOUND)
@@ -171,6 +186,16 @@ class NotFoundRoomError(NotFoundError):
 class NotFoundRoomStayError(NotFoundError):
     def __init__(self):
         super().__init__(ErrorCode.NOT_FOUND_ROOM_STAY)
+
+
+class NotFoundChatMessageError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_CHAT_MESSAGE)
+
+
+class NotFoundConversationCardError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_CONVERSATION_CARD)
 
 
 class DuplicatedRewardError(DuplicatedError):

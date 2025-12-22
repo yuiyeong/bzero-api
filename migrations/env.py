@@ -9,7 +9,9 @@ from bzero.core.settings import get_settings
 # Import all models here for autogenerate to detect them
 from bzero.infrastructure.db.airship_model import AirshipModel  # noqa: F401
 from bzero.infrastructure.db.base import Base
+from bzero.infrastructure.db.chat_message_model import ChatMessageModel  # noqa: F401
 from bzero.infrastructure.db.city_model import CityModel  # noqa: F401
+from bzero.infrastructure.db.conversation_card_model import ConversationCardModel  # noqa: F401
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel  # noqa: F401
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel  # noqa: F401
 from bzero.infrastructure.db.room_model import RoomModel  # noqa: F401

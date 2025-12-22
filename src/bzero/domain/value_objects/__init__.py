@@ -4,6 +4,7 @@
     from bzero.domain.value_objects import Id, Email, TransactionType
 """
 
+from bzero.domain.value_objects.chat_message import MessageContent, MessageType
 from bzero.domain.value_objects.common import Id
 from bzero.domain.value_objects.guesthouse import GuestHouseType
 from bzero.domain.value_objects.point_transaction import (
@@ -25,6 +26,8 @@ __all__ = [
     "Email",
     "GuestHouseType",
     "Id",
+    "MessageContent",
+    "MessageType",
     "Nickname",
     "Profile",
     "RoomStayStatus",

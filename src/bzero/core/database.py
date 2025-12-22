@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator, Iterator
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 
 import psycopg
 from psycopg.types.uuid import UUIDDumper
@@ -103,6 +103,7 @@ def close_sync_db_connection() -> None:
     _sync_session_maker = None
 
 
+@asynccontextmanager
 async def get_async_db_session() -> AsyncIterator[AsyncSession]:
     """
     의존성 주입용 세션 생성
