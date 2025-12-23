@@ -11,34 +11,41 @@ from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.errors import UnauthorizedError
 from bzero.domain.ports import TaskScheduler
-from bzero.domain.services import AirshipService, DiaryService, TicketService
 from bzero.domain.services import (
+    AirshipService,
     ChatMessageService,
     ConversationCardService,
-    RoomStayService,
+    DiaryService,
+    TicketService,
 )
 from bzero.domain.services.city import CityService
+from bzero.domain.services.city_question import CityQuestionService
 from bzero.domain.services.point_transaction import PointTransactionService
+from bzero.domain.services.questionnaire import QuestionnaireService
+from bzero.domain.services.room_stay import RoomStayService
 from bzero.domain.services.user import UserService
 from bzero.infrastructure.adapters import CeleryTaskScheduler, RedisRateLimiter
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.airship import SqlAlchemyAirshipRepository
 from bzero.infrastructure.repositories.chat_message import SqlAlchemyChatMessageRepository
 from bzero.infrastructure.repositories.city import SqlAlchemyCityRepository
+from bzero.infrastructure.repositories.city_question import SqlAlchemyCityQuestionRepository
 from bzero.infrastructure.repositories.conversation_card import SqlAlchemyConversationCardRepository
 from bzero.infrastructure.repositories.diary import SqlAlchemyDiaryRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
+from bzero.infrastructure.repositories.questionnaire import SqlAlchemyQuestionnaireRepository
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayRepository
 from bzero.infrastructure.repositories.ticket import SqlAlchemyTicketRepository
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
 from bzero.presentation.schemas.common import JWTPayload
 
+
 security = HTTPBearer()
 
 
 def get_jwt_payload(
-        credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> JWTPayload:
     """Verify JWT token and return payload.
 
@@ -102,14 +109,14 @@ def get_jwt_payload(
 
 
 def get_user_repository(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> SqlAlchemyUserRepository:
     """Create UserRepository instance."""
     return SqlAlchemyUserRepository(session)
 
 
 def get_user_service(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> UserService:
     """Create UserService instance."""
     settings = get_settings()
@@ -119,7 +126,7 @@ def get_user_service(
 
 
 def get_point_transaction_service(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> PointTransactionService:
     """Create PointTransactionService instance."""
     user_repository = get_user_repository(session)
@@ -128,7 +135,7 @@ def get_point_transaction_service(
 
 
 def get_city_service(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> CityService:
     """Create CityService instance."""
     city_repository = SqlAlchemyCityRepository(session)
@@ -136,7 +143,7 @@ def get_city_service(
 
 
 def get_airship_service(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> AirshipService:
     """Create AirshipService instance."""
     airship_repository = SqlAlchemyAirshipRepository(session)
@@ -144,7 +151,7 @@ def get_airship_service(
 
 
 def get_ticket_service(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> TicketService:
     """Create TicketService instance."""
     settings = get_settings()
@@ -153,7 +160,7 @@ def get_ticket_service(
 
 
 def get_room_stay_service(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> RoomStayService:
     """Create RoomStayService instance."""
     room_stay_repository = SqlAlchemyRoomStayRepository(session)
@@ -161,12 +168,29 @@ def get_room_stay_service(
 
 
 def get_diary_service(
-        session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> DiaryService:
     """Create DiaryService instance."""
     settings = get_settings()
     diary_repository = SqlAlchemyDiaryRepository(session)
     return DiaryService(diary_repository, settings.timezone)
+
+
+def get_city_question_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> CityQuestionService:
+    """Create CityQuestionService instance."""
+    city_question_repository = SqlAlchemyCityQuestionRepository(session)
+    return CityQuestionService(city_question_repository)
+
+
+def get_questionnaire_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> QuestionnaireService:
+    """Create QuestionnaireService instance."""
+    settings = get_settings()
+    questionnaire_repository = SqlAlchemyQuestionnaireRepository(session)
+    return QuestionnaireService(questionnaire_repository, settings.timezone)
 
 
 def get_task_scheduler() -> TaskScheduler:
@@ -240,4 +264,6 @@ CurrentAirshipService = Annotated[AirshipService, Depends(get_airship_service)]
 CurrentTicketService = Annotated[TicketService, Depends(get_ticket_service)]
 CurrentRoomStayService = Annotated[RoomStayService, Depends(get_room_stay_service)]
 CurrentDiaryService = Annotated[DiaryService, Depends(get_diary_service)]
+CurrentCityQuestionService = Annotated[CityQuestionService, Depends(get_city_question_service)]
+CurrentQuestionnaireService = Annotated[QuestionnaireService, Depends(get_questionnaire_service)]
 CurrentTaskScheduler = Annotated[TaskScheduler, Depends(get_task_scheduler)]
