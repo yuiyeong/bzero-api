@@ -4,6 +4,7 @@ from bzero.application.use_cases.chat_messages.get_random_card import GetRandomC
 from bzero.application.use_cases.chat_messages.send_message import SendMessageUseCase
 from bzero.application.use_cases.chat_messages.share_card import ShareCardUseCase
 
+
 __all__ = [
     "CreateSystemMessageUseCase",
     "GetMessageHistoryUseCase",

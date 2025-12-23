@@ -174,6 +174,20 @@ def get_task_scheduler() -> TaskScheduler:
     return CeleryTaskScheduler()
 
 
+def get_chat_message_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> ChatMessageService:
+    """Create ChatMessageService instance."""
+    settings = get_settings()
+    return ChatMessageService(
+        chat_message_repository=SqlAlchemyChatMessageRepository(session),
+        rate_limiter=RedisRateLimiter(get_redis_client()),
+        timezone=settings.timezone,
+    )
+
+
+
+
 # =============================================================================
 # Socket.IO용 팩토리 함수 (세션 직접 전달)
 # =============================================================================
@@ -241,3 +255,4 @@ CurrentTicketService = Annotated[TicketService, Depends(get_ticket_service)]
 CurrentRoomStayService = Annotated[RoomStayService, Depends(get_room_stay_service)]
 CurrentDiaryService = Annotated[DiaryService, Depends(get_diary_service)]
 CurrentTaskScheduler = Annotated[TaskScheduler, Depends(get_task_scheduler)]
+CurrentChatMessageService = Annotated[ChatMessageService, Depends(get_chat_message_service)]

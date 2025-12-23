@@ -1,15 +1,16 @@
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from uuid_utils import uuid7
 
-from bzero.application.use_cases.chat_messages import SendMessageUseCase, GetMessageHistoryUseCase
-from bzero.domain.services import ChatMessageService, RoomStayService
+from bzero.application.use_cases.chat_messages import GetMessageHistoryUseCase, SendMessageUseCase
 from bzero.domain.entities import ChatMessage, RoomStay
+from bzero.domain.services import ChatMessageService, RoomStayService
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent, MessageType
-from bzero.domain.errors import BeZeroError
+
 
 @pytest.fixture
 def mock_session():
@@ -36,7 +37,7 @@ class TestSendMessageUseCase:
         user_id = str(uuid7().hex)
         room_id = str(uuid7().hex)
         content = "Hello, World!"
-        
+
         expected_message = ChatMessage(
             message_id=Id(),
             room_id=Id.from_hex(room_id),
@@ -68,10 +69,10 @@ class TestGetMessageHistoryUseCase:
         use_case = GetMessageHistoryUseCase(mock_chat_message_service, mock_room_stay_service)
         user_id = str(uuid7().hex)
         room_id = str(uuid7().hex)
-        
+
         # RoomStay check
         mock_room_stay_service.get_stays_by_user_id_and_room_id.return_value = [MagicMock(spec=RoomStay)]
-        
+
         # Messages
         messages = [
             ChatMessage(

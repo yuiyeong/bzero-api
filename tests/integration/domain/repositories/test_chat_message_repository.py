@@ -15,7 +15,6 @@ from bzero.infrastructure.db.room_model import RoomModel
 from bzero.infrastructure.db.user_model import UserModel
 from bzero.infrastructure.repositories.chat_message import (
     SqlAlchemyChatMessageRepository,
-    SqlAlchemyChatMessageSyncRepository,
 )
 
 

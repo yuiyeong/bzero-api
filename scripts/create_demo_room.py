@@ -13,6 +13,7 @@ from bzero.infrastructure.db.city_model import CityModel
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 from bzero.infrastructure.db.room_model import RoomModel
 
+
 # 데모용 고정 ID들
 DEMO_CITY_ID = UUID("00000000-0000-0000-0000-000000000001")
 DEMO_GUEST_HOUSE_ID = UUID("00000000-0000-0000-0000-000000000002")

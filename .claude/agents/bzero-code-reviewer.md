@@ -9,6 +9,7 @@ description: |
   - 새로운 유스케이스, 도메인 모델, API 엔드포인트 리뷰
   - Celery Worker 태스크 리뷰
   - 아키텍처 리팩토링 검토
+  - ruff lint 실행
 
 model: opus
 color: yellow
