@@ -1,24 +1,11 @@
 """일기 관련 Pydantic 스키마."""
 
 from datetime import datetime
-from enum import Enum
 
 from pydantic import BaseModel, Field
 
 from bzero.application.results.diary_result import DiaryResult
-
-
-class DiaryMoodEnum(str, Enum):
-    """일기 감정 상태."""
-
-    HAPPY = "happy"
-    PEACEFUL = "peaceful"
-    GRATEFUL = "grateful"
-    REFLECTIVE = "reflective"
-    SAD = "sad"
-    ANXIOUS = "anxious"
-    HOPEFUL = "hopeful"
-    TIRED = "tired"
+from bzero.domain.value_objects.diary import DiaryMood
 
 
 class CreateDiaryRequest(BaseModel):
@@ -36,7 +23,7 @@ class CreateDiaryRequest(BaseModel):
         max_length=500,
         description="일기 내용 (1-500자)",
     )
-    mood: DiaryMoodEnum = Field(..., description="감정 상태")
+    mood: DiaryMood = Field(..., description="감정 상태")
 
 
 class UpdateDiaryRequest(BaseModel):
@@ -54,7 +41,7 @@ class UpdateDiaryRequest(BaseModel):
         max_length=500,
         description="일기 내용 (1-500자)",
     )
-    mood: DiaryMoodEnum = Field(..., description="감정 상태")
+    mood: DiaryMood = Field(..., description="감정 상태")
 
 
 class DiaryResponse(BaseModel):
