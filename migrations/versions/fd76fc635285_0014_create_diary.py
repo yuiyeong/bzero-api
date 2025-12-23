@@ -1,8 +1,8 @@
-"""0012 Create Diary
+"""0014 Create Diary
 
-Revision ID: 712a85aaef6b
-Revises: d2c76d767f7e
-Create Date: 2025-12-22 17:39:36.803451
+Revision ID: fd76fc635285
+Revises: f6e5d4c3b2a1
+Create Date: 2025-12-23 12:27:26.046255
 
 """
 
@@ -13,8 +13,8 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision: str = "712a85aaef6b"
-down_revision: str | Sequence[str] | None = "d2c76d767f7e"
+revision: str = "fd76fc635285"
+down_revision: str | Sequence[str] | None = "f6e5d4c3b2a1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
