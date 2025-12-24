@@ -44,8 +44,4 @@ class ShareCardRequest(BaseModel):
     card_id: str = Field(..., description="공유할 카드 ID")
 
 
-class GetHistoryRequest(BaseModel):
-    """get_history 이벤트 요청 스키마."""
-
-    cursor: str | None = Field(None, description="이전 페이지 마지막 메시지 ID")
-    limit: int = Field(50, ge=1, le=100, description="조회할 메시지 수")
+# GetHistoryRequest 제거됨 (REST API로 마이그레이션)

@@ -2,8 +2,9 @@
 
 import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import jwt
 import pytest
 import socketio
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,10 +12,6 @@ from uuid_utils import uuid7
 
 from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
-from bzero.domain.entities import City, GuestHouse, Room, RoomStay, Ticket
-from bzero.domain.value_objects import Id
-from bzero.domain.value_objects.room_stay import RoomStayStatus
-from bzero.domain.value_objects.ticket import AirshipSnapshot, CitySnapshot, TicketStatus
 from bzero.infrastructure.db.airship_model import AirshipModel
 from bzero.infrastructure.db.city_model import CityModel
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel
@@ -22,7 +19,7 @@ from bzero.infrastructure.db.room_model import RoomModel
 from bzero.infrastructure.db.room_stay_model import RoomStayModel
 from bzero.infrastructure.db.ticket_model import TicketModel
 from bzero.infrastructure.db.user_model import UserModel
-from bzero.presentation.socketio import sio
+
 
 # Socket.IO 클라이언트 설정
 DEMO_ROOM_ID = "00000000-0000-0000-0000-000000000000"
@@ -227,7 +224,6 @@ async def sample_room_stay(
 @pytest.fixture
 def mock_jwt_token(sample_user: UserModel, settings) -> str:
     """테스트용 JWT 토큰 생성."""
-    import jwt
 
     payload = {
         "sub": str(sample_user.user_id),
@@ -409,7 +405,6 @@ async def test_auth_connect_success(
     test_session: AsyncSession,
 ):
     """인증 연결 성공 테스트."""
-    from unittest.mock import AsyncMock, patch
 
     # Given: 유효한 JWT 토큰과 룸 접근 권한
     # verify_room_access를 mock하여 DB 세션 격리 문제 우회
@@ -513,7 +508,6 @@ async def test_auth_send_message_success(
     test_session: AsyncSession,
 ):
     """인증 메시지 전송 성공 테스트."""
-    from unittest.mock import AsyncMock, patch
 
     # Given: 인증 서버에 연결
     # verify_room_access를 mock하여 DB 세션 격리 문제 우회
@@ -570,7 +564,6 @@ async def test_auth_get_history_success(
     test_session: AsyncSession,
 ):
     """메시지 히스토리 조회 성공 테스트."""
-    from unittest.mock import AsyncMock, patch
 
     # Given: verify_room_access를 mock하여 DB 세션 격리 문제 우회
     with patch(

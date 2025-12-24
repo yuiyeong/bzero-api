@@ -1,6 +1,7 @@
 import functools
 import logging
-from typing import Any, Callable, Type, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -8,13 +9,14 @@ from bzero.core.database import get_async_db_session
 from bzero.presentation.socketio.server import get_socketio_server
 from bzero.presentation.socketio.utils import handle_socketio_error
 
+
 logger = logging.getLogger(__name__)
 sio = get_socketio_server()
 
 T = TypeVar("T", bound=BaseModel)
 
 
-def socket_handler(schema: Type[T] | None = None, namespace: str = "/"):
+def socket_handler(schema: type[T] | None = None, namespace: str = "/"):
     """Socket.IO 핸들러를 위한 데코레이터.
 
     - DB 세션을 자동으로 생성하고 핸들러에 주입합니다.
@@ -41,14 +43,13 @@ def socket_handler(schema: Type[T] | None = None, namespace: str = "/"):
                     except ValidationError as e:
                         logger.warning(f"Validation failed for {func.__name__}: {e}")
                         await handle_socketio_error(sio, sid, e, namespace=namespace)
-                        return
+                        return None
 
                 # 2. DB 세션 주입 및 핸들러 호출
                 async with get_async_db_session() as session:
                     if validated_data:
                         return await func(sid, validated_data, session, *args[1:], **kwargs)
-                    else:
-                        return await func(sid, session, *args, **kwargs)
+                    return await func(sid, session, *args, **kwargs)
 
             except Exception as e:
                 await handle_socketio_error(sio, sid, e, namespace=namespace)

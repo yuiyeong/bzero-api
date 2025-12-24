@@ -1,37 +1,34 @@
 """Socket.IO 채팅 핸들러 (인증 필요)"""
+
 import logging
-from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.use_cases.chat_messages import (
     CreateSystemMessageUseCase,
-    GetMessageHistoryUseCase,
     SendMessageUseCase,
     ShareCardUseCase,
 )
 from bzero.application.use_cases.room_stays import VerifyRoomAccessUseCase
-from bzero.core.database import get_async_db_session
+from bzero.domain.value_objects.chat_message import SystemMessage
 from bzero.presentation.api.dependencies import (
     create_chat_message_service,
     create_conversation_card_service,
     create_room_stay_service,
 )
-from bzero.domain.value_objects.chat_message import SystemMessage
-from bzero.presentation.socketio.dependencies import socket_handler
 from bzero.presentation.schemas.chat_message import (
-    GetHistoryRequest,
     SendMessageRequest,
     ShareCardRequest,
 )
 from bzero.presentation.schemas.socketio import JoinRoomRequest
+from bzero.presentation.socketio.dependencies import socket_handler
 from bzero.presentation.socketio.server import get_socketio_server
 from bzero.presentation.socketio.utils import (
     emit_new_message,
     emit_system_message,
     get_typed_session,
-    handle_socketio_error,
 )
+
 
 logger = logging.getLogger(__name__)
 sio = get_socketio_server()
@@ -76,6 +73,9 @@ async def handle_send_message(sid: str, request: SendMessageRequest, db_session:
     await emit_new_message(sio, session.room_id, result)
 
 
+# get_history 핸들러 제거됨 (REST API GET /api/v1/rooms/{room_id}/messages 로 마이그레이션)
+
+
 @sio.on("share_card")
 @socket_handler(schema=ShareCardRequest)
 async def handle_share_card(sid: str, request: ShareCardRequest, db_session: AsyncSession):
@@ -88,25 +88,3 @@ async def handle_share_card(sid: str, request: ShareCardRequest, db_session: Asy
 
     result = await use_case.execute(session.user_id, session.room_id, request.card_id)
     await emit_new_message(sio, session.room_id, result)
-
-
-@sio.on("get_history")
-@socket_handler(schema=GetHistoryRequest)
-async def handle_get_history(sid: str, request: GetHistoryRequest, db_session: AsyncSession):
-    """메시지 히스토리 조회 이벤트."""
-    session = await get_typed_session(sio, sid)
-
-    chat_message_service = create_chat_message_service(db_session)
-    room_stay_service = create_room_stay_service(db_session)
-    use_case = GetMessageHistoryUseCase(chat_message_service, room_stay_service)
-
-    results = await use_case.execute(
-        session.user_id, session.room_id, request.cursor, request.limit
-    )
-
-    # 요청한 클라이언트에게만 응답
-    await sio.emit(
-        "history",
-        {"messages": [msg.to_dict() for msg in results]},
-        to=sid,
-    )

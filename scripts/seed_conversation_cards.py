@@ -108,7 +108,7 @@ async def seed_conversation_cards():
 
             # 4. 커밋
             await session.commit()
-            print(f"\n✅ 대화 카드 시드 데이터 생성 완료!")
+            print("\n✅ 대화 카드 시드 데이터 생성 완료!")
             print(f"   - 공통 카드: {len(COMMON_CARDS)}개")
             print(f"   - 도시별 카드: {sum(len(cards) for cards in CITY_SPECIFIC_CARDS.values())}개")
 

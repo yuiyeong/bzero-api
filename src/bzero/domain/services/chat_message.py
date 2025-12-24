@@ -11,7 +11,9 @@ from bzero.domain.errors import NotFoundChatMessageError
 from bzero.domain.ports.rate_limiter import RateLimiter
 from bzero.domain.repositories.chat_message import ChatMessageRepository
 from bzero.domain.value_objects import Id
-from bzero.domain.value_objects.chat_message import MessageContent, MessageType
+from bzero.domain.value_objects.chat_message import MessageContent
+from bzero.domain.errors import RateLimitExceededError
+
 
 # 메시지 보관 기간 (일)
 MESSAGE_RETENTION_DAYS = 3
@@ -85,8 +87,6 @@ class ChatMessageService:
             window_seconds=2,
         )
         if not is_allowed:
-            from bzero.domain.errors import RateLimitExceededError
-
             raise RateLimitExceededError
 
         current = datetime.now(self._timezone)

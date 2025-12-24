@@ -3,23 +3,22 @@ import logging
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from bzero.core.database import get_async_db_session
+from bzero.application.results import ChatMessageResult
 from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent
-from bzero.application.results import ChatMessageResult
+from bzero.domain.errors import RateLimitExceededError
 from bzero.presentation.api.dependencies import create_chat_message_service
 from bzero.presentation.schemas.chat_message import SendMessageRequest
-from bzero.presentation.schemas.socketio import JoinRoomRequest
 from bzero.presentation.socketio.dependencies import socket_handler
 from bzero.presentation.socketio.server import get_socketio_server
 from bzero.presentation.socketio.utils import (
     emit_new_message,
     emit_system_message,
     get_typed_session,
-    handle_socketio_error,
 )
 
 
@@ -36,6 +35,7 @@ DEMO_NAMESPACE = "/demo"
 @socket_handler(namespace=DEMO_NAMESPACE)
 async def handle_join_room(sid: str, db_session: AsyncSession, data: dict[str, Any]):
     """데모 룸 참여."""
+    logger.info(f"handle_join_room called - sid: {sid}")
     session = await get_typed_session(sio, sid, namespace=DEMO_NAMESPACE)
 
     # 1. Socket.IO 룸 입장
@@ -77,8 +77,6 @@ async def handle_send_message(
     )
 
     if not is_allowed:
-        from bzero.domain.errors import RateLimitExceededError
-
         raise RateLimitExceededError()
 
     # 2. 브로드캐스트 (DB 저장 없음)

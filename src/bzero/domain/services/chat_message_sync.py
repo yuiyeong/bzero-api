@@ -6,7 +6,6 @@ Celery 백그라운드 태스크에서 만료 메시지 삭제 등의 배치 작
 from datetime import datetime
 
 from bzero.domain.repositories.chat_message import ChatMessageSyncRepository
-from bzero.domain.value_objects import Id
 
 
 class ChatMessageSyncService:

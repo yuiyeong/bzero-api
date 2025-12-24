@@ -19,8 +19,8 @@ from bzero.presentation.socketio.server import get_socketio_server
 from bzero.presentation.socketio.utils import (
     emit_system_message,
     get_typed_session,
-    handle_socketio_error,
 )
+
 
 logger = logging.getLogger(__name__)
 sio = get_socketio_server()

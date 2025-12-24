@@ -2,7 +2,6 @@ import logging
 from typing import Any
 
 import socketio
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results import ChatMessageResult
 from bzero.domain.errors import (
@@ -14,10 +13,9 @@ from bzero.domain.errors import (
     RateLimitExceededError,
     UnauthorizedError,
 )
-from bzero.domain.value_objects import Id
-from bzero.presentation.api.dependencies import create_room_stay_service
 from bzero.presentation.schemas.chat_message import ChatMessageResponse
 from bzero.presentation.schemas.socketio import SocketSession
+
 
 logger = logging.getLogger(__name__)
 

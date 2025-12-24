@@ -13,6 +13,7 @@ from datetime import datetime
 
 import socketio
 
+
 # 데모 룸 ID
 DEMO_ROOM_ID = "00000000-0000-0000-0000-000000000000"
 
