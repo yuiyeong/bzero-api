@@ -11,6 +11,7 @@ from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.errors import UnauthorizedError
 from bzero.domain.ports import TaskScheduler
+from bzero.domain.repositories.user import UserRepository
 from bzero.domain.services import (
     AirshipService,
     ChatMessageService,
@@ -110,26 +111,26 @@ def get_jwt_payload(
 
 def get_user_repository(
     session: Annotated[AsyncSession, Depends(get_async_db_session)],
-) -> SqlAlchemyUserRepository:
+) -> UserRepository:
     """Create UserRepository instance."""
     return SqlAlchemyUserRepository(session)
 
 
 def get_user_service(
     session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> UserService:
     """Create UserService instance."""
     settings = get_settings()
-    user_repository = get_user_repository(session)
     user_identity_repository = SqlAlchemyUserIdentityRepository(session)
     return UserService(user_repository, user_identity_repository, settings.timezone)
 
 
 def get_point_transaction_service(
     session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> PointTransactionService:
     """Create PointTransactionService instance."""
-    user_repository = get_user_repository(session)
     point_transaction_repository = SqlAlchemyPointTransactionRepository(session)
     return PointTransactionService(user_repository, point_transaction_repository)
 
@@ -156,7 +157,7 @@ def get_ticket_service(
     """Create TicketService instance."""
     settings = get_settings()
     ticket_repository = SqlAlchemyTicketRepository(session)
-    return TicketService(ticket_repository, settings.timezone)
+    return TicketService(ticket_repository, settings.timezone, is_hyper_fast=settings.is_debug)
 
 
 def get_room_stay_service(
@@ -208,8 +209,6 @@ def get_chat_message_service(
         rate_limiter=RedisRateLimiter(get_redis_client()),
         timezone=settings.timezone,
     )
-
-
 
 
 # =============================================================================

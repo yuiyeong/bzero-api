@@ -27,17 +27,20 @@ class TicketService:
     Attributes:
         _ticket_repository: 티켓 저장소 (비동기)
         _timezone: 시간대 정보 (출발/도착 시간 계산에 사용)
+        _is_hyper_fast: 도착 시간을 매우 빠르게 앞 당길 것인지(분 단위, 시간 단위 선택지)
     """
 
-    def __init__(self, ticket_repository: TicketRepository, timezone: ZoneInfo):
+    def __init__(self, ticket_repository: TicketRepository, timezone: ZoneInfo, is_hyper_fast: bool = False):
         """TicketService를 초기화합니다.
 
         Args:
             ticket_repository: 티켓 저장소 인터페이스
             timezone: 사용할 시간대 (예: ZoneInfo("Asia/Seoul"))
+            is_hyper_fast: 도착 시간을 매우 빠르게 앞 당길 것인지(분 단위, 시간 단위 선택지)
         """
         self._ticket_repository = ticket_repository
         self._timezone = timezone
+        self._is_hyper_fast = is_hyper_fast
 
     async def purchase_ticket(self, user: User, city: City, airship: Airship) -> Ticket:
         """비행선 티켓을 구매합니다.
@@ -71,7 +74,11 @@ class TicketService:
             raise InvalidAirshipStatusError
 
         departure_datetime = datetime.now(self._timezone)
-        arrival_datetime = departure_datetime + timedelta(hours=total_duration)
+        arrival_datetime = (
+            departure_datetime + timedelta(hours=total_duration)
+            if self._is_hyper_fast
+            else timedelta(hours=total_duration)
+        )
         ticket = Ticket.create(
             user_id=user.user_id,
             city_snapshot=city.snapshot(),
