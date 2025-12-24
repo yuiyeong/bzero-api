@@ -7,6 +7,7 @@
 from bzero.domain.value_objects.chat_message import MessageContent, MessageType
 from bzero.domain.value_objects.common import Id
 from bzero.domain.value_objects.diary import DiaryMood
+from bzero.domain.value_objects.dm import DMStatus
 from bzero.domain.value_objects.guesthouse import GuestHouseType
 from bzero.domain.value_objects.point_transaction import (
     TransactionReason,
@@ -24,6 +25,7 @@ __all__ = [
     "AuthProvider",
     "Balance",
     "CitySnapshot",
+    "DMStatus",
     "DiaryMood",
     "Email",
     "GuestHouseType",

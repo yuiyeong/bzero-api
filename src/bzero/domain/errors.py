@@ -48,8 +48,16 @@ class ErrorCode(str, Enum):
     DUPLICATED_DIARY = "이미 해당 체류에 일기가 존재합니다."
     DUPLICATED_QUESTIONNAIRE = "이미 해당 질문에 답변이 존재합니다."
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
+    DUPLICATED_DM_REQUEST = "이미 대화 신청이 존재합니다."
 
     PROFILE_INCOMPLETE = "프로필이 완료되지 않았습니다."
+
+    # DM (1:1 대화) 관련 에러
+    INVALID_DM_ROOM_STATUS = "대화방 상태가 잘못되었습니다."
+    NOT_FOUND_DM_ROOM = "대화방을 찾을 수 없습니다."
+    NOT_FOUND_DM_MESSAGE = "메시지를 찾을 수 없습니다."
+    NOT_IN_SAME_ROOM = "같은 방에 체류 중이 아닙니다."
+    FORBIDDEN_DM_ROOM_ACCESS = "대화방에 접근할 수 없습니다."
 
 
 class BeZeroError(Exception):
@@ -276,3 +284,32 @@ class NotFoundQuestionnaireError(NotFoundError):
 class DuplicatedQuestionnaireError(DuplicatedError):
     def __init__(self):
         super().__init__(ErrorCode.DUPLICATED_QUESTIONNAIRE)
+# DM (1:1 대화) 관련 에러
+class InvalidDMRoomStatusError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_DM_ROOM_STATUS)
+
+
+class NotFoundDMRoomError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_DM_ROOM)
+
+
+class NotFoundDMMessageError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_DM_MESSAGE)
+
+
+class NotInSameRoomError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_IN_SAME_ROOM)
+
+
+class DuplicatedDMRequestError(DuplicatedError):
+    def __init__(self):
+        super().__init__(ErrorCode.DUPLICATED_DM_REQUEST)
+
+
+class ForbiddenDMRoomAccessError(AccessDeniedError):
+    def __init__(self):
+        super().__init__(ErrorCode.FORBIDDEN_DM_ROOM_ACCESS)

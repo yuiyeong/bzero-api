@@ -3,6 +3,8 @@ from bzero.domain.entities.chat_message import ChatMessage
 from bzero.domain.entities.city import City
 from bzero.domain.entities.conversation_card import ConversationCard
 from bzero.domain.entities.diary import Diary
+from bzero.domain.entities.direct_message import DirectMessage
+from bzero.domain.entities.direct_message_room import DirectMessageRoom
 from bzero.domain.entities.guest_house import GuestHouse
 from bzero.domain.entities.point_transaction import PointTransaction
 from bzero.domain.entities.room import Room
@@ -18,6 +20,8 @@ __all__ = [
     "City",
     "ConversationCard",
     "Diary",
+    "DirectMessage",
+    "DirectMessageRoom",
     "GuestHouse",
     "PointTransaction",
     "Room",

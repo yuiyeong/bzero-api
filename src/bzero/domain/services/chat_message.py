@@ -7,12 +7,11 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from bzero.domain.entities import ChatMessage
-from bzero.domain.errors import NotFoundChatMessageError
+from bzero.domain.errors import NotFoundChatMessageError, RateLimitExceededError
 from bzero.domain.ports.rate_limiter import RateLimiter
 from bzero.domain.repositories.chat_message import ChatMessageRepository
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent
-from bzero.domain.errors import RateLimitExceededError
 
 
 # 메시지 보관 기간 (일)

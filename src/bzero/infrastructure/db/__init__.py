@@ -2,6 +2,8 @@ from bzero.infrastructure.db.airship_model import AirshipModel
 from bzero.infrastructure.db.base import AuditMixin, Base, SoftDeleteMixin
 from bzero.infrastructure.db.city_model import CityModel
 from bzero.infrastructure.db.diary_model import DiaryModel
+from bzero.infrastructure.db.direct_message_model import DirectMessageModel
+from bzero.infrastructure.db.direct_message_room_model import DirectMessageRoomModel
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel
 from bzero.infrastructure.db.room_model import RoomModel
@@ -18,6 +20,8 @@ __all__ = [
     "Base",
     "CityModel",
     "DiaryModel",
+    "DirectMessageModel",
+    "DirectMessageRoomModel",
     "GuestHouseModel",
     "PointTransactionModel",
     "RoomModel",
