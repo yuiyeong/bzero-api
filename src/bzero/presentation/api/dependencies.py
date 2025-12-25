@@ -251,6 +251,13 @@ def create_conversation_card_service(session: AsyncSession) -> ConversationCardS
     )
 
 
+def create_user_service(session: AsyncSession) -> UserService:
+    settings = get_settings()
+    user_repository = SqlAlchemyUserRepository(session)
+    user_identity_repository = SqlAlchemyUserIdentityRepository(session)
+    return UserService(user_repository, user_identity_repository, settings.timezone)
+
+
 def create_room_stay_service(session: AsyncSession) -> RoomStayService:
     """세션을 직접 받아 RoomStayService를 생성합니다.
 
