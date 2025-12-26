@@ -17,13 +17,15 @@ from bzero.domain.services import (
     ChatMessageService,
     ConversationCardService,
     DiaryService,
+    RoomStayService,
     TicketService,
 )
 from bzero.domain.services.city import CityService
 from bzero.domain.services.city_question import CityQuestionService
+from bzero.domain.services.direct_message import DirectMessageService
+from bzero.domain.services.direct_message_room import DirectMessageRoomService
 from bzero.domain.services.point_transaction import PointTransactionService
 from bzero.domain.services.questionnaire import QuestionnaireService
-from bzero.domain.services.room_stay import RoomStayService
 from bzero.domain.services.user import UserService
 from bzero.infrastructure.adapters import CeleryTaskScheduler, RedisRateLimiter
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
@@ -33,6 +35,8 @@ from bzero.infrastructure.repositories.city import SqlAlchemyCityRepository
 from bzero.infrastructure.repositories.city_question import SqlAlchemyCityQuestionRepository
 from bzero.infrastructure.repositories.conversation_card import SqlAlchemyConversationCardRepository
 from bzero.infrastructure.repositories.diary import SqlAlchemyDiaryRepository
+from bzero.infrastructure.repositories.direct_message import SqlAlchemyDirectMessageRepository
+from bzero.infrastructure.repositories.direct_message_room import SqlAlchemyDirectMessageRoomRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
 from bzero.infrastructure.repositories.questionnaire import SqlAlchemyQuestionnaireRepository
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayRepository
@@ -216,6 +220,23 @@ def get_chat_message_service(
 # =============================================================================
 
 
+def create_user_service(session: AsyncSession) -> UserService:
+    """세션을 직접 받아 UserService를 생성합니다.
+
+    Socket.IO 핸들러에서 사용합니다.
+
+    Args:
+        session: DB 세션
+
+    Returns:
+        UserService 인스턴스
+    """
+    settings = get_settings()
+    user_repository = SqlAlchemyUserRepository(session)
+    user_identity_repository = SqlAlchemyUserIdentityRepository(session)
+    return UserService(user_repository, user_identity_repository, settings.timezone)
+
+
 def create_chat_message_service(session: AsyncSession) -> ChatMessageService:
     """세션을 직접 받아 ChatMessageService를 생성합니다.
 
@@ -251,11 +272,6 @@ def create_conversation_card_service(session: AsyncSession) -> ConversationCardS
     )
 
 
-def create_user_service(session: AsyncSession) -> UserService:
-    settings = get_settings()
-    user_repository = SqlAlchemyUserRepository(session)
-    user_identity_repository = SqlAlchemyUserIdentityRepository(session)
-    return UserService(user_repository, user_identity_repository, settings.timezone)
 
 
 def create_room_stay_service(session: AsyncSession) -> RoomStayService:
@@ -271,6 +287,45 @@ def create_room_stay_service(session: AsyncSession) -> RoomStayService:
     """
     return RoomStayService(
         room_stay_repository=SqlAlchemyRoomStayRepository(session),
+    )
+
+
+def create_dm_room_service(session: AsyncSession) -> "DirectMessageRoomService":
+    """세션을 직접 받아 DirectMessageRoomService를 생성합니다.
+
+    Socket.IO 핸들러 및 REST API에서 사용합니다.
+
+    Args:
+        session: DB 세션
+
+    Returns:
+        DirectMessageRoomService 인스턴스
+    """
+    settings = get_settings()
+    return DirectMessageRoomService(
+        dm_room_repository=SqlAlchemyDirectMessageRoomRepository(session),
+        room_stay_repository=SqlAlchemyRoomStayRepository(session),
+        timezone=settings.timezone,
+    )
+
+
+def create_dm_service(session: AsyncSession) -> "DirectMessageService":
+    """세션을 직접 받아 DirectMessageService를 생성합니다.
+
+    Socket.IO 핸들러 및 REST API에서 사용합니다.
+
+    Args:
+        session: DB 세션
+
+    Returns:
+        DirectMessageService 인스턴스
+    """
+    settings = get_settings()
+    return DirectMessageService(
+        dm_repository=SqlAlchemyDirectMessageRepository(session),
+        dm_room_repository=SqlAlchemyDirectMessageRoomRepository(session),
+        rate_limiter=RedisRateLimiter(get_redis_client()),
+        timezone=settings.timezone,
     )
 
 

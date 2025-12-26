@@ -92,8 +92,6 @@ async def create_demo_room():
             await session.rollback()
             print(f"❌ 에러 발생: {e}")
             raise
-        finally:
-            break
 
 
 if __name__ == "__main__":

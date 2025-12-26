@@ -147,7 +147,7 @@ def live_server_url():
 @pytest.mark.asyncio
 async def test_chat_demo_e2e_flow(live_server_url):
     """데모 채팅의 전체 E2E 흐름을 테스트합니다.
-    
+
     1. 연결
     2. 룸 입장 및 시스템 메시지 확인
     3. 메시지 전송 및 브로드캐스트 확인

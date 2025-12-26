@@ -266,8 +266,38 @@ uv run dev
 
 #### 🚧 진행 예정
 
-- 채팅 시스템
-- 체크아웃 시스템
+**1:1 채팅 시스템** (#37-#43)
+
+- **도메인 계층**:
+  - DirectMessageRoom 엔티티 (1:1 대화방)
+  - DirectMessage 엔티티 (1:1 메시지)
+  - DMStatus 값 객체 (PENDING|ACCEPTED|ACTIVE|REJECTED|ENDED)
+  - DirectMessageRoomService (대화방 생성, 상태 변경)
+  - DirectMessageService (메시지 생성, 읽음 처리)
+
+- **애플리케이션 계층** (유스케이스):
+  - RequestDMUseCase (대화 신청)
+  - AcceptDMRequestUseCase (대화 수락)
+  - RejectDMRequestUseCase (대화 거절)
+  - SendDMMessageUseCase (메시지 전송)
+  - GetDMHistoryUseCase (메시지 히스토리 조회)
+  - GetMyDMRoomsUseCase (내 대화방 목록)
+
+- **REST API 엔드포인트**:
+  - `POST /api/v1/dm/requests` - 대화 신청
+  - `POST /api/v1/dm/requests/{dm_room_id}/accept` - 대화 수락
+  - `POST /api/v1/dm/requests/{dm_room_id}/reject` - 대화 거절
+  - `GET /api/v1/dm/rooms` - 내 대화방 목록
+  - `GET /api/v1/dm/rooms/{dm_room_id}/messages` - 메시지 히스토리
+
+- **Socket.IO 이벤트**:
+  - `join_dm_room` - 1:1 대화방 입장
+  - `send_dm_message` - 메시지 전송
+  - `new_dm_message` - 메시지 수신 (Listen)
+  - `dm_request_notification` - 신청 알림 (Listen)
+  - `dm_status_changed` - 수락/거절 알림 (Listen)
+
+**체크아웃 시스템**
 
 자세한 진행 상황은 `docs/checklist.md` 참조
 
@@ -426,6 +456,112 @@ class CityService:
 
 ---
 
+## 채팅 시스템 아키텍처
+
+B0는 **그룹 채팅**과 **1:1 채팅** 두 가지 채팅 시스템을 지원하며, **CQRS 패턴**과 **Socket.IO**를 조합한 아키텍처를 사용합니다.
+
+### CQRS 패턴 (Command Query Responsibility Segregation)
+
+채팅 시스템은 **명령(Command)**과 **조회(Query)**를 명확히 분리합니다:
+
+#### 1. Command (상태 변경) - REST API
+
+**그룹 채팅:**
+- `POST /api/v1/rooms/{room_id}/cards` - 대화 카드 공유
+
+**1:1 채팅:**
+- `POST /api/v1/dm/requests` - 대화 신청
+- `POST /api/v1/dm/requests/{dm_room_id}/accept` - 대화 수락
+- `POST /api/v1/dm/requests/{dm_room_id}/reject` - 대화 거절
+
+#### 2. Query (조회) - REST API
+
+**그룹 채팅:**
+- `GET /api/v1/rooms/{room_id}/messages` - 메시지 히스토리 (커서 기반 페이지네이션)
+- `GET /api/v1/chat/cities/{city_id}/conversation-cards/random` - 랜덤 대화 카드 조회
+
+**1:1 채팅:**
+- `GET /api/v1/dm/rooms` - 내 대화방 목록
+- `GET /api/v1/dm/rooms/{dm_room_id}/messages` - 메시지 히스토리 (커서 기반 페이지네이션)
+
+#### 3. Real-time Notification - Socket.IO
+
+**그룹 채팅 (`/` 네임스페이스):**
+- `join_room` - 룸 입장 (Emit)
+- `send_message` - 메시지 전송 (Emit)
+- `new_message` - 메시지 수신 (Listen)
+- `system_message` - 시스템 메시지 (Listen)
+
+**1:1 채팅 (`/` 네임스페이스):**
+- `join_dm_room` - 1:1 대화방 입장 (Emit)
+- `send_dm_message` - 메시지 전송 (Emit)
+- `new_dm_message` - 메시지 수신 (Listen)
+- `dm_request_notification` - 신청 알림 (Listen)
+- `dm_status_changed` - 수락/거절 알림 (Listen)
+
+### 채팅 시스템 플로우
+
+#### 그룹 채팅
+
+```
+1. [클라이언트] GET /api/v1/chat/cities/{city_id}/conversation-cards/random
+   → [서버] 랜덤 카드 반환 (예: "가장 좋아하는 음식은?")
+
+2. [사용자] UI에서 카드 내용 확인
+
+3. [사용자] "공유하기" 버튼 클릭
+
+4. [클라이언트] POST /api/v1/rooms/{room_id}/cards { "card_id": "..." }
+   → [서버] 채팅 메시지 생성 (DB INSERT)
+   → [서버] Socket.IO로 브로드캐스트 (같은 룸 모든 사용자)
+
+5. [모든 사용자] new_message 이벤트 수신 → 채팅방에 카드 표시
+```
+
+### 채팅 시스템 플로우
+
+#### 1:1 채팅
+
+```
+1. [사용자A] POST /api/v1/dm/requests { "to_user_id": "B" }
+   → [서버] Controller: Provider Info(JWT) → UseCase 전달
+   → [서버] UseCase: Provider Info → Internal User ID 변환 (UserService)
+   → [서버] DMRoom 생성 (PENDING 상태)
+   → [서버] Socket.IO로 알림 발송 (사용자B에게)
+
+2. [사용자B] dm_request_notification 이벤트 수신 → 알림 표시
+
+3. [사용자B] POST /api/v1/dm/requests/{dm_room_id}/accept
+   → [서버] UseCase: Internal User ID 변환 후 권한 검증
+   → [서버] DMRoom 상태 변경 (PENDING → ACCEPTED)
+   → [서버] Socket.IO로 알림 발송 (사용자A에게)
+
+4. [사용자A] dm_status_changed 이벤트 수신 → 수락 알림
+
+5. [사용자A] Socket.IO: send_dm_message { "dm_room_id": "...", "content": "안녕?" }
+   → [서버] Socket Lifecycle: Connect 시 JWT 검증 → Internal ID 변환 → Session 저장
+   → [서버] Socket Handler: Session에서 Internal ID 조회 → UseCase 전달
+   → [서버] UseCase: 메시지 생성 및 저장
+   → [서버] Socket.IO로 브로드캐스트 (사용자B에게)
+
+6. [사용자B] new_dm_message 이벤트 수신 → 메시지 표시
+```
+
+### 주요 특징
+
+- **사용자 식별 (Auth)**:
+  - **REST API**: JWT에서 `provider`, `provider_user_id` 추출 → UseCase가 `UserService`를 통해 Internal ID로 변환.
+  - **Socket.IO**: 연결(`connect`) 시점에 `UserService`를 통해 Internal ID로 변환하여 Session에 저장. 이후 핸들러는 Session의 Internal ID 사용.
+- **메시지 전송**: Socket.IO (실시간)
+- **메시지 조회**: REST API (히스토리, 페이지네이션)
+- **상태 변경**: REST API (신청/수락/거절)
+- **알림**: Socket.IO (실시간)
+- **Rate Limiting**: Redis (2초에 1회)
+- **메시지 만료**: 그룹 채팅 3일 후 자동 삭제
+- **대화방 종료**: 1:1 채팅은 체크아웃 시 자동 종료
+
+---
+
 ## 코딩 가이드라인
 
 ### Clean Architecture 원칙
@@ -451,6 +587,42 @@ class CityService:
 - 클래스: `PascalCase` (예: `User`, `UserRepository`)
 - 함수/변수: `snake_case` (예: `get_user`, `user_id`)
 - 상수: `UPPER_SNAKE_CASE` (예: `MAX_RETRY_COUNT`)
+
+### Critical Anti-Patterns & Best Practices (Do NOT Repeat These Mistakes)
+
+#### 1. DB Session Context Manager vs Generator
+- **문제**: `get_async_db_session()`은 **FastAPI `Depends` 전용 Generator**입니다. `async with` 문에서 직접 사용하면 에러가 발생하거나 세션이 제대로 닫히지 않습니다.
+- **해결**: Socket.IO, Middleware, Background Task 등 `Depends`를 쓸 수 없는 곳에서는 반드시 **`get_async_db_session_ctx()`** Context Manager를 사용하세요.
+
+```python
+# [WRONG] Generator는 async context manager가 아님
+async with get_async_db_session() as session: ...
+
+# [CORRECT] Context Manager 전용 함수 사용
+async with get_async_db_session_ctx() as session: ...
+```
+
+#### 2. User ID Resolution (Supabase ID vs Internal ID)
+- **문제**: JWT의 `sub` (Supabase UUID)를 내부 DB의 `user_id` (UUIDv7)로 착각하여 바로 FK로 저장하려 하면 데이터 무결성 에러가 발생합니다.
+- **해결**:
+    - **REST API**: Handler는 `provider`, `provider_user_id`를 그대로 UseCase에 전달하고, **UseCase 내부에서** `UserService`를 통해 Internal ID로 변환합니다. (Handler에서 변환 로직 수행 금지)
+    - **Socket.IO**: `connect` 시점에 변환하여 **Session에는 반드시 Internal ID를 저장**합니다. 이후 로직은 Internal ID만 사용합니다.
+
+#### 3. Thin Controller & Ad-hoc Service Creation
+- **문제**: Handler 함수 내부에서 `UserService(repo, ...)` 처럼 서비스를 직접 생성하면 의존성 주입의 이점을 잃고 테스트가 어려워집니다.
+- **해결**: `presentation/api/dependencies.py` (또는 socketio/dependencies.py)에 정의된 **Factory 함수** (`create_user_service` 등)를 사용하세요.
+
+#### 4. Mid-file Imports
+- **문제**: 순환 참조를 피하기 위해 함수 내부에 import를 넣으면 코드가 지저분해지고 리팩토링 시 놓치기 쉽습니다.
+- **해결**: `TYPE_CHECKING`을 활용하거나, 아키텍처 구조를 개선하여 상단 Import로 해결하세요. 순환 참조가 불가피할 때만 제한적으로 허용합니다.
+
+#### 5. File Naming Convention (No `_sync.py`)
+- **문제**: `ticket_sync.py` 처럼 파일 이름에 `_sync`를 붙이면 파일 수가 불필요하게 늘어나고 관리가 어렵습니다.
+- **해결**: `ticket.py` 파일 하나에 비동기 클래스(`TicketService`)와 동기 클래스(`TicketSyncService`)를 함께 정의하세요. Repository도 마찬가지입니다.
+
+#### 6. Dangerous Control Flow
+- **문제**: `finally` 블록 내에서 `break`, `return`, `continue`를 사용하면 `try` 블록에서 발생한 예외가 무시됩니다.
+- **해결**: `finally` 블록에서는 리소스 정리(cleanup)만 수행하고, 제어 흐름을 변경하지 마세요.
 
 ---
 

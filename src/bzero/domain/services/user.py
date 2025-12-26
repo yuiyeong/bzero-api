@@ -114,3 +114,5 @@ class UserService:
 
     async def get_users_by_user_ids(self, user_ids: tuple[Id]) -> list[User]:
         return await self._user_repository.find_all_by_user_ids(user_ids)
+
+

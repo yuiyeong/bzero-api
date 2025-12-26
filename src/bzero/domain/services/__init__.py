@@ -1,6 +1,5 @@
 from bzero.domain.services.airship import AirshipService
-from bzero.domain.services.chat_message import ChatMessageService
-from bzero.domain.services.chat_message_sync import ChatMessageSyncService
+from bzero.domain.services.chat_message import ChatMessageService, ChatMessageSyncService
 from bzero.domain.services.city import CityService
 from bzero.domain.services.conversation_card import ConversationCardService
 from bzero.domain.services.diary import DiaryService
@@ -16,11 +15,10 @@ __all__ = [
     "ChatMessageSyncService",
     "CityService",
     "ConversationCardService",
-    "PointTransactionService",
-    "RoomStayService",
-    "CityService",
     "DiaryService",
     "PointTransactionService",
+    "RoomStayService",
     "TicketService",
     "UserService",
 ]
+

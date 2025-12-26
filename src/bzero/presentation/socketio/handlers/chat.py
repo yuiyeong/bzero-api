@@ -15,6 +15,7 @@ from bzero.presentation.api.dependencies import (
     create_chat_message_service,
     create_conversation_card_service,
     create_room_stay_service,
+    create_user_service,
 )
 from bzero.presentation.schemas.chat_message import (
     SendMessageRequest,
@@ -67,9 +68,14 @@ async def handle_send_message(sid: str, request: SendMessageRequest, db_session:
     session = await get_typed_session(sio, sid)
 
     chat_message_service = create_chat_message_service(db_session)
-    use_case = SendMessageUseCase(db_session, chat_message_service)
+    user_service = create_user_service(db_session)
+    use_case = SendMessageUseCase(db_session, chat_message_service, user_service)
 
-    result = await use_case.execute(session.user_id, session.room_id, request.content)
+    result = await use_case.execute(
+        room_id=session.room_id,
+        content=request.content,
+        user_id=session.user_id,
+    )
     await emit_new_message(sio, session.room_id, result)
 
 
@@ -84,7 +90,12 @@ async def handle_share_card(sid: str, request: ShareCardRequest, db_session: Asy
 
     chat_message_service = create_chat_message_service(db_session)
     conversation_card_service = create_conversation_card_service(db_session)
-    use_case = ShareCardUseCase(db_session, chat_message_service, conversation_card_service)
+    user_service = create_user_service(db_session)
+    use_case = ShareCardUseCase(db_session, chat_message_service, conversation_card_service, user_service)
 
-    result = await use_case.execute(session.user_id, session.room_id, request.card_id)
+    result = await use_case.execute(
+        room_id=session.room_id,
+        card_id=request.card_id,
+        user_id=session.user_id,
+    )
     await emit_new_message(sio, session.room_id, result)

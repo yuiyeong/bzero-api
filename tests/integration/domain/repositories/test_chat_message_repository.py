@@ -10,7 +10,9 @@ from bzero.domain.entities import ChatMessage
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent, MessageType
 from bzero.infrastructure.db.chat_message_model import ChatMessageModel
+from bzero.infrastructure.db.city_model import CityModel
 from bzero.infrastructure.db.conversation_card_model import ConversationCardModel
+from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 from bzero.infrastructure.db.room_model import RoomModel
 from bzero.infrastructure.db.user_model import UserModel
 from bzero.infrastructure.repositories.chat_message import (
@@ -45,8 +47,6 @@ async def sample_user(test_session: AsyncSession) -> UserModel:
 @pytest.fixture
 async def sample_room(test_session: AsyncSession) -> RoomModel:
     """테스트용 샘플 룸 데이터를 생성합니다."""
-    from bzero.infrastructure.db.city_model import CityModel
-    from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 
     now = datetime.now()
 

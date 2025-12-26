@@ -3,14 +3,15 @@ import logging
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results import ChatMessageResult
 from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
+from bzero.domain.errors import RateLimitExceededError
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent
-from bzero.domain.errors import RateLimitExceededError
 from bzero.presentation.api.dependencies import create_chat_message_service
 from bzero.presentation.schemas.chat_message import SendMessageRequest
 from bzero.presentation.socketio.dependencies import socket_handler
@@ -77,7 +78,7 @@ async def handle_send_message(
     )
 
     if not is_allowed:
-        raise RateLimitExceededError()
+        raise RateLimitExceededError
 
     # 2. 브로드캐스트 (DB 저장 없음)
     settings = get_settings()

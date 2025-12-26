@@ -77,7 +77,7 @@ class TicketService:
         arrival_datetime = (
             departure_datetime + timedelta(minutes=total_duration)
             if self._is_hyper_fast
-            else timedelta(hours=total_duration)
+            else departure_datetime + timedelta(hours=total_duration)
         )
         ticket = Ticket.create(
             user_id=user.user_id,

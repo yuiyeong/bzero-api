@@ -9,9 +9,12 @@ from bzero.application.use_cases.chat_messages import CreateSystemMessageUseCase
 from bzero.application.use_cases.room_stays import VerifyRoomAccessUseCase
 from bzero.core.database import get_async_db_session_ctx
 from bzero.core.settings import get_settings
-from bzero.domain.value_objects import Id
+from bzero.domain.services.user import UserService
+from bzero.domain.value_objects import AuthProvider, Id
 from bzero.domain.value_objects.chat_message import MessageContent, SystemMessage
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
+from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
+from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
 from bzero.presentation.api.dependencies import (
     create_chat_message_service,
     create_room_stay_service,
@@ -56,12 +59,27 @@ async def connect(sid: str, environ: dict, auth: dict | None):
             )
         except Exception:
             logger.info("JWT verification failed")
-            raise ConnectionRefusedError("Invalid token")
+            raise ConnectionRefusedError("Invalid token") from None
 
-        user_id = payload["sub"]
+        async with get_async_db_session_ctx() as session:
+            # 1. 사용자 조회 (Supabase ID -> Internal ID)
+            user_repository = SqlAlchemyUserRepository(session)
+            user_identity_repository = SqlAlchemyUserIdentityRepository(session)
+            user_service = UserService(
+                user_repository, user_identity_repository, settings.timezone
+            )
 
-        # 룸 접근 권한 검증 (Use Case 사용)
-        async with get_async_db_session() as session:
+            try:
+                user = await user_service.find_user_by_provider_and_provider_user_id(
+                    provider=AuthProvider("supabase"),  # JWT는 항상 supbase provider 사용
+                    provider_user_id=payload["sub"],
+                )
+                user_id = user.user_id.value.hex
+            except Exception:
+                # 사용자가 없는 경우
+                raise ConnectionRefusedError("User not found") from None
+
+            # 2. 룸 접근 권한 검증
             room_stay_service = create_room_stay_service(session)
             await VerifyRoomAccessUseCase(room_stay_service).execute(user_id, room_id)
 
