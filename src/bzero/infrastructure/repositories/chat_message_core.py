@@ -175,4 +175,4 @@ class ChatMessageRepositoryCore:
             .values(deleted_at=func.now())
         )
         result = session.execute(stmt)
-        return result.rowcount  # type: ignore
+        return result.rowcount  # type: ignore[attr-defined]

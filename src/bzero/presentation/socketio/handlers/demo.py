@@ -78,7 +78,7 @@ async def handle_send_message(
     )
 
     if not is_allowed:
-        raise RateLimitExceededError()
+        raise RateLimitExceededError
 
     # 2. 브로드캐스트 (DB 저장 없음)
     settings = get_settings()

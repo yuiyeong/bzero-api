@@ -12,6 +12,7 @@ from bzero.domain.value_objects.room_stay import RoomStayStatus
 from bzero.domain.value_objects.ticket import TicketStatus
 from bzero.infrastructure.db.airship_model import AirshipModel
 from bzero.infrastructure.db.city_model import CityModel
+from bzero.infrastructure.db.direct_message_model import DirectMessageModel
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 from bzero.infrastructure.db.room_model import RoomModel
 from bzero.infrastructure.db.room_stay_model import RoomStayModel
@@ -253,8 +254,6 @@ class TestDirectMessageApi:
         sample_room: RoomModel,
     ):
         """DM 요청 -> 수락 -> 목록 조회 -> 메시지 조회(시드) 시나리오."""
-        from bzero.domain.value_objects import Id
-        from bzero.infrastructure.db.direct_message_model import DirectMessageModel
 
         # 1. 유저 및 방 생성, 입장
         user1 = await create_user_with_identity(test_session, "email", "u1m", "u1m@e.com", "User1Msg")

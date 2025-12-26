@@ -12,7 +12,7 @@ from sqlalchemy.exc import OperationalError
 from bzero.core.database import get_sync_db_session
 from bzero.core.loggers import background_logger
 from bzero.core.settings import get_settings
-from bzero.domain.services.chat_message_sync import ChatMessageSyncService
+from bzero.domain.services.chat_message import ChatMessageSyncService
 from bzero.infrastructure.repositories.chat_message import SqlAlchemyChatMessageSyncRepository
 from bzero.worker.tasks.base import FailoverTask
 from bzero.worker.tasks.names import DELETE_EXPIRED_MESSAGES_TASK_NAME

@@ -22,11 +22,11 @@ from bzero.domain.services import (
 )
 from bzero.domain.services.city import CityService
 from bzero.domain.services.city_question import CityQuestionService
+from bzero.domain.services.direct_message import DirectMessageService
+from bzero.domain.services.direct_message_room import DirectMessageRoomService
 from bzero.domain.services.point_transaction import PointTransactionService
 from bzero.domain.services.questionnaire import QuestionnaireService
 from bzero.domain.services.user import UserService
-from bzero.domain.services.direct_message import DirectMessageService
-from bzero.domain.services.direct_message_room import DirectMessageRoomService
 from bzero.infrastructure.adapters import CeleryTaskScheduler, RedisRateLimiter
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.airship import SqlAlchemyAirshipRepository
@@ -35,14 +35,14 @@ from bzero.infrastructure.repositories.city import SqlAlchemyCityRepository
 from bzero.infrastructure.repositories.city_question import SqlAlchemyCityQuestionRepository
 from bzero.infrastructure.repositories.conversation_card import SqlAlchemyConversationCardRepository
 from bzero.infrastructure.repositories.diary import SqlAlchemyDiaryRepository
+from bzero.infrastructure.repositories.direct_message import SqlAlchemyDirectMessageRepository
+from bzero.infrastructure.repositories.direct_message_room import SqlAlchemyDirectMessageRoomRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
 from bzero.infrastructure.repositories.questionnaire import SqlAlchemyQuestionnaireRepository
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayRepository
 from bzero.infrastructure.repositories.ticket import SqlAlchemyTicketRepository
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
-from bzero.infrastructure.repositories.direct_message import SqlAlchemyDirectMessageRepository
-from bzero.infrastructure.repositories.direct_message_room import SqlAlchemyDirectMessageRoomRepository
 from bzero.presentation.schemas.common import JWTPayload
 
 
@@ -272,11 +272,6 @@ def create_conversation_card_service(session: AsyncSession) -> ConversationCardS
     )
 
 
-def create_user_service(session: AsyncSession) -> UserService:
-    settings = get_settings()
-    user_repository = SqlAlchemyUserRepository(session)
-    user_identity_repository = SqlAlchemyUserIdentityRepository(session)
-    return UserService(user_repository, user_identity_repository, settings.timezone)
 
 
 def create_room_stay_service(session: AsyncSession) -> RoomStayService:

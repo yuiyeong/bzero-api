@@ -14,7 +14,7 @@ class Id:
 
     def __post_init__(self):
         """문자열이나 uuid_utils.UUID가 전달된 경우 표준 UUID로 변환합니다.
-        
+
         SQLAlchemy asyncpg 드라이버에서 uuid_utils.UUID (subclass)와 표준 UUID 간의
         sentinel 값 매칭 실패 문제를 방지하기 위함입니다.
         """

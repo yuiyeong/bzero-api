@@ -616,6 +616,14 @@ async with get_async_db_session_ctx() as session: ...
 - **문제**: 순환 참조를 피하기 위해 함수 내부에 import를 넣으면 코드가 지저분해지고 리팩토링 시 놓치기 쉽습니다.
 - **해결**: `TYPE_CHECKING`을 활용하거나, 아키텍처 구조를 개선하여 상단 Import로 해결하세요. 순환 참조가 불가피할 때만 제한적으로 허용합니다.
 
+#### 5. File Naming Convention (No `_sync.py`)
+- **문제**: `ticket_sync.py` 처럼 파일 이름에 `_sync`를 붙이면 파일 수가 불필요하게 늘어나고 관리가 어렵습니다.
+- **해결**: `ticket.py` 파일 하나에 비동기 클래스(`TicketService`)와 동기 클래스(`TicketSyncService`)를 함께 정의하세요. Repository도 마찬가지입니다.
+
+#### 6. Dangerous Control Flow
+- **문제**: `finally` 블록 내에서 `break`, `return`, `continue`를 사용하면 `try` 블록에서 발생한 예외가 무시됩니다.
+- **해결**: `finally` 블록에서는 리소스 정리(cleanup)만 수행하고, 제어 흐름을 변경하지 마세요.
+
 ---
 
 ## 비동기/동기 서비스 및 리포지토리 패턴

@@ -8,6 +8,7 @@ Create Date: 2025-12-26
 import sqlalchemy as sa
 from alembic import op
 
+
 # revision identifiers, used by Alembic.
 revision: str = "b2c3d4e5f600"
 down_revision: str | None = "a1b2c3d4e500"
@@ -79,7 +80,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Drop direct_messages table."""
     op.execute("DROP TRIGGER IF EXISTS update_direct_messages_updated_at ON direct_messages;")
-    
+
     op.drop_index("idx_dm_messages_to_user_read", table_name="direct_messages")
     op.drop_index("idx_dm_messages_room_created", table_name="direct_messages")
     op.drop_table("direct_messages")
