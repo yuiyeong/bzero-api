@@ -161,9 +161,7 @@ class DirectMessageRepositoryCore:
         limit: int = 50,
     ) -> list[DirectMessage]:
         """대화방별 메시지를 cursor 기반 페이지네이션으로 조회합니다."""
-        stmt = DirectMessageRepositoryCore._query_find_by_dm_room_paginated(
-            dm_room_id, cursor, limit
-        )
+        stmt = DirectMessageRepositoryCore._query_find_by_dm_room_paginated(dm_room_id, cursor, limit)
         result = session.execute(stmt)
         models = result.scalars().all()
         return [DirectMessageRepositoryCore.to_entity(model) for model in models]

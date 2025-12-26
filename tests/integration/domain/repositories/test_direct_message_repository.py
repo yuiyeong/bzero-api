@@ -112,7 +112,6 @@ async def sample_dm_room(
     return dm_room
 
 
-
 @pytest.mark.asyncio
 class TestDirectMessageRepository:
     """DirectMessageRepository 통합 테스트."""
@@ -293,9 +292,7 @@ class TestDirectMessageRepository:
             await dm_repository.create(message)
 
         # When
-        latest = await dm_repository.find_latest_by_dm_room(
-            dm_room_id=Id(str(sample_dm_room.dm_room_id))
-        )
+        latest = await dm_repository.find_latest_by_dm_room(dm_room_id=Id(str(sample_dm_room.dm_room_id)))
 
         # Then
         assert latest is not None
