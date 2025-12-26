@@ -116,7 +116,6 @@ class DirectMessageRepositoryCore:
             content=entity.content.value,
             is_read=entity.is_read,
             created_at=entity.created_at,
-            updated_at=entity.updated_at,
             deleted_at=entity.deleted_at,
         )
 
