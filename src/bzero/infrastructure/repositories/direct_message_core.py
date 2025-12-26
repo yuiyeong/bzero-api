@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from bzero.domain.entities.direct_message import DirectMessage
 from bzero.domain.value_objects import Id
+from bzero.domain.value_objects.chat_message import MessageContent
 from bzero.infrastructure.db.direct_message_model import DirectMessageModel
 
 
@@ -89,16 +90,60 @@ class DirectMessageRepositoryCore:
             DirectMessageModel.deleted_at.is_(None),
         )
 
+    @staticmethod
+    def to_entity(model: DirectMessageModel) -> DirectMessage:
+        """ORM 모델을 도메인 엔티티로 변환합니다."""
+        return DirectMessage(
+            dm_id=Id(str(model.dm_id)),
+            dm_room_id=Id(str(model.dm_room_id)),
+            from_user_id=Id(str(model.from_user_id)),
+            to_user_id=Id(str(model.to_user_id)),
+            content=MessageContent(model.content),
+            is_read=model.is_read,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            deleted_at=model.deleted_at,
+        )
+
+    @staticmethod
+    def from_entity(entity: DirectMessage) -> DirectMessageModel:
+        """도메인 엔티티를 ORM 모델로 변환합니다."""
+        return DirectMessageModel(
+            dm_id=entity.dm_id.value,
+            dm_room_id=entity.dm_room_id.value,
+            from_user_id=entity.from_user_id.value,
+            to_user_id=entity.to_user_id.value,
+            content=entity.content.value,
+            is_read=entity.is_read,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            deleted_at=entity.deleted_at,
+        )
+
     # ==================== DB 작업 로직 ====================
 
     @staticmethod
     def create(session: Session, message: DirectMessage) -> DirectMessage:
         """메시지를 생성합니다."""
-        model = DirectMessageModel.from_entity(message)
+        model = DirectMessageRepositoryCore.from_entity(message)
         session.add(model)
         session.flush()
+        return DirectMessageRepositoryCore.to_entity(model)
+
+    @staticmethod
+    def update(session: Session, message: DirectMessage) -> DirectMessage:
+        """메시지를 업데이트합니다."""
+        stmt = select(DirectMessageModel).where(DirectMessageModel.dm_id == message.dm_id.value)
+        result = session.execute(stmt)
+        model = result.scalar_one()
+
+        model.is_read = message.is_read
+        model.deleted_at = message.deleted_at
+        # updated_at은 DB 트리거에 의해 자동으로 갱신됩니다.
+
+        session.flush()
         session.refresh(model)
-        return model.to_entity()
+        return DirectMessageRepositoryCore.to_entity(model)
 
     @staticmethod
     def find_by_id(session: Session, dm_id: Id) -> DirectMessage | None:
@@ -106,7 +151,7 @@ class DirectMessageRepositoryCore:
         stmt = DirectMessageRepositoryCore._query_find_by_id(dm_id)
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
-        return model.to_entity() if model else None
+        return DirectMessageRepositoryCore.to_entity(model) if model else None
 
     @staticmethod
     def find_by_dm_room_paginated(
@@ -121,7 +166,7 @@ class DirectMessageRepositoryCore:
         )
         result = session.execute(stmt)
         models = result.scalars().all()
-        return [model.to_entity() for model in models]
+        return [DirectMessageRepositoryCore.to_entity(model) for model in models]
 
     @staticmethod
     def find_latest_by_dm_room(session: Session, dm_room_id: Id) -> DirectMessage | None:
@@ -129,7 +174,7 @@ class DirectMessageRepositoryCore:
         stmt = DirectMessageRepositoryCore._query_find_latest_by_dm_room(dm_room_id)
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
-        return model.to_entity() if model else None
+        return DirectMessageRepositoryCore.to_entity(model) if model else None
 
     @staticmethod
     def mark_as_read_by_dm_room_and_user(
@@ -146,7 +191,7 @@ class DirectMessageRepositoryCore:
                 DirectMessageModel.is_read.is_(False),
                 DirectMessageModel.deleted_at.is_(None),
             )
-            .values(is_read=True, updated_at=func.now())
+            .values(is_read=True)
         )
         result = session.execute(stmt)
         return result.rowcount  # type: ignore[return-value]

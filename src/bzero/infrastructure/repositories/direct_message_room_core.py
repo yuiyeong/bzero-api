@@ -97,16 +97,49 @@ class DirectMessageRoomRepositoryCore:
             ),
         )
 
+    @staticmethod
+    def to_entity(model: DirectMessageRoomModel) -> DirectMessageRoom:
+        """ORM 모델을 도메인 엔티티로 변환합니다."""
+        return DirectMessageRoom(
+            dm_room_id=Id(str(model.dm_room_id)),
+            guesthouse_id=Id(str(model.guesthouse_id)),
+            room_id=Id(str(model.room_id)),
+            requester_id=Id(str(model.requester_id)),
+            receiver_id=Id(str(model.receiver_id)),
+            status=DMStatus(model.status),
+            started_at=model.started_at,
+            ended_at=model.ended_at,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            deleted_at=model.deleted_at,
+        )
+
+    @staticmethod
+    def from_entity(entity: DirectMessageRoom) -> DirectMessageRoomModel:
+        """도메인 엔티티를 ORM 모델로 변환합니다."""
+        return DirectMessageRoomModel(
+            dm_room_id=entity.dm_room_id.value,
+            guesthouse_id=entity.guesthouse_id.value,
+            room_id=entity.room_id.value,
+            requester_id=entity.requester_id.value,
+            receiver_id=entity.receiver_id.value,
+            status=entity.status.value,
+            started_at=entity.started_at,
+            ended_at=entity.ended_at,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            deleted_at=entity.deleted_at,
+        )
+
     # ==================== DB 작업 로직 ====================
 
     @staticmethod
     def create(session: Session, dm_room: DirectMessageRoom) -> DirectMessageRoom:
         """대화방을 생성합니다."""
-        model = DirectMessageRoomModel.from_entity(dm_room)
+        model = DirectMessageRoomRepositoryCore.from_entity(dm_room)
         session.add(model)
         session.flush()
-        session.refresh(model)
-        return model.to_entity()
+        return DirectMessageRoomRepositoryCore.to_entity(model)
 
     @staticmethod
     def find_by_id(session: Session, dm_room_id: Id) -> DirectMessageRoom | None:
@@ -114,7 +147,7 @@ class DirectMessageRoomRepositoryCore:
         stmt = DirectMessageRoomRepositoryCore._query_find_by_id(dm_room_id)
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
-        return model.to_entity() if model else None
+        return DirectMessageRoomRepositoryCore.to_entity(model) if model else None
 
     @staticmethod
     def find_by_room_and_users(
@@ -129,7 +162,7 @@ class DirectMessageRoomRepositoryCore:
         )
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
-        return model.to_entity() if model else None
+        return DirectMessageRoomRepositoryCore.to_entity(model) if model else None
 
     @staticmethod
     def find_by_user_and_statuses(
@@ -145,7 +178,7 @@ class DirectMessageRoomRepositoryCore:
         )
         result = session.execute(stmt)
         models = result.scalars().all()
-        return [model.to_entity() for model in models]
+        return [DirectMessageRoomRepositoryCore.to_entity(model) for model in models]
 
     @staticmethod
     def update(session: Session, dm_room: DirectMessageRoom) -> DirectMessageRoom:
@@ -164,7 +197,7 @@ class DirectMessageRoomRepositoryCore:
 
         session.flush()
         session.refresh(model)
-        return model.to_entity()
+        return DirectMessageRoomRepositoryCore.to_entity(model)
 
     @staticmethod
     def soft_delete_by_room_id(session: Session, room_id: Id) -> int:

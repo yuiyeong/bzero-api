@@ -67,36 +67,4 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
         ),
     )
 
-    def to_entity(self) -> DirectMessageRoom:
-        """ORM 모델을 도메인 엔티티로 변환합니다."""
-        return DirectMessageRoom(
-            dm_room_id=Id(str(self.dm_room_id)),
-            guesthouse_id=Id(str(self.guesthouse_id)),
-            room_id=Id(str(self.room_id)),
-            requester_id=Id(str(self.requester_id)),
-            receiver_id=Id(str(self.receiver_id)),
-            status=DMStatus(self.status),
-            started_at=self.started_at,
-            ended_at=self.ended_at,
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-            deleted_at=self.deleted_at,
-        )
-
-    @classmethod
-    def from_entity(cls, entity: DirectMessageRoom) -> "DirectMessageRoomModel":
-        """도메인 엔티티를 ORM 모델로 변환합니다."""
-        return cls(
-            dm_room_id=entity.dm_room_id.value,
-            guesthouse_id=entity.guesthouse_id.value,
-            room_id=entity.room_id.value,
-            requester_id=entity.requester_id.value,
-            receiver_id=entity.receiver_id.value,
-            status=entity.status.value,
-            started_at=entity.started_at,
-            ended_at=entity.ended_at,
-            created_at=entity.created_at,
-            updated_at=entity.updated_at,
-            deleted_at=entity.deleted_at,
-        )
 
