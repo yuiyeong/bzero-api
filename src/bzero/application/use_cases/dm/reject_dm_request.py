@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results.dm import DirectMessageRoomResult
 from bzero.domain.services.direct_message_room import DirectMessageRoomService
-from bzero.domain.value_objects import Id
+from bzero.domain.services.user import UserService
+from bzero.domain.value_objects import AuthProvider, Id
 
 
 class RejectDMRequestUseCase:
@@ -21,36 +22,48 @@ class RejectDMRequestUseCase:
         self,
         session: AsyncSession,
         dm_room_service: DirectMessageRoomService,
+        user_service: UserService,
     ):
         """RejectDMRequestUseCase를 초기화합니다.
 
         Args:
             session: 데이터베이스 세션
             dm_room_service: 대화방 도메인 서비스
+            user_service: 사용자 도메인 서비스
         """
         self._session = session
         self._dm_room_service = dm_room_service
+        self._user_service = user_service
 
     async def execute(
         self,
         dm_room_id: str,
-        user_id: str,
+        provider: str,
+        provider_user_id: str,
     ) -> DirectMessageRoomResult:
-        """대화 거절을 실행합니다.
+        """대화 신청 거절을 실행합니다.
 
         Args:
-            dm_room_id: 대화방 ID (hex 문자열)
-            user_id: 거절하는 사용자 ID (hex 문자열)
+            dm_room_id: 대화방 ID
+            provider: 인증 제공자
+            provider_user_id: 인증 제공자의 사용자 ID
 
         Returns:
-            업데이트된 대화방 정보 (status: REJECTED)
+            업데이트된 대화방 정보
 
         Raises:
+            UnauthorizedError: 사용자를 찾을 수 없는 경우
             NotFoundDMRoomError: 대화방을 찾을 수 없는 경우
             ForbiddenDMRoomAccessError: 거절 권한이 없는 경우
             InvalidDMRoomStatusError: PENDING 상태가 아닌 경우
         """
-        # 1. 대화 거절 (도메인 서비스)
+        # 1. 사용자 조회
+        user = await self._user_service.find_user_by_provider_and_provider_user_id(
+            provider=AuthProvider(provider),
+            provider_user_id=provider_user_id,
+        )
+        user_id = user.user_id.value.hex
+        # 2. 대화 거절 (도메인 서비스)
         dm_room = await self._dm_room_service.reject_dm_request(
             dm_room_id=Id.from_hex(dm_room_id),
             user_id=Id.from_hex(user_id),

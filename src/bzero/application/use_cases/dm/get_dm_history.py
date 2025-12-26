@@ -6,9 +6,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results.dm import DirectMessageResult
+from bzero.domain.errors import UnauthorizedError
 from bzero.domain.services.direct_message import DirectMessageService
 from bzero.domain.services.direct_message_room import DirectMessageRoomService
-from bzero.domain.value_objects import Id
+from bzero.domain.services.user import UserService
+from bzero.domain.value_objects import AuthProvider, Id
 
 
 class GetDMHistoryUseCase:
@@ -23,6 +25,7 @@ class GetDMHistoryUseCase:
         session: AsyncSession,
         dm_room_service: DirectMessageRoomService,
         dm_service: DirectMessageService,
+        user_service: UserService,
     ):
         """GetDMHistoryUseCase를 초기화합니다.
 
@@ -30,35 +33,51 @@ class GetDMHistoryUseCase:
             session: 데이터베이스 세션
             dm_room_service: 대화방 도메인 서비스
             dm_service: 메시지 도메인 서비스
+            user_service: 사용자 도메인 서비스
         """
         self._session = session
         self._dm_room_service = dm_room_service
         self._dm_service = dm_service
+        self._user_service = user_service
 
     async def execute(
         self,
         dm_room_id: str,
-        user_id: str,
+        user_id: str | None = None,
+        provider: str | None = None,
+        provider_user_id: str | None = None,
         cursor: str | None = None,
         limit: int = 50,
-        mark_as_read: bool = True,
+        mark_as_read: bool = False,
     ) -> list[DirectMessageResult]:
-        """메시지 히스토리 조회를 실행합니다.
+        """대화 히스토리를 조회합니다.
 
         Args:
-            dm_room_id: 대화방 ID (hex 문자열)
-            user_id: 조회하는 사용자 ID (hex 문자열)
-            cursor: 페이지네이션 커서 (이전 응답의 마지막 dm_id)
-            limit: 최대 조회 개수 (기본값: 50)
-            mark_as_read: 읽음 처리 여부 (기본값: True)
+            dm_room_id: 대화방 ID
+            user_id: 사용자 ID (Internal). provider 정보가 없을 경우 필수.
+            provider: 인증 제공자. user_id가 없을 경우 필수.
+            provider_user_id: 인증 제공자의 사용자 ID. user_id가 없을 경우 필수.
+            cursor: 페이지네이션 커서
+            limit: 조회 개수
+            mark_as_read: 읽음 처리 여부
 
         Returns:
-            메시지 목록 (오래된 순)
+            메시지 목록
 
         Raises:
-            NotFoundDMRoomError: 대화방을 찾을 수 없는 경우
-            ForbiddenDMRoomAccessError: 참여자가 아닌 경우
+            UnauthorizedError: 사용자 식별 정보가 부족하거나 잘못된 경우
         """
+        # 1. 사용자 식별
+        if user_id is None:
+            if provider is None or provider_user_id is None:
+                raise UnauthorizedError("User identification required (user_id or provider info)")
+
+            user = await self._user_service.find_user_by_provider_and_provider_user_id(
+                provider=AuthProvider(provider),
+                provider_user_id=provider_user_id,
+            )
+            user_id = user.user_id.value.hex
+
         dm_room_id_vo = Id.from_hex(dm_room_id)
         user_id_vo = Id.from_hex(user_id)
 

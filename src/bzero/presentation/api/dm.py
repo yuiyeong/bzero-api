@@ -11,7 +11,6 @@ from bzero.application.use_cases.dm import (
 )
 from bzero.domain.services.direct_message import DirectMessageService
 from bzero.domain.services.direct_message_room import DirectMessageRoomService
-from bzero.domain.services.user import UserService
 from bzero.presentation.api.dependencies import (
     CurrentJWTPayload,
     CurrentUserService,
@@ -29,27 +28,6 @@ from bzero.presentation.schemas.dm import (
 
 router = APIRouter(prefix="/dm", tags=["dm"])
 
-
-
-# =============================================================================
-# Helper: 현재 사용자 ID 조회
-# =============================================================================
-
-
-from bzero.domain.value_objects import AuthProvider
-
-
-async def get_current_user_id(
-    jwt_payload: CurrentJWTPayload,
-    user_service: UserService,
-) -> str:
-    """JWT 페이로드로부터 현재 사용자의 내부 ID를 조회합니다."""
-    user = await user_service.get_or_create_user_by_provider(
-        provider=AuthProvider(jwt_payload.provider),
-        provider_user_id=jwt_payload.provider_user_id,
-        email=jwt_payload.email,
-    )
-    return user.user_id.value.hex
 
 
 # =============================================================================
@@ -84,12 +62,12 @@ async def request_dm(
         NotInSameRoomError: 같은 룸에 체류 중이 아닌 경우
         DuplicatedDMRequestError: 이미 활성 대화방이 존재하는 경우
     """
-    current_user_id = await get_current_user_id(jwt_payload, user_service)
     dm_room_service: DirectMessageRoomService = create_dm_room_service(session)
 
-    use_case = RequestDMUseCase(session, dm_room_service)
+    use_case = RequestDMUseCase(session, dm_room_service, user_service)
     result = await use_case.execute(
-        requester_id=current_user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
         target_id=request.to_user_id,
     )
 
@@ -124,13 +102,13 @@ async def accept_dm_request(
         ForbiddenDMRoomAccessError: 수락 권한이 없는 경우
         InvalidDMRoomStatusError: PENDING 상태가 아닌 경우
     """
-    current_user_id = await get_current_user_id(jwt_payload, user_service)
     dm_room_service: DirectMessageRoomService = create_dm_room_service(session)
 
-    use_case = AcceptDMRequestUseCase(session, dm_room_service)
+    use_case = AcceptDMRequestUseCase(session, dm_room_service, user_service)
     result = await use_case.execute(
         dm_room_id=dm_room_id,
-        user_id=current_user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
     )
 
     return DirectMessageRoomResponse.create_from(result)
@@ -164,13 +142,13 @@ async def reject_dm_request(
         ForbiddenDMRoomAccessError: 거절 권한이 없는 경우
         InvalidDMRoomStatusError: PENDING 상태가 아닌 경우
     """
-    current_user_id = await get_current_user_id(jwt_payload, user_service)
     dm_room_service: DirectMessageRoomService = create_dm_room_service(session)
 
-    use_case = RejectDMRequestUseCase(session, dm_room_service)
+    use_case = RejectDMRequestUseCase(session, dm_room_service, user_service)
     result = await use_case.execute(
         dm_room_id=dm_room_id,
-        user_id=current_user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
     )
 
     return DirectMessageRoomResponse.create_from(result)
@@ -208,13 +186,13 @@ async def get_my_dm_rooms(
     Returns:
         대화방 목록 (최근 업데이트 순)
     """
-    current_user_id = await get_current_user_id(jwt_payload, user_service)
     dm_room_service: DirectMessageRoomService = create_dm_room_service(session)
     dm_service: DirectMessageService = create_dm_service(session)
 
-    use_case = GetMyDMRoomsUseCase(session, dm_room_service, dm_service)
+    use_case = GetMyDMRoomsUseCase(session, dm_room_service, dm_service, user_service)
     results = await use_case.execute(
-        user_id=current_user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
         status=status,
         limit=limit,
         offset=offset,
@@ -257,14 +235,14 @@ async def get_dm_messages(
         NotFoundDMRoomError: 대화방을 찾을 수 없는 경우
         ForbiddenDMRoomAccessError: 참여자가 아닌 경우
     """
-    current_user_id = await get_current_user_id(jwt_payload, user_service)
     dm_room_service: DirectMessageRoomService = create_dm_room_service(session)
     dm_service: DirectMessageService = create_dm_service(session)
 
-    use_case = GetDMHistoryUseCase(session, dm_room_service, dm_service)
+    use_case = GetDMHistoryUseCase(session, dm_room_service, dm_service, user_service)
     results = await use_case.execute(
         dm_room_id=dm_room_id,
-        user_id=current_user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
         cursor=cursor,
         limit=limit,
         mark_as_read=True,

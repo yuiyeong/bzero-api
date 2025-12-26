@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results.dm import DirectMessageRoomResult
 from bzero.domain.services.direct_message_room import DirectMessageRoomService
-from bzero.domain.value_objects import Id
+from bzero.domain.services.user import UserService
+from bzero.domain.value_objects import AuthProvider, Id
 
 
 class RequestDMUseCase:
@@ -21,34 +22,46 @@ class RequestDMUseCase:
         self,
         session: AsyncSession,
         dm_room_service: DirectMessageRoomService,
+        user_service: UserService,
     ):
         """RequestDMUseCase를 초기화합니다.
 
         Args:
             session: 데이터베이스 세션
             dm_room_service: 대화방 도메인 서비스
+            user_service: 사용자 도메인 서비스
         """
         self._session = session
         self._dm_room_service = dm_room_service
+        self._user_service = user_service
 
     async def execute(
         self,
-        requester_id: str,
+        provider: str,
+        provider_user_id: str,
         target_id: str,
     ) -> DirectMessageRoomResult:
-        """대화 신청을 실행합니다.
+        """1:1 대화 신청을 실행합니다.
 
         Args:
-            requester_id: 대화 신청자 ID (hex 문자열)
-            target_id: 대화 수신자 ID (hex 문자열)
+            provider: 인증 제공자
+            provider_user_id: 인증 제공자의 사용자 ID
+            target_id: 대화 상대방 ID (user_id)
 
         Returns:
-            생성된 대화방 정보 (status: PENDING)
+            생성된 대화방 정보
 
         Raises:
+            UnauthorizedError: 사용자를 찾을 수 없는 경우
             NotInSameRoomError: 같은 룸에 체류 중이 아닌 경우
             DuplicatedDMRequestError: 이미 활성 대화방이 존재하는 경우
         """
+        # 1. 요청자 조회
+        requester = await self._user_service.find_user_by_provider_and_provider_user_id(
+            provider=AuthProvider(provider),
+            provider_user_id=provider_user_id,
+        )
+        requester_id = requester.user_id.value.hex
         # 1. 대화 신청 (도메인 서비스)
         dm_room = await self._dm_room_service.request_dm(
             requester_id=Id.from_hex(requester_id),

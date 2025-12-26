@@ -6,9 +6,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results.dm import DirectMessageRoomResult
+from bzero.domain.errors import UnauthorizedError
 from bzero.domain.services.direct_message import DirectMessageService
 from bzero.domain.services.direct_message_room import DirectMessageRoomService
-from bzero.domain.value_objects import DMStatus, Id
+from bzero.domain.services.user import UserService
+from bzero.domain.value_objects import AuthProvider, DMStatus
 
 
 class GetMyDMRoomsUseCase:
@@ -23,6 +25,7 @@ class GetMyDMRoomsUseCase:
         session: AsyncSession,
         dm_room_service: DirectMessageRoomService,
         dm_service: DirectMessageService,
+        user_service: UserService,
     ):
         """GetMyDMRoomsUseCase를 초기화합니다.
 
@@ -30,30 +33,45 @@ class GetMyDMRoomsUseCase:
             session: 데이터베이스 세션
             dm_room_service: 대화방 도메인 서비스
             dm_service: 메시지 도메인 서비스
+            user_service: 사용자 도메인 서비스
         """
         self._session = session
         self._dm_room_service = dm_room_service
         self._dm_service = dm_service
+        self._user_service = user_service
 
     async def execute(
         self,
-        user_id: str,
+        provider: str,
+        provider_user_id: str,
         status: str | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[DirectMessageRoomResult]:
-        """대화방 목록 조회를 실행합니다.
+        """나의 대화방 목록 조회를 실행합니다.
 
         Args:
-            user_id: 사용자 ID (hex 문자열)
-            status: 상태 필터 (pending, accepted, active, ended, None=all active)
+            provider: 인증 제공자
+            provider_user_id: 인증 제공자의 사용자 ID
+            status: 대화방 상태 필터 (pending, accepted, active, ended, None=all active)
             limit: 최대 조회 개수 (기본값: 20)
             offset: 오프셋 (기본값: 0)
 
         Returns:
             대화방 목록 (최근 업데이트 순)
+
+        Raises:
+            UnauthorizedError: 사용자를 찾을 수 없는 경우
         """
-        user_id_vo = Id.from_hex(user_id)
+        # 1. 사용자 조회
+        user = await self._user_service.find_user_by_provider_and_provider_user_id(
+            provider=AuthProvider(provider),
+            provider_user_id=provider_user_id,
+        )
+        if not user:
+            raise UnauthorizedError("User not found.")
+
+        user_id_vo = user.user_id
 
         # 상태 필터 처리
         statuses: list[DMStatus] | None = None

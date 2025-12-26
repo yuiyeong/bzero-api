@@ -24,8 +24,9 @@ from bzero.domain.services.city import CityService
 from bzero.domain.services.city_question import CityQuestionService
 from bzero.domain.services.point_transaction import PointTransactionService
 from bzero.domain.services.questionnaire import QuestionnaireService
-from bzero.domain.services.room_stay import RoomStayService
 from bzero.domain.services.user import UserService
+from bzero.domain.services.direct_message import DirectMessageService
+from bzero.domain.services.direct_message_room import DirectMessageRoomService
 from bzero.infrastructure.adapters import CeleryTaskScheduler, RedisRateLimiter
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.airship import SqlAlchemyAirshipRepository
@@ -40,6 +41,8 @@ from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayReposi
 from bzero.infrastructure.repositories.ticket import SqlAlchemyTicketRepository
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
+from bzero.infrastructure.repositories.direct_message import SqlAlchemyDirectMessageRepository
+from bzero.infrastructure.repositories.direct_message_room import SqlAlchemyDirectMessageRoomRepository
 from bzero.presentation.schemas.common import JWTPayload
 
 
@@ -217,6 +220,23 @@ def get_chat_message_service(
 # =============================================================================
 
 
+def create_user_service(session: AsyncSession) -> UserService:
+    """세션을 직접 받아 UserService를 생성합니다.
+
+    Socket.IO 핸들러에서 사용합니다.
+
+    Args:
+        session: DB 세션
+
+    Returns:
+        UserService 인스턴스
+    """
+    settings = get_settings()
+    user_repository = SqlAlchemyUserRepository(session)
+    user_identity_repository = SqlAlchemyUserIdentityRepository(session)
+    return UserService(user_repository, user_identity_repository, settings.timezone)
+
+
 def create_chat_message_service(session: AsyncSession) -> ChatMessageService:
     """세션을 직접 받아 ChatMessageService를 생성합니다.
 
@@ -279,11 +299,6 @@ def create_dm_room_service(session: AsyncSession) -> "DirectMessageRoomService":
     Returns:
         DirectMessageRoomService 인스턴스
     """
-    from bzero.domain.services.direct_message_room import DirectMessageRoomService
-    from bzero.infrastructure.repositories.direct_message_room import (
-        SqlAlchemyDirectMessageRoomRepository,
-    )
-
     settings = get_settings()
     return DirectMessageRoomService(
         dm_room_repository=SqlAlchemyDirectMessageRoomRepository(session),
@@ -303,14 +318,6 @@ def create_dm_service(session: AsyncSession) -> "DirectMessageService":
     Returns:
         DirectMessageService 인스턴스
     """
-    from bzero.domain.services.direct_message import DirectMessageService
-    from bzero.infrastructure.repositories.direct_message import (
-        SqlAlchemyDirectMessageRepository,
-    )
-    from bzero.infrastructure.repositories.direct_message_room import (
-        SqlAlchemyDirectMessageRoomRepository,
-    )
-
     settings = get_settings()
     return DirectMessageService(
         dm_repository=SqlAlchemyDirectMessageRepository(session),

@@ -8,6 +8,7 @@ from bzero.application.use_cases.dm import GetDMHistoryUseCase, SendDMMessageUse
 from bzero.presentation.api.dependencies import (
     create_dm_room_service,
     create_dm_service,
+    create_user_service,
 )
 from bzero.presentation.schemas.dm import (
     DirectMessageResponse,
@@ -94,7 +95,8 @@ async def handle_join_dm_room(sid: str, request: JoinDMRoomRequest, db_session: 
     # 1. 대화방 접근 권한 검증 및 읽음 처리
     dm_room_service = create_dm_room_service(db_session)
     dm_service = create_dm_service(db_session)
-    use_case = GetDMHistoryUseCase(db_session, dm_room_service, dm_service)
+    user_service = create_user_service(db_session)
+    use_case = GetDMHistoryUseCase(db_session, dm_room_service, dm_service, user_service)
 
     # 접근 권한 검증만 수행 (메시지 조회 없이)
     await use_case.execute(
@@ -124,7 +126,8 @@ async def handle_send_dm_message(sid: str, request: SendDMMessageRequest, db_ses
     # 1. 메시지 전송
     dm_room_service = create_dm_room_service(db_session)
     dm_service = create_dm_service(db_session)
-    use_case = SendDMMessageUseCase(db_session, dm_room_service, dm_service)
+    user_service = create_user_service(db_session)
+    use_case = SendDMMessageUseCase(db_session, dm_room_service, dm_service, user_service)
 
     result = await use_case.execute(
         dm_room_id=request.dm_room_id,
