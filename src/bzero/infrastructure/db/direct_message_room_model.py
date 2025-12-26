@@ -5,12 +5,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from bzero.domain.entities.direct_message_room import DirectMessageRoom
-from bzero.domain.value_objects import DMStatus, Id
 from bzero.infrastructure.db.base import AuditMixin, Base, SoftDeleteMixin
 
 
@@ -37,27 +35,36 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
     __tablename__ = "direct_message_rooms"
 
     dm_room_id: Mapped[UUID] = mapped_column(UUID, primary_key=True)
-    guesthouse_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("guest_houses.guest_house_id"), nullable=False
-    )
+    guesthouse_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("guest_houses.guest_house_id"), nullable=False)
     room_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("rooms.room_id"), nullable=False)
-    requester_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.user_id"), nullable=False
-    )
-    receiver_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.user_id"), nullable=False
-    )
+    requester_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("users.user_id"), nullable=False)
+    receiver_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("users.user_id"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
-        # 인덱스: 룸별 상태 조회
-        Index("idx_dm_rooms_room_status", "room_id", "status"),
-        # 인덱스: 게스트하우스별 상태 조회
-        Index("idx_dm_rooms_guesthouse_status", "guesthouse_id", "status"),
-        # 인덱스: receiver별 상태 조회 (대화 신청 알림용)
-        Index("idx_dm_rooms_receiver_status", "receiver_id", "status"),
+        # 인덱스: 룸별 상태 조회 (Soft Delete 제외)
+        Index(
+            "idx_dm_rooms_room_status",
+            "room_id",
+            "status",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        # 인덱스: 게스트하우스별 상태 조회 (Soft Delete 제외)
+        Index(
+            "idx_dm_rooms_guesthouse_status",
+            "guesthouse_id",
+            "status",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        # 인덱스: receiver별 상태 조회 (대화 신청 알림용, Soft Delete 제외)
+        Index(
+            "idx_dm_rooms_receiver_status",
+            "receiver_id",
+            "status",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
         # 중복 신청 방지: 같은 룸에서 같은 두 사용자 간에는 하나의 활성 대화방만 존재
         UniqueConstraint(
             "room_id",
@@ -66,5 +73,3 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
             name="uq_dm_rooms_room_users",
         ),
     )
-
-
