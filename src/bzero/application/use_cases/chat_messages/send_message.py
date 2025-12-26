@@ -6,8 +6,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results import ChatMessageResult
+from bzero.domain.errors import UnauthorizedError
 from bzero.domain.services import ChatMessageService
-from bzero.domain.value_objects import Id
+from bzero.domain.services.user import UserService
+from bzero.domain.value_objects import AuthProvider, Id
 from bzero.domain.value_objects.chat_message import MessageContent
 
 
@@ -22,6 +24,7 @@ class SendMessageUseCase:
         self,
         session: AsyncSession,
         chat_message_service: ChatMessageService,
+        user_service: UserService,
     ):
         """SendMessageUseCase를 초기화합니다.
 
@@ -31,12 +34,15 @@ class SendMessageUseCase:
         """
         self._session = session
         self._chat_message_service = chat_message_service
+        self._user_service = user_service
 
     async def execute(
         self,
-        user_id: str,
         room_id: str,
         content: str,
+        user_id: str | None = None,
+        provider: str | None = None,
+        provider_user_id: str | None = None,
     ) -> ChatMessageResult:
         """메시지 전송을 실행합니다.
 
@@ -52,7 +58,18 @@ class SendMessageUseCase:
             RateLimitExceededError: 2초 이내 중복 요청 시
             InvalidMessageContentError: 메시지 내용이 1-300자가 아닌 경우
         """
-        # 1. 메시지 전송 (Rate Limiting 적용)
+        # 1. 사용자 식별
+        if user_id is None:
+            if provider is None or provider_user_id is None:
+                raise UnauthorizedError("User identification required (user_id or provider info)")
+
+            user = await self._user_service.find_user_by_provider_and_provider_user_id(
+                provider=AuthProvider(provider),
+                provider_user_id=provider_user_id,
+            )
+            user_id = user.user_id.value.hex
+
+        # 2. 메시지 전송 (Rate Limiting 적용)
         message = await self._chat_message_service.send_message(
             user_id=Id.from_hex(user_id),
             room_id=Id.from_hex(room_id),

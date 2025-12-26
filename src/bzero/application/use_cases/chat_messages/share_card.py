@@ -6,8 +6,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results import ChatMessageResult
+from bzero.domain.errors import UnauthorizedError
 from bzero.domain.services import ChatMessageService, ConversationCardService
-from bzero.domain.value_objects import Id
+from bzero.domain.services.user import UserService
+from bzero.domain.value_objects import AuthProvider, Id
 
 
 class ShareCardUseCase:
@@ -22,6 +24,7 @@ class ShareCardUseCase:
         session: AsyncSession,
         chat_message_service: ChatMessageService,
         conversation_card_service: ConversationCardService,
+        user_service: UserService,
     ):
         """ShareCardUseCase를 초기화합니다.
 
@@ -33,12 +36,15 @@ class ShareCardUseCase:
         self._session = session
         self._chat_message_service = chat_message_service
         self._conversation_card_service = conversation_card_service
+        self._user_service = user_service
 
     async def execute(
         self,
-        user_id: str,
         room_id: str,
         card_id: str,
+        user_id: str | None = None,
+        provider: str | None = None,
+        provider_user_id: str | None = None,
     ) -> ChatMessageResult:
         """대화 카드 공유를 실행합니다.
 
@@ -54,7 +60,18 @@ class ShareCardUseCase:
             RateLimitExceededError: 2초 이내 중복 요청 시
             NotFoundConversationCardError: 카드를 찾을 수 없는 경우
         """
-        # 1. 대화 카드 조회
+        # 1. 사용자 식별
+        if user_id is None:
+            if provider is None or provider_user_id is None:
+                raise UnauthorizedError("User identification required (user_id or provider info)")
+
+            user = await self._user_service.find_user_by_provider_and_provider_user_id(
+                provider=AuthProvider(provider),
+                provider_user_id=provider_user_id,
+            )
+            user_id = user.user_id.value.hex
+
+        # 2. 대화 카드 조회
         card = await self._conversation_card_service.get_card_by_id(Id.from_hex(card_id))
 
         # 2. 카드 공유 메시지 생성 (Rate Limiting 적용)

@@ -61,7 +61,7 @@ async def connect(sid: str, environ: dict, auth: dict | None):
             logger.info("JWT verification failed")
             raise ConnectionRefusedError("Invalid token") from None
 
-        async with get_async_db_session() as session:
+        async with get_async_db_session_ctx() as session:
             # 1. 사용자 조회 (Supabase ID -> Internal ID)
             user_repository = SqlAlchemyUserRepository(session)
             user_identity_repository = SqlAlchemyUserIdentityRepository(session)
