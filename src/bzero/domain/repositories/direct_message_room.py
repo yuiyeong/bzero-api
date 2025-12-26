@@ -42,18 +42,18 @@ class DirectMessageRoomRepository(ABC):
     async def find_by_room_and_users(
         self,
         room_id: Id,
-        user1_id: Id,
-        user2_id: Id,
+        requester_id: Id,
+        receiver_id: Id,
     ) -> DirectMessageRoom | None:
         """룸과 사용자로 대화방을 조회합니다.
 
         중복 신청 방지를 위해 사용합니다.
-        양방향 조회: (user1, user2) 또는 (user2, user1) 모두 확인합니다.
+        양방향 조회: (requester, receiver) 또는 (receiver, requester) 모두 확인합니다.
 
         Args:
             room_id: 룸 ID
-            user1_id: 사용자 1 ID
-            user2_id: 사용자 2 ID
+            requester_id: 대화 신청자 ID
+            receiver_id: 대화 수신자 ID
 
         Returns:
             조회된 대화방 또는 None
@@ -69,7 +69,7 @@ class DirectMessageRoomRepository(ABC):
     ) -> list[DirectMessageRoom]:
         """사용자와 상태로 대화방 목록을 조회합니다.
 
-        사용자가 참여 중인 (user1 또는 user2인) 대화방을 조회합니다.
+        사용자가 참여 중인 (requester 또는 receiver인) 대화방을 조회합니다.
         updated_at DESC 순으로 정렬됩니다.
 
         Args:

@@ -23,8 +23,8 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
         dm_room_id: PK, UUID v7
         guesthouse_id: FK → guest_houses.guest_house_id
         room_id: FK → rooms.room_id (같은 룸 검증 기준)
-        user1_id: FK → users.user_id (대화 신청자)
-        user2_id: FK → users.user_id (대화 수신자)
+        requester_id: FK → users.user_id (대화 신청자)
+        receiver_id: FK → users.user_id (대화 수신자)
         status: 대화방 상태 (pending, accepted, active, rejected, ended)
         started_at: 대화 시작 시간 (ACCEPTED 시 기록)
         ended_at: 대화 종료 시간 (ENDED 시 기록)
@@ -41,8 +41,12 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
         UUID, ForeignKey("guest_houses.guest_house_id"), nullable=False
     )
     room_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("rooms.room_id"), nullable=False)
-    user1_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("users.user_id"), nullable=False)
-    user2_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("users.user_id"), nullable=False)
+    requester_id: Mapped[UUID] = mapped_column(
+        UUID, ForeignKey("users.user_id"), nullable=False
+    )
+    receiver_id: Mapped[UUID] = mapped_column(
+        UUID, ForeignKey("users.user_id"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -52,13 +56,13 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
         Index("idx_dm_rooms_room_status", "room_id", "status"),
         # 인덱스: 게스트하우스별 상태 조회
         Index("idx_dm_rooms_guesthouse_status", "guesthouse_id", "status"),
-        # 인덱스: user2별 상태 조회 (대화 신청 알림용)
-        Index("idx_dm_rooms_user2_status", "user2_id", "status"),
+        # 인덱스: receiver별 상태 조회 (대화 신청 알림용)
+        Index("idx_dm_rooms_receiver_status", "receiver_id", "status"),
         # 중복 신청 방지: 같은 룸에서 같은 두 사용자 간에는 하나의 활성 대화방만 존재
         UniqueConstraint(
             "room_id",
-            "user1_id",
-            "user2_id",
+            "requester_id",
+            "receiver_id",
             name="uq_dm_rooms_room_users",
         ),
     )
@@ -69,8 +73,8 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
             dm_room_id=Id(str(self.dm_room_id)),
             guesthouse_id=Id(str(self.guesthouse_id)),
             room_id=Id(str(self.room_id)),
-            user1_id=Id(str(self.user1_id)),
-            user2_id=Id(str(self.user2_id)),
+            requester_id=Id(str(self.requester_id)),
+            receiver_id=Id(str(self.receiver_id)),
             status=DMStatus(self.status),
             started_at=self.started_at,
             ended_at=self.ended_at,
@@ -86,8 +90,8 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
             dm_room_id=entity.dm_room_id.value,
             guesthouse_id=entity.guesthouse_id.value,
             room_id=entity.room_id.value,
-            user1_id=entity.user1_id.value,
-            user2_id=entity.user2_id.value,
+            requester_id=entity.requester_id.value,
+            receiver_id=entity.receiver_id.value,
             status=entity.status.value,
             started_at=entity.started_at,
             ended_at=entity.ended_at,
@@ -95,3 +99,4 @@ class DirectMessageRoomModel(Base, AuditMixin, SoftDeleteMixin):
             updated_at=entity.updated_at,
             deleted_at=entity.deleted_at,
         )
+

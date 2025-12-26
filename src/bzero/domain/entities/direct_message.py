@@ -22,7 +22,7 @@ class DirectMessage:
         content: 메시지 내용 (최대 300자, MessageContent VO 재사용)
         is_read: 읽음 여부
         created_at: 생성 일시
-        updated_at: 수정 일시
+        updated_at: 수정 일시 (DB 트리거에서 자동 업데이트)
         deleted_at: 삭제 일시 (soft delete, 체크아웃 시)
     """
 
@@ -44,7 +44,6 @@ class DirectMessage:
         to_user_id: Id,
         content: MessageContent,
         created_at: datetime,
-        updated_at: datetime,
     ) -> "DirectMessage":
         """새 1:1 메시지를 생성합니다.
 
@@ -54,7 +53,6 @@ class DirectMessage:
             to_user_id: 수신자 ID
             content: 메시지 내용 (최대 300자)
             created_at: 생성 일시
-            updated_at: 수정 일시
 
         Returns:
             새로 생성된 DirectMessage 엔티티 (is_read: False)
@@ -67,16 +65,12 @@ class DirectMessage:
             content=content,
             is_read=False,
             created_at=created_at,
-            updated_at=updated_at,
+            updated_at=created_at,
             deleted_at=None,
         )
 
-    def mark_as_read(self, now: datetime) -> None:
-        """메시지를 읽음 처리합니다.
-
-        Args:
-            now: 현재 시간
-        """
+    def mark_as_read(self) -> None:
+        """메시지를 읽음 처리합니다."""
         if not self.is_read:
             self.is_read = True
-            self.updated_at = now
+

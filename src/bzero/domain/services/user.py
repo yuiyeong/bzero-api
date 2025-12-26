@@ -114,3 +114,22 @@ class UserService:
 
     async def get_users_by_user_ids(self, user_ids: tuple[Id]) -> list[User]:
         return await self._user_repository.find_all_by_user_ids(user_ids)
+
+    async def get_or_create_user_by_provider(
+        self,
+        provider: AuthProvider,
+        provider_user_id: str,
+        email: str,
+    ) -> User:
+        """인증 제공자 정보로 사용자를 조회하거나, 없으면 생성합니다."""
+        try:
+            return await self.find_user_by_provider_and_provider_user_id(
+                provider=provider, provider_user_id=provider_user_id
+            )
+        except NotFoundUserError:
+            user, _ = await self.create_user_with_identity(
+                provider=provider,
+                provider_user_id=provider_user_id,
+                email=Email(email) if email else None,
+            )
+            return user

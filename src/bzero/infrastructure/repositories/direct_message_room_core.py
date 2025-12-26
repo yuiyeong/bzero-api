@@ -34,12 +34,12 @@ class DirectMessageRoomRepositoryCore:
     @staticmethod
     def _query_find_by_room_and_users(
         room_id: Id,
-        user1_id: Id,
-        user2_id: Id,
+        requester_id: Id,
+        receiver_id: Id,
     ) -> Select[tuple[DirectMessageRoomModel]]:
         """룸과 사용자로 대화방을 조회하는 쿼리를 생성합니다.
 
-        양방향 조회: (user1, user2) 또는 (user2, user1) 모두 확인합니다.
+        양방향 조회: (requester, receiver) 또는 (receiver, requester) 모두 확인합니다.
         활성 상태 (PENDING, ACCEPTED, ACTIVE)인 대화방만 조회합니다.
         """
         active_statuses = [DMStatus.PENDING.value, DMStatus.ACCEPTED.value, DMStatus.ACTIVE.value]
@@ -48,12 +48,12 @@ class DirectMessageRoomRepositoryCore:
             DirectMessageRoomModel.deleted_at.is_(None),
             DirectMessageRoomModel.status.in_(active_statuses),
             or_(
-                # (user1_id, user2_id) 조합
-                (DirectMessageRoomModel.user1_id == user1_id.value)
-                & (DirectMessageRoomModel.user2_id == user2_id.value),
-                # (user2_id, user1_id) 조합 (역방향)
-                (DirectMessageRoomModel.user1_id == user2_id.value)
-                & (DirectMessageRoomModel.user2_id == user1_id.value),
+                # (requester_id, receiver_id) 조합
+                (DirectMessageRoomModel.requester_id == requester_id.value)
+                & (DirectMessageRoomModel.receiver_id == receiver_id.value),
+                # (receiver_id, requester_id) 조합 (역방향)
+                (DirectMessageRoomModel.requester_id == receiver_id.value)
+                & (DirectMessageRoomModel.receiver_id == requester_id.value),
             ),
         )
 
@@ -72,8 +72,8 @@ class DirectMessageRoomRepositoryCore:
                 DirectMessageRoomModel.deleted_at.is_(None),
                 DirectMessageRoomModel.status.in_(status_values),
                 or_(
-                    DirectMessageRoomModel.user1_id == user_id.value,
-                    DirectMessageRoomModel.user2_id == user_id.value,
+                    DirectMessageRoomModel.requester_id == user_id.value,
+                    DirectMessageRoomModel.receiver_id == user_id.value,
                 ),
             )
             .order_by(DirectMessageRoomModel.updated_at.desc())
@@ -92,8 +92,8 @@ class DirectMessageRoomRepositoryCore:
             DirectMessageRoomModel.deleted_at.is_(None),
             DirectMessageRoomModel.status.in_(status_values),
             or_(
-                DirectMessageRoomModel.user1_id == user_id.value,
-                DirectMessageRoomModel.user2_id == user_id.value,
+                DirectMessageRoomModel.requester_id == user_id.value,
+                DirectMessageRoomModel.receiver_id == user_id.value,
             ),
         )
 
@@ -120,12 +120,12 @@ class DirectMessageRoomRepositoryCore:
     def find_by_room_and_users(
         session: Session,
         room_id: Id,
-        user1_id: Id,
-        user2_id: Id,
+        requester_id: Id,
+        receiver_id: Id,
     ) -> DirectMessageRoom | None:
         """룸과 사용자로 대화방을 조회합니다."""
         stmt = DirectMessageRoomRepositoryCore._query_find_by_room_and_users(
-            room_id, user1_id, user2_id
+            room_id, requester_id, receiver_id
         )
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
@@ -156,11 +156,10 @@ class DirectMessageRoomRepositoryCore:
         result = session.execute(stmt)
         model = result.scalar_one()
 
-        # 업데이트할 필드
+        # 업데이트할 필드 (updated_at은 DB 트리거에서 자동 업데이트)
         model.status = dm_room.status.value
         model.started_at = dm_room.started_at
         model.ended_at = dm_room.ended_at
-        model.updated_at = dm_room.updated_at
         model.deleted_at = dm_room.deleted_at
 
         session.flush()

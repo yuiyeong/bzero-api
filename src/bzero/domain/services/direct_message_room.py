@@ -68,12 +68,12 @@ class DirectMessageRoomService:
             DuplicatedDMRequestError: 이미 활성 대화방이 존재하는 경우
         """
         # 1. 신청자의 현재 체류 정보 조회
-        requester_stay = await self._room_stay_repository.find_active_by_user_id(requester_id)
+        requester_stay = await self._room_stay_repository.find_checked_in_by_user_id(requester_id)
         if requester_stay is None:
             raise NotInSameRoomError
 
         # 2. 수신자의 현재 체류 정보 조회
-        target_stay = await self._room_stay_repository.find_active_by_user_id(target_id)
+        target_stay = await self._room_stay_repository.find_checked_in_by_user_id(target_id)
         if target_stay is None:
             raise NotInSameRoomError
 
@@ -87,8 +87,8 @@ class DirectMessageRoomService:
         # 4. 중복 신청 검증 (양방향)
         existing_dm_room = await self._dm_room_repository.find_by_room_and_users(
             room_id=room_id,
-            user1_id=requester_id,
-            user2_id=target_id,
+            requester_id=requester_id,
+            receiver_id=target_id,
         )
         if existing_dm_room is not None:
             raise DuplicatedDMRequestError
@@ -98,10 +98,9 @@ class DirectMessageRoomService:
         dm_room = DirectMessageRoom.create(
             guesthouse_id=guesthouse_id,
             room_id=room_id,
-            user1_id=requester_id,
-            user2_id=target_id,
+            requester_id=requester_id,
+            receiver_id=target_id,
             created_at=now,
-            updated_at=now,
         )
         return await self._dm_room_repository.create(dm_room)
 
@@ -124,12 +123,12 @@ class DirectMessageRoomService:
 
         Raises:
             NotFoundDMRoomError: 대화방을 찾을 수 없는 경우
-            ForbiddenDMRoomAccessError: 수락 권한이 없는 경우 (user2가 아닌 경우)
+            ForbiddenDMRoomAccessError: 수락 권한이 없는 경우 (receiver가 아닌 경우)
             InvalidDMRoomStatusError: PENDING 상태가 아닌 경우
         """
         dm_room = await self._get_dm_room_or_raise(dm_room_id)
 
-        # 권한 검증 (user2만 수락 가능)
+        # 권한 검증 (receiver만 수락 가능)
         if not dm_room.can_accept_or_reject(user_id):
             raise ForbiddenDMRoomAccessError
 
@@ -158,18 +157,17 @@ class DirectMessageRoomService:
 
         Raises:
             NotFoundDMRoomError: 대화방을 찾을 수 없는 경우
-            ForbiddenDMRoomAccessError: 거절 권한이 없는 경우 (user2가 아닌 경우)
+            ForbiddenDMRoomAccessError: 거절 권한이 없는 경우 (receiver가 아닌 경우)
             InvalidDMRoomStatusError: PENDING 상태가 아닌 경우
         """
         dm_room = await self._get_dm_room_or_raise(dm_room_id)
 
-        # 권한 검증 (user2만 거절 가능)
+        # 권한 검증 (receiver만 거절 가능)
         if not dm_room.can_accept_or_reject(user_id):
             raise ForbiddenDMRoomAccessError
 
         # 상태 전이 (엔티티 메서드)
-        now = datetime.now(self._timezone)
-        dm_room.reject(now)
+        dm_room.reject()
 
         return await self._dm_room_repository.update(dm_room)
 

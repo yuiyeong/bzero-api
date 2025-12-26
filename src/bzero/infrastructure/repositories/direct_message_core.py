@@ -149,7 +149,7 @@ class DirectMessageRepositoryCore:
             .values(is_read=True, updated_at=func.now())
         )
         result = session.execute(stmt)
-        return result.rowcount  # type: ignore
+        return result.rowcount  # type: ignore[return-value]
 
     @staticmethod
     def count_unread_by_dm_room_and_user(

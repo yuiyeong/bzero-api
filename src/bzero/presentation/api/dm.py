@@ -36,17 +36,20 @@ router = APIRouter(prefix="/dm", tags=["dm"])
 # =============================================================================
 
 
+from bzero.domain.value_objects import AuthProvider
+
+
 async def get_current_user_id(
     jwt_payload: CurrentJWTPayload,
     user_service: UserService,
 ) -> str:
     """JWT 페이로드로부터 현재 사용자의 내부 ID를 조회합니다."""
     user = await user_service.get_or_create_user_by_provider(
-        provider=jwt_payload.provider,
+        provider=AuthProvider(jwt_payload.provider),
         provider_user_id=jwt_payload.provider_user_id,
         email=jwt_payload.email,
     )
-    return user.user_id.value
+    return user.user_id.value.hex
 
 
 # =============================================================================

@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_utils import uuid7
 
 from bzero.domain.entities.direct_message import DirectMessage
-from bzero.domain.entities.direct_message_room import DirectMessageRoom
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent
 from bzero.infrastructure.db.city_model import CityModel
@@ -37,7 +36,6 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         profile_emoji="👤",
         current_points=1000,
         created_at=now,
-        updated_at=now,
     )
     user2 = UserModel(
         user_id=uuid7(),
@@ -46,7 +44,6 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         profile_emoji="👥",
         current_points=1000,
         created_at=now,
-        updated_at=now,
     )
     test_session.add_all([user1, user2])
     await test_session.flush()
@@ -73,7 +70,6 @@ async def sample_dm_room(
         is_active=True,
         display_order=1,
         created_at=now,
-        updated_at=now,
     )
     test_session.add(city)
 
@@ -84,7 +80,6 @@ async def sample_dm_room(
         name="테스트 게스트하우스",
         guest_house_type="WANDERER",
         created_at=now,
-        updated_at=now,
     )
     test_session.add(guest_house)
 
@@ -95,7 +90,6 @@ async def sample_dm_room(
         max_capacity=10,
         current_capacity=0,
         created_at=now,
-        updated_at=now,
     )
     test_session.add(room)
 
@@ -107,12 +101,11 @@ async def sample_dm_room(
         dm_room_id=uuid7(),
         guesthouse_id=guest_house.guest_house_id,
         room_id=room.room_id,
-        user1_id=user1.user_id,
-        user2_id=user2.user_id,
+        requester_id=user1.user_id,
+        receiver_id=user2.user_id,
         status="accepted",  # 메시지 테스트를 위해 ACCEPTED 상태
         started_at=now,
         created_at=now,
-        updated_at=now,
     )
     test_session.add(dm_room)
     await test_session.flush()
@@ -140,7 +133,6 @@ class TestDirectMessageRepository:
             to_user_id=Id(str(user2.user_id)),
             content=MessageContent("안녕하세요!"),
             created_at=now,
-            updated_at=now,
         )
 
         # When
@@ -167,7 +159,6 @@ class TestDirectMessageRepository:
             to_user_id=Id(str(user2.user_id)),
             content=MessageContent("테스트 메시지"),
             created_at=now,
-            updated_at=now,
         )
         created = await dm_repository.create(message)
 
@@ -241,7 +232,6 @@ class TestDirectMessageRepository:
                 to_user_id=Id(str(user2.user_id)),
                 content=MessageContent(f"메시지 {i}"),
                 created_at=now,
-                updated_at=now,
             )
             await dm_repository.create(message)
 
@@ -271,7 +261,6 @@ class TestDirectMessageRepository:
                 to_user_id=Id(str(user2.user_id)),
                 content=MessageContent(f"메시지 {i}"),
                 created_at=now,
-                updated_at=now,
             )
             await dm_repository.create(message)
 

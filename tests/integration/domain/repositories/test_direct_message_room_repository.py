@@ -34,7 +34,7 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         profile_emoji="👤",
         current_points=1000,
         created_at=now,
-        updated_at=now,
+
     )
     user2 = UserModel(
         user_id=uuid7(),
@@ -43,7 +43,7 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         profile_emoji="👥",
         current_points=1000,
         created_at=now,
-        updated_at=now,
+
     )
     test_session.add_all([user1, user2])
     await test_session.flush()
@@ -66,7 +66,7 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
         is_active=True,
         display_order=1,
         created_at=now,
-        updated_at=now,
+
     )
     test_session.add(city)
 
@@ -77,7 +77,7 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
         name="테스트 게스트하우스",
         guest_house_type="WANDERER",
         created_at=now,
-        updated_at=now,
+
     )
     test_session.add(guest_house)
 
@@ -88,7 +88,7 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
         max_capacity=10,
         current_capacity=0,
         created_at=now,
-        updated_at=now,
+
     )
     test_session.add(room)
     await test_session.flush()
@@ -112,10 +112,10 @@ class TestDirectMessageRoomRepository:
         dm_room = DirectMessageRoom.create(
             guesthouse_id=Id(str(sample_room.guest_house_id)),
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user2.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user2.user_id)),
             created_at=now,
-            updated_at=now,
+
         )
 
         # When
@@ -125,8 +125,8 @@ class TestDirectMessageRoomRepository:
         assert created.dm_room_id is not None
         assert created.status == DMStatus.PENDING
         # Value is UUID, need to compare as strings
-        assert str(created.user1_id.value) == str(user1.user_id)
-        assert str(created.user2_id.value) == str(user2.user_id)
+        assert str(created.requester_id.value) == str(user1.user_id)
+        assert str(created.receiver_id.value) == str(user2.user_id)
 
     async def test_find_by_id_success(
         self,
@@ -141,10 +141,10 @@ class TestDirectMessageRoomRepository:
         dm_room = DirectMessageRoom.create(
             guesthouse_id=Id(str(sample_room.guest_house_id)),
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user2.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user2.user_id)),
             created_at=now,
-            updated_at=now,
+
         )
         created = await dm_room_repository.create(dm_room)
 
@@ -180,18 +180,18 @@ class TestDirectMessageRoomRepository:
         dm_room = DirectMessageRoom.create(
             guesthouse_id=Id(str(sample_room.guest_house_id)),
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user2.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user2.user_id)),
             created_at=now,
-            updated_at=now,
+
         )
         await dm_room_repository.create(dm_room)
 
         # When: 정방향 조회
         found = await dm_room_repository.find_by_room_and_users(
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user2.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user2.user_id)),
         )
 
         # Then
@@ -200,8 +200,8 @@ class TestDirectMessageRoomRepository:
         # When: 역방향 조회 (user1 <-> user2)
         found_reverse = await dm_room_repository.find_by_room_and_users(
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user2.user_id)),
-            user2_id=Id(str(user1.user_id)),
+            requester_id=Id(str(user2.user_id)),
+            receiver_id=Id(str(user1.user_id)),
         )
 
         # Then
@@ -228,7 +228,7 @@ class TestDirectMessageRoomRepository:
             profile_emoji="👩",
             current_points=1000,
             created_at=now,
-            updated_at=now,
+
         )
         test_session.add(user3)
         await test_session.flush()
@@ -237,10 +237,10 @@ class TestDirectMessageRoomRepository:
         dm_room1 = DirectMessageRoom.create(
             guesthouse_id=Id(str(sample_room.guest_house_id)),
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user2.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user2.user_id)),
             created_at=now,
-            updated_at=now,
+
         )
         await dm_room_repository.create(dm_room1)
 
@@ -248,10 +248,10 @@ class TestDirectMessageRoomRepository:
         dm_room2 = DirectMessageRoom.create(
             guesthouse_id=Id(str(sample_room.guest_house_id)),
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user3.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user3.user_id)),
             created_at=now,
-            updated_at=now,
+
         )
         await dm_room_repository.create(dm_room2)
 
@@ -277,10 +277,10 @@ class TestDirectMessageRoomRepository:
         dm_room = DirectMessageRoom.create(
             guesthouse_id=Id(str(sample_room.guest_house_id)),
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user2.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user2.user_id)),
             created_at=now,
-            updated_at=now,
+
         )
         created = await dm_room_repository.create(dm_room)
 
@@ -305,10 +305,10 @@ class TestDirectMessageRoomRepository:
         dm_room = DirectMessageRoom.create(
             guesthouse_id=Id(str(sample_room.guest_house_id)),
             room_id=Id(str(sample_room.room_id)),
-            user1_id=Id(str(user1.user_id)),
-            user2_id=Id(str(user2.user_id)),
+            requester_id=Id(str(user1.user_id)),
+            receiver_id=Id(str(user2.user_id)),
             created_at=now,
-            updated_at=now,
+
         )
         await dm_room_repository.create(dm_room)
 

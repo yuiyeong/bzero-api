@@ -34,15 +34,15 @@ class SqlAlchemyDirectMessageRoomRepository(DirectMessageRoomRepository):
     async def find_by_room_and_users(
         self,
         room_id: Id,
-        user1_id: Id,
-        user2_id: Id,
+        requester_id: Id,
+        receiver_id: Id,
     ) -> DirectMessageRoom | None:
         """룸과 사용자로 대화방을 조회합니다."""
         return await self._session.run_sync(
             DirectMessageRoomRepositoryCore.find_by_room_and_users,
             room_id,
-            user1_id,
-            user2_id,
+            requester_id,
+            receiver_id,
         )
 
     async def find_by_user_and_statuses(
