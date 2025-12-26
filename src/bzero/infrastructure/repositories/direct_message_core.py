@@ -106,7 +106,7 @@ class DirectMessageRepositoryCore:
         )
 
     @staticmethod
-    def from_entity(entity: DirectMessage) -> DirectMessageModel:
+    def to_model(entity: DirectMessage) -> DirectMessageModel:
         """도메인 엔티티를 ORM 모델로 변환합니다."""
         return DirectMessageModel(
             dm_id=entity.dm_id.value,
@@ -125,9 +125,10 @@ class DirectMessageRepositoryCore:
     @staticmethod
     def create(session: Session, message: DirectMessage) -> DirectMessage:
         """메시지를 생성합니다."""
-        model = DirectMessageRepositoryCore.from_entity(message)
+        model = DirectMessageRepositoryCore.to_model(message)
         session.add(model)
         session.flush()
+        session.refresh(model)
         return DirectMessageRepositoryCore.to_entity(model)
 
     @staticmethod

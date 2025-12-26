@@ -30,7 +30,7 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
     """테스트용 샘플 유저 2명 생성."""
     now = datetime.now()
     user1 = UserModel(
-        user_id=uuid7(),
+        user_id=Id(uuid7()).value,
         email="user1@example.com",
         nickname="유저1",
         profile_emoji="👤",
@@ -38,7 +38,7 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         created_at=now,
     )
     user2 = UserModel(
-        user_id=uuid7(),
+        user_id=Id(uuid7()).value,
         email="user2@example.com",
         nickname="유저2",
         profile_emoji="👥",
@@ -98,7 +98,7 @@ async def sample_dm_room(
 
     # Create a DM room
     dm_room = DirectMessageRoomModel(
-        dm_room_id=uuid7(),
+        dm_room_id=Id(uuid7()).value,
         guesthouse_id=guest_house.guest_house_id,
         room_id=room.room_id,
         requester_id=user1.user_id,
@@ -186,7 +186,6 @@ class TestDirectMessageRepository:
                 to_user_id=Id(str(user2.user_id)),
                 content=MessageContent(f"메시지 {i}"),
                 created_at=now + timedelta(seconds=i),
-                updated_at=now + timedelta(seconds=i),
             )
             await dm_repository.create(message)
 
@@ -290,7 +289,6 @@ class TestDirectMessageRepository:
                 to_user_id=Id(str(user2.user_id)),
                 content=MessageContent(f"메시지 {i}"),
                 created_at=now + timedelta(seconds=i),
-                updated_at=now + timedelta(seconds=i),
             )
             await dm_repository.create(message)
 

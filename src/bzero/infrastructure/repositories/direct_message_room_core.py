@@ -115,7 +115,7 @@ class DirectMessageRoomRepositoryCore:
         )
 
     @staticmethod
-    def from_entity(entity: DirectMessageRoom) -> DirectMessageRoomModel:
+    def to_model(entity: DirectMessageRoom) -> DirectMessageRoomModel:
         """도메인 엔티티를 ORM 모델로 변환합니다."""
         return DirectMessageRoomModel(
             dm_room_id=entity.dm_room_id.value,
@@ -136,9 +136,10 @@ class DirectMessageRoomRepositoryCore:
     @staticmethod
     def create(session: Session, dm_room: DirectMessageRoom) -> DirectMessageRoom:
         """대화방을 생성합니다."""
-        model = DirectMessageRoomRepositoryCore.from_entity(dm_room)
+        model = DirectMessageRoomRepositoryCore.to_model(dm_room)
         session.add(model)
         session.flush()
+        session.refresh(model)
         return DirectMessageRoomRepositoryCore.to_entity(model)
 
     @staticmethod
