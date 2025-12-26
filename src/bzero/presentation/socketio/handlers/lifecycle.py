@@ -1,4 +1,5 @@
 """Socket.IO 연결 및 해제 핸들러 (Lifecycle)"""
+
 import logging
 from typing import Any
 from uuid import uuid4
@@ -6,7 +7,7 @@ from uuid import uuid4
 from bzero.application.results import ChatMessageResult
 from bzero.application.use_cases.chat_messages import CreateSystemMessageUseCase
 from bzero.application.use_cases.room_stays import VerifyRoomAccessUseCase
-from bzero.core.database import get_async_db_session
+from bzero.core.database import get_async_db_session_ctx
 from bzero.core.settings import get_settings
 from bzero.domain.services.user import UserService
 from bzero.domain.value_objects import AuthProvider, Id
@@ -34,6 +35,7 @@ DEMO_NAMESPACE = "/demo"
 
 
 # --- Authenticated Namespace (/) ---
+
 
 @sio.event
 async def connect(sid: str, environ: dict, auth: dict | None):
@@ -101,7 +103,7 @@ async def disconnect(sid: str, reason: Any = None):
     try:
         session = await get_typed_session(sio, sid, namespace="/")
 
-        async with get_async_db_session() as db_session:
+        async with get_async_db_session_ctx() as db_session:
             chat_message_service = create_chat_message_service(db_session)
             use_case = CreateSystemMessageUseCase(db_session, chat_message_service)
 
@@ -117,6 +119,7 @@ async def disconnect(sid: str, reason: Any = None):
 
 
 # --- Demo Namespace (/demo) ---
+
 
 @sio.on("connect", namespace=DEMO_NAMESPACE)
 async def connect_demo(sid: str, environ: dict):
@@ -149,7 +152,7 @@ async def disconnect_demo(sid: str, reason: Any = None):
     try:
         session = await get_typed_session(sio, sid, namespace=DEMO_NAMESPACE)
 
-        async with get_async_db_session() as db_session:
+        async with get_async_db_session_ctx() as db_session:
             chat_message_service = create_chat_message_service(db_session)
             system_message = await chat_message_service.create_system_message(
                 room_id=Id.from_hex(DEMO_ROOM_ID),

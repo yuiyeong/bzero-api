@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator, Iterator
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 
 import psycopg
 from psycopg.types.uuid import UUIDDumper
@@ -105,7 +105,7 @@ def close_sync_db_connection() -> None:
 
 async def get_async_db_session() -> AsyncIterator[AsyncSession]:
     """
-    의존성 주입용 세션 생성
+    FastAPI 의존성 주입용 세션 생성 (async generator)
 
     Raises:
         RuntimeError: 데이터베이스가 초기화되지 않은 경우
@@ -121,6 +121,34 @@ async def get_async_db_session() -> AsyncIterator[AsyncSession]:
             yield session
         except Exception:
             await session.rollback()  # 에러 시 롤백 추가
+            raise
+        finally:
+            await session.close()
+
+
+@asynccontextmanager
+async def get_async_db_session_ctx() -> AsyncIterator[AsyncSession]:
+    """
+    async context manager용 세션 생성 (Socket.IO 등에서 사용)
+
+    Usage:
+        async with get_async_db_session_ctx() as session:
+            ...
+
+    Raises:
+        RuntimeError: 데이터베이스가 초기화되지 않은 경우
+
+    Yields:
+        AsyncSession: 데이터베이스 세션
+    """
+    if _async_session_maker is None:
+        raise RuntimeError("Database connection is not initialized. Call setup_db_connection() first.")
+
+    async with _async_session_maker() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
             raise
         finally:
             await session.close()

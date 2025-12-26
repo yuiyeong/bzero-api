@@ -74,14 +74,11 @@ class TicketService:
             raise InvalidAirshipStatusError
 
         departure_datetime = datetime.now(self._timezone)
-        if self._is_hyper_fast:
-            # Hyper fast mode: duration is treated as minutes for quick testing
-            duration_delta = timedelta(minutes=total_duration)
-        else:
-            # Normal mode: duration is treated as hours
-            duration_delta = timedelta(hours=total_duration)
-            
-        arrival_datetime = departure_datetime + duration_delta
+        arrival_datetime = (
+            departure_datetime + timedelta(minutes=total_duration)
+            if self._is_hyper_fast
+            else timedelta(hours=total_duration)
+        )
         ticket = Ticket.create(
             user_id=user.user_id,
             city_snapshot=city.snapshot(),

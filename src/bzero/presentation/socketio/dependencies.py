@@ -5,7 +5,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from bzero.core.database import get_async_db_session
+from bzero.core.database import get_async_db_session_ctx
 from bzero.presentation.socketio.server import get_socketio_server
 from bzero.presentation.socketio.utils import handle_socketio_error
 
@@ -46,7 +46,7 @@ def socket_handler(schema: type[T] | None = None, namespace: str = "/"):
                         return None
 
                 # 2. DB 세션 주입 및 핸들러 호출
-                async with get_async_db_session() as session:
+                async with get_async_db_session_ctx() as session:
                     if validated_data:
                         return await func(sid, validated_data, session, *args[1:], **kwargs)
                     return await func(sid, session, *args, **kwargs)
