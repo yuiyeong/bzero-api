@@ -73,4 +73,3 @@ class DirectMessage:
         """메시지를 읽음 처리합니다."""
         if not self.is_read:
             self.is_read = True
-

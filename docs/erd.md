@@ -272,11 +272,22 @@ erDiagram
         datetime scheduled_checkout_time "NOT NULL, 기본 24h"
         datetime actual_checkout_time "NULL"
         int extension_count "NOT NULL, DEFAULT 0"
-        int total_extension_cost "NOT NULL, DEFAULT 0, 연장 300P/24h"
+        boolean is_checkout_reminder_sent "NOT NULL, DEFAULT FALSE"
         enum status "NOT NULL, DEFAULT CHECKED_IN, CHECKED_IN|CHECKED_OUT"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
         datetime deleted_at "NULL"
+    }
+
+    NOTIFICATIONS {
+        uuid notification_id PK
+        uuid user_id FK "NOT NULL, USER"
+        varchar_50 type "NOT NULL, CHECKOUT_REMINDER"
+        varchar_255 title "NOT NULL"
+        text message "NOT NULL"
+        boolean is_read "NOT NULL, DEFAULT FALSE"
+        datetime created_at "NOT NULL, DEFAULT NOW()"
+        datetime updated_at "NOT NULL, DEFAULT NOW()"
     }
 
     CHAT_MESSAGE {
@@ -613,12 +624,12 @@ erDiagram
 - 대화 신청: 1분에 3회 제한
 - 키 형식: `rate_limit:{action}:{user_id}:{target_id}`
 
-### 체크아웃 알림 - 미구현
-
-- Celery 태스크로 구현
-- 체크인 시 알림 태스크 예약 (eta = checkout_time - 1hour)
-- 연장 시 기존 태스크 취소 후 재예약
-- 알림 채널: 인앱 알림
+### 체크아웃 알림
+- **배치 아키텍처 (Batch Architecture)**
+- 10분 주기 Celery Beat 배치 워커 (`task_send_checkout_reminder_batch`)
+- 조건: `is_checkout_reminder_sent=False` AND `scheduled_checkout_time` 임박 (1시간 이내)
+- 연장 시: `is_checkout_reminder_sent`를 다시 `False`로 초기화
+- 알림 채널: 인앱 알림 (`NOTIFICATIONS` 테이블 적재)
 
 ### 게스트하우스 타입 - 미구현
 

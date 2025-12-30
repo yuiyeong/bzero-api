@@ -69,6 +69,4 @@ class SqlAlchemyDirectMessageRepository(DirectMessageRepository):
 
     async def find_latest_by_dm_room(self, dm_room_id: Id) -> DirectMessage | None:
         """대화방의 가장 최근 메시지를 조회합니다."""
-        return await self._session.run_sync(
-            DirectMessageRepositoryCore.find_latest_by_dm_room, dm_room_id
-        )
+        return await self._session.run_sync(DirectMessageRepositoryCore.find_latest_by_dm_room, dm_room_id)

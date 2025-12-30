@@ -34,7 +34,6 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         profile_emoji="👤",
         current_points=1000,
         created_at=now,
-
     )
     user2 = UserModel(
         user_id=uuid7(),
@@ -43,7 +42,6 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         profile_emoji="👥",
         current_points=1000,
         created_at=now,
-
     )
     test_session.add_all([user1, user2])
     await test_session.flush()
@@ -66,7 +64,6 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
         is_active=True,
         display_order=1,
         created_at=now,
-
     )
     test_session.add(city)
 
@@ -77,7 +74,6 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
         name="테스트 게스트하우스",
         guest_house_type="WANDERER",
         created_at=now,
-
     )
     test_session.add(guest_house)
 
@@ -88,7 +84,6 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
         max_capacity=10,
         current_capacity=0,
         created_at=now,
-
     )
     test_session.add(room)
     await test_session.flush()
@@ -115,7 +110,6 @@ class TestDirectMessageRoomRepository:
             requester_id=Id(str(user1.user_id)),
             receiver_id=Id(str(user2.user_id)),
             created_at=now,
-
         )
 
         # When
@@ -144,7 +138,6 @@ class TestDirectMessageRoomRepository:
             requester_id=Id(str(user1.user_id)),
             receiver_id=Id(str(user2.user_id)),
             created_at=now,
-
         )
         created = await dm_room_repository.create(dm_room)
 
@@ -183,7 +176,6 @@ class TestDirectMessageRoomRepository:
             requester_id=Id(str(user1.user_id)),
             receiver_id=Id(str(user2.user_id)),
             created_at=now,
-
         )
         await dm_room_repository.create(dm_room)
 
@@ -228,7 +220,6 @@ class TestDirectMessageRoomRepository:
             profile_emoji="👩",
             current_points=1000,
             created_at=now,
-
         )
         test_session.add(user3)
         await test_session.flush()
@@ -240,7 +231,6 @@ class TestDirectMessageRoomRepository:
             requester_id=Id(str(user1.user_id)),
             receiver_id=Id(str(user2.user_id)),
             created_at=now,
-
         )
         await dm_room_repository.create(dm_room1)
 
@@ -251,7 +241,6 @@ class TestDirectMessageRoomRepository:
             requester_id=Id(str(user1.user_id)),
             receiver_id=Id(str(user3.user_id)),
             created_at=now,
-
         )
         await dm_room_repository.create(dm_room2)
 
@@ -280,7 +269,6 @@ class TestDirectMessageRoomRepository:
             requester_id=Id(str(user1.user_id)),
             receiver_id=Id(str(user2.user_id)),
             created_at=now,
-
         )
         created = await dm_room_repository.create(dm_room)
 
@@ -308,7 +296,6 @@ class TestDirectMessageRoomRepository:
             requester_id=Id(str(user1.user_id)),
             receiver_id=Id(str(user2.user_id)),
             created_at=now,
-
         )
         await dm_room_repository.create(dm_room)
 

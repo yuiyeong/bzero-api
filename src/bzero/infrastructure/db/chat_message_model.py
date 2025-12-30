@@ -19,9 +19,7 @@ class ChatMessageModel(Base, AuditMixin, SoftDeleteMixin):
     room_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("rooms.room_id"), nullable=False)
     user_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("users.user_id"), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    card_id: Mapped[UUID | None] = mapped_column(
-        UUID, ForeignKey("conversation_cards.card_id"), nullable=True
-    )
+    card_id: Mapped[UUID | None] = mapped_column(UUID, ForeignKey("conversation_cards.card_id"), nullable=True)
     message_type: Mapped[str] = mapped_column(String(20), nullable=False)
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

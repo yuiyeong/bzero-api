@@ -171,4 +171,3 @@ class DirectMessageRoom:
             ACCEPTED 또는 ACTIVE 상태이면 True
         """
         return self.status in (DMStatus.ACCEPTED, DMStatus.ACTIVE)
-

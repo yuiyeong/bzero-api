@@ -25,6 +25,7 @@ from bzero.infrastructure.db.user_model import UserModel
 # Fixtures (Copied/Adapted from test_room_api.py)
 # =============================================================================
 
+
 @pytest_asyncio.fixture
 async def sample_city(test_session: AsyncSession) -> CityModel:
     now = datetime.now(get_settings().timezone)
@@ -46,6 +47,7 @@ async def sample_city(test_session: AsyncSession) -> CityModel:
     await test_session.refresh(city)
     return city
 
+
 @pytest_asyncio.fixture
 async def sample_airship(test_session: AsyncSession) -> AirshipModel:
     now = datetime.now(get_settings().timezone)
@@ -65,6 +67,7 @@ async def sample_airship(test_session: AsyncSession) -> AirshipModel:
     await test_session.commit()
     await test_session.refresh(airship)
     return airship
+
 
 @pytest_asyncio.fixture
 async def sample_guest_house(
@@ -88,6 +91,7 @@ async def sample_guest_house(
     await test_session.refresh(guest_house)
     return guest_house
 
+
 @pytest_asyncio.fixture
 async def sample_room(
     test_session: AsyncSession,
@@ -106,6 +110,7 @@ async def sample_room(
     await test_session.commit()
     await test_session.refresh(room)
     return room
+
 
 async def create_user_with_identity(
     test_session: AsyncSession,
@@ -139,6 +144,7 @@ async def create_user_with_identity(
     await test_session.commit()
     await test_session.refresh(user)
     return user
+
 
 async def create_room_stay_for_user(
     test_session: AsyncSession,
@@ -197,9 +203,11 @@ async def create_room_stay_for_user(
     await test_session.refresh(room_stay)
     return room_stay
 
+
 # =============================================================================
 # E2E Tests for DM
 # =============================================================================
+
 
 class TestDirectMessageApi:
     """DM 관련 API E2E 테스트."""
@@ -220,8 +228,12 @@ class TestDirectMessageApi:
         user2 = await create_user_with_identity(test_session, "email", "u2", "u2@e.com", "User2")
 
         # 2. 두 유저 모두 같은 방에 입장 (RoomStay)
-        await create_room_stay_for_user(test_session, user1, sample_city, sample_airship, sample_guest_house, sample_room)
-        await create_room_stay_for_user(test_session, user2, sample_city, sample_airship, sample_guest_house, sample_room)
+        await create_room_stay_for_user(
+            test_session, user1, sample_city, sample_airship, sample_guest_house, sample_room
+        )
+        await create_room_stay_for_user(
+            test_session, user2, sample_city, sample_airship, sample_guest_house, sample_room
+        )
 
         # 3. User1 로그인 헤더
         headers = auth_headers_factory(provider="email", provider_user_id="u1", email="u1@e.com")
@@ -259,25 +271,24 @@ class TestDirectMessageApi:
         user1 = await create_user_with_identity(test_session, "email", "u1m", "u1m@e.com", "User1Msg")
         user2 = await create_user_with_identity(test_session, "email", "u2m", "u2m@e.com", "User2Msg")
 
-        await create_room_stay_for_user(test_session, user1, sample_city, sample_airship, sample_guest_house, sample_room)
-        await create_room_stay_for_user(test_session, user2, sample_city, sample_airship, sample_guest_house, sample_room)
+        await create_room_stay_for_user(
+            test_session, user1, sample_city, sample_airship, sample_guest_house, sample_room
+        )
+        await create_room_stay_for_user(
+            test_session, user2, sample_city, sample_airship, sample_guest_house, sample_room
+        )
 
         # 2. DM 요청 (User1 -> User2)
         headers1 = auth_headers_factory(provider="email", provider_user_id="u1m", email="u1m@e.com")
         create_resp = await client.post(
-            "/api/v1/dm/requests",
-            headers=headers1,
-            json={"to_user_id": str(user2.user_id)}
+            "/api/v1/dm/requests", headers=headers1, json={"to_user_id": str(user2.user_id)}
         )
         assert create_resp.status_code in (200, 201)
         dm_room_id = create_resp.json()["dm_room_id"]
 
         # 3. DM 수락 (User2)
         headers2 = auth_headers_factory(provider="email", provider_user_id="u2m", email="u2m@e.com")
-        accept_resp = await client.post(
-            f"/api/v1/dm/requests/{dm_room_id}/accept",
-            headers=headers2
-        )
+        accept_resp = await client.post(f"/api/v1/dm/requests/{dm_room_id}/accept", headers=headers2)
         assert accept_resp.status_code == 200
         assert accept_resp.json()["status"] == "accepted"
 
@@ -305,10 +316,7 @@ class TestDirectMessageApi:
         await test_session.commit()
 
         # 6. 메시지 조회 (User2)
-        history_resp = await client.get(
-             f"/api/v1/dm/rooms/{dm_room_id}/messages",
-             headers=headers2
-        )
+        history_resp = await client.get(f"/api/v1/dm/rooms/{dm_room_id}/messages", headers=headers2)
         assert history_resp.status_code == 200
         history_data = history_resp.json()
         assert len(history_data["list"]) >= 1

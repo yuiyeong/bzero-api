@@ -166,6 +166,11 @@ class InvalidRoomStatusError(BadRequestError):
         super().__init__(ErrorCode.INVALID_ROOM_STATUS)
 
 
+class InvalidStayStatusError(BadRequestError):
+    def __init__(self):
+        super().__init__(ErrorCode.INVALID_ROOM_STATUS)  # Reusing error code or should I add INVALID_STAY_STATUS?
+
+
 class RoomCapacityLockError(BadRequestError):
     def __init__(self):
         super().__init__(ErrorCode.ROOM_CAPACITY_LOCK_CONFLICT)
@@ -209,6 +214,13 @@ class NotFoundRoomError(NotFoundError):
 class NotFoundRoomStayError(NotFoundError):
     def __init__(self):
         super().__init__(ErrorCode.NOT_FOUND_ROOM_STAY)
+
+
+class NoActiveStayError(NotFoundError):
+    """활성 체류(Checked-In)를 찾을 수 없을 때 발생"""
+
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_ROOM_STAY)  # Reusing this code for now
 
 
 class NotFoundChatMessageError(NotFoundError):
@@ -284,6 +296,8 @@ class NotFoundQuestionnaireError(NotFoundError):
 class DuplicatedQuestionnaireError(DuplicatedError):
     def __init__(self):
         super().__init__(ErrorCode.DUPLICATED_QUESTIONNAIRE)
+
+
 # DM (1:1 대화) 관련 에러
 class InvalidDMRoomStatusError(BadRequestError):
     def __init__(self):

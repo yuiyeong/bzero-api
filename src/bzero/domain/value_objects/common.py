@@ -24,8 +24,8 @@ class Id:
             except (ValueError, AttributeError) as e:
                 raise InvalidIdError from e
         elif type(self.value) is not UUID:
-             # uuid_utils.UUID 등 서브클래스인 경우 표준 UUID로 변환
-             # 또는 다른 호환 타입인 경우 변환 시도
+            # uuid_utils.UUID 등 서브클래스인 경우 표준 UUID로 변환
+            # 또는 다른 호환 타입인 경우 변환 시도
             object.__setattr__(self, "value", UUID(str(self.value)))
 
     def extract_time(self) -> int:

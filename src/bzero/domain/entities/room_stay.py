@@ -45,6 +45,7 @@ class RoomStay:
     scheduled_check_out_at: datetime
     actual_check_out_at: datetime | None
     extension_count: int
+    is_checkout_reminder_sent: bool
     created_at: datetime
     updated_at: datetime
 
@@ -89,6 +90,7 @@ class RoomStay:
             scheduled_check_out_at=scheduled_check_out_at,
             actual_check_out_at=None,
             extension_count=0,
+            is_checkout_reminder_sent=False,
             created_at=created_at,
             updated_at=updated_at,
         )

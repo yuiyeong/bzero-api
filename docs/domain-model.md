@@ -614,7 +614,7 @@ PURCHASED → BOARDING → COMPLETED
 - scheduled_check_out_at: DateTime (개별)
 - actual_check_out_at: DateTime (nullable)
 - extension_count: Integer (개별, 기본값 0)
-- total_extension_cost: Integer (개별, 기본값 0)
+- is_checkout_reminder_sent: Boolean (개별, 기본값 False)
 - status: RoomStayStatus (VO)
 
 **책임**:
@@ -786,6 +786,26 @@ PURCHASED → BOARDING → COMPLETED
 - 잔액 계산
 - 트랜잭션 무결성 보장
 - 거래 상세 내역 관리
+
+### Notification Aggregate (신규)
+
+**애그리게이트 루트**: Notification
+
+**엔티티**:
+- Notification (알림)
+
+**속성**:
+- notification_id: UUID v7
+- user_id: UUID (FK)
+- type: NotificationType (CHECKOUT_REMINDER 등)
+- title: String
+- message: Text
+- is_read: Boolean
+- created_at: DateTime
+
+**책임**:
+- 사용자 알림 생성 및 관리
+- 알림 읽음 처리
 
 ---
 

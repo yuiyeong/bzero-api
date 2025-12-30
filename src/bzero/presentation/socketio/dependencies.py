@@ -1,7 +1,6 @@
 import functools
 import logging
 from collections.abc import Callable
-from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -13,10 +12,10 @@ from bzero.presentation.socketio.utils import handle_socketio_error
 logger = logging.getLogger(__name__)
 sio = get_socketio_server()
 
-T = TypeVar("T", bound=BaseModel)
 
 
-def socket_handler(schema: type[T] | None = None, namespace: str = "/"):
+
+def socket_handler[T: BaseModel](schema: type[T] | None = None, namespace: str = "/"):
     """Socket.IO 핸들러를 위한 데코레이터.
 
     - DB 세션을 자동으로 생성하고 핸들러에 주입합니다.

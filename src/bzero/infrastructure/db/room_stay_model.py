@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,3 +44,4 @@ class RoomStayModel(Base, AuditMixin, SoftDeleteMixin):
     scheduled_check_out_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     actual_check_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
     extension_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_checkout_reminder_sent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

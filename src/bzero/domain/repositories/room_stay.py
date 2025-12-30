@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 from bzero.domain.entities.room_stay import RoomStay
 from bzero.domain.value_objects import Id
@@ -20,11 +19,12 @@ class RoomStayRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_room_stay_id(self, room_stay_id: Id) -> RoomStay | None:
+    async def find_by_room_stay_id(self, room_stay_id: Id, with_for_update: bool = False) -> RoomStay | None:
         """체류 ID로 조회합니다.
 
         Args:
             room_stay_id: 체류 ID
+            with_for_update: True인 경우 비관적 잠금(SELECT ... FOR UPDATE) 적용 (트랜잭션 내에서 사용 필수)
 
         Returns:
             체류 엔티티 또는 None
@@ -66,14 +66,27 @@ class RoomStayRepository(ABC):
         """
 
     @abstractmethod
-    async def find_all_due_for_check_out(self, before: datetime) -> list[RoomStay]:
-        """예정 체크아웃 시간이 지난 모든 체류를 조회합니다.
+    async def find_ids_due_for_checkout(self, limit: int) -> list[Id]:
+        """예정 체크아웃 시간이 지난 체류의 ID 목록을 조회합니다 (배치용).
 
         Args:
-            before: 기준 시각 (이 시각 이전에 체크아웃 예정인 체류)
+            limit: 조회할 최대 개수
 
         Returns:
-            체크아웃 대상 체류 목록
+            체크아웃 대상 체류 ID 목록
+        """
+
+    @abstractmethod
+    async def find_ids_due_for_reminder(self, limit: int) -> list[Id]:
+        """체크아웃 알림 대상 체류의 ID 목록을 조회합니다 (배치용).
+
+        조건: 현재 체크인 중이며, 곧 체크아웃 예정이고, 아직 알림이 발송되지 않음.
+
+        Args:
+            limit: 조회할 최대 개수
+
+        Returns:
+            알림 대상 체류 ID 목록
         """
 
     @abstractmethod
@@ -106,11 +119,12 @@ class RoomStaySyncRepository(ABC):
         """
 
     @abstractmethod
-    def find_by_room_stay_id(self, room_stay_id: Id) -> RoomStay | None:
+    def find_by_room_stay_id(self, room_stay_id: Id, with_for_update: bool = False) -> RoomStay | None:
         """체류 ID로 조회합니다.
 
         Args:
             room_stay_id: 체류 ID
+            with_for_update: True인 경우 비관적 잠금(SELECT ... FOR UPDATE) 적용
 
         Returns:
             체류 엔티티 또는 None
@@ -152,14 +166,25 @@ class RoomStaySyncRepository(ABC):
         """
 
     @abstractmethod
-    def find_all_due_for_check_out(self, before: datetime) -> list[RoomStay]:
-        """예정 체크아웃 시간이 지난 모든 체류를 조회합니다.
+    def find_ids_due_for_checkout(self, limit: int) -> list[Id]:
+        """예정 체크아웃 시간이 지난 체류의 ID 목록을 조회합니다 (배치용).
 
         Args:
-            before: 기준 시각 (이 시각 이전에 체크아웃 예정인 체류)
+            limit: 조회할 최대 개수
 
         Returns:
-            체크아웃 대상 체류 목록
+            체크아웃 대상 체류 ID 목록
+        """
+
+    @abstractmethod
+    def find_ids_due_for_reminder(self, limit: int) -> list[Id]:
+        """체크아웃 알림 대상 체류의 ID 목록을 조회합니다 (배치용).
+
+        Args:
+            limit: 조회할 최대 개수
+
+        Returns:
+            알림 대상 체류 ID 목록
         """
 
     @abstractmethod

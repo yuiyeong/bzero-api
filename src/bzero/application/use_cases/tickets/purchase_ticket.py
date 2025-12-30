@@ -80,14 +80,15 @@ class PurchaseTicketUseCase:
         # 3. 티켓 생성 (포인트 잔액 검증 포함, 즉시 BOARDING 상태)
         ticket = await self._ticket_service.purchase_ticket(user, city, airship)
 
-        # 4. 포인트 차감
-        await self._point_transaction_service.spend_by(
-            user=user,
-            amount=ticket.cost_points,
-            reason=TransactionReason.TICKET,
-            reference_type=TransactionReference.TICKETS,
-            reference_id=ticket.ticket_id,
-        )
+        # 4. 포인트 차감 (비용이 0보다 큰 경우에만)
+        if ticket.cost_points > 0:
+            await self._point_transaction_service.spend_by(
+                user=user,
+                amount=ticket.cost_points,
+                reason=TransactionReason.TICKET,
+                reference_type=TransactionReference.TICKETS,
+                reference_id=ticket.ticket_id,
+            )
 
         # 5. 트랜잭션 커밋
         await self._session.commit()

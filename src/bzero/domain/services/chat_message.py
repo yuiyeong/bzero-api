@@ -212,6 +212,7 @@ class ChatMessageService:
             raise NotFoundChatMessageError
         return message
 
+
 class ChatMessageSyncService:
     """채팅 메시지 도메인 서비스 (동기).
 

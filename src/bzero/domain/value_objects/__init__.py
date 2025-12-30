@@ -9,6 +9,7 @@ from bzero.domain.value_objects.common import Id
 from bzero.domain.value_objects.diary import DiaryMood
 from bzero.domain.value_objects.dm import DMStatus
 from bzero.domain.value_objects.guesthouse import GuestHouseType
+from bzero.domain.value_objects.notification import NotificationType
 from bzero.domain.value_objects.point_transaction import (
     TransactionReason,
     TransactionReference,
@@ -33,6 +34,7 @@ __all__ = [
     "MessageContent",
     "MessageType",
     "Nickname",
+    "NotificationType",
     "Profile",
     "RoomStayStatus",
     "TicketStatus",

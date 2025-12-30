@@ -65,9 +65,7 @@ async def connect(sid: str, environ: dict, auth: dict | None):
             # 1. 사용자 조회 (Supabase ID -> Internal ID)
             user_repository = SqlAlchemyUserRepository(session)
             user_identity_repository = SqlAlchemyUserIdentityRepository(session)
-            user_service = UserService(
-                user_repository, user_identity_repository, settings.timezone
-            )
+            user_service = UserService(user_repository, user_identity_repository, settings.timezone)
 
             try:
                 user = await user_service.find_user_by_provider_and_provider_user_id(

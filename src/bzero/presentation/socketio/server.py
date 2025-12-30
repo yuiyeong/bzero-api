@@ -1,4 +1,5 @@
 """Socket.IO 서버 초기화 및 설정"""
+
 import socketio
 
 from bzero.core.settings import Environment, get_settings
@@ -27,7 +28,7 @@ sio = socketio.AsyncServer(
 # ASGI 앱 생성
 # socketio_path: Socket.IO 프로토콜 경로 (main.py의 mount 경로 + socketio_path)
 # 예: main.py에서 /ws에 마운트 → 실제 경로: /ws/socket.io
-sio_app = socketio.ASGIApp(sio, socketio_path='/')
+sio_app = socketio.ASGIApp(sio, socketio_path="/")
 
 
 def get_socketio_server() -> socketio.AsyncServer:
