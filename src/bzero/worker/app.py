@@ -30,6 +30,12 @@ def create_celery_app() -> Celery:
         "bzero",
         broker=settings.celery.broker_url,
         backend=settings.celery.result_backend,
+        include=[
+            "bzero.worker.tasks.chat_messages.task_delete_expired_messages",
+            "bzero.worker.tasks.room_stays.batch",
+            "bzero.worker.tasks.room_stays.task_check_in",
+            "bzero.worker.tasks.tickets.task_complete_ticket",
+        ],
     )
 
     celery_app.conf.update(
@@ -66,9 +72,6 @@ def create_celery_app() -> Celery:
             },
         },
     )
-
-    # bzero.worker.tasks 모듈에서 태스크 자동 발견
-    celery_app.autodiscover_tasks(["bzero.worker.tasks", "bzero.worker.tasks.room_stays.batch"])
 
     return celery_app
 

@@ -168,3 +168,10 @@ def get_sync_db_session() -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+
+def get_sync_session_factory() -> sessionmaker[Session]:
+    """동기 DB 세션 팩토리를 반환합니다 (Celery용)."""
+    if _sync_session_maker is None:
+        raise RuntimeError("Sync database connection is not initialized. Call setup_sync_db_connection() first.")
+    return _sync_session_maker
