@@ -1,4 +1,5 @@
 """Socket.IO 데모 채팅 핸들러 (인증 불필요)"""
+
 import logging
 from datetime import datetime
 from typing import Any
@@ -62,9 +63,7 @@ async def handle_join_room(sid: str, db_session: AsyncSession, data: dict[str, A
 
 @sio.on("send_message", namespace=DEMO_NAMESPACE)
 @socket_handler(schema=SendMessageRequest, namespace=DEMO_NAMESPACE)
-async def handle_send_message(
-    sid: str, request: SendMessageRequest, db_session: AsyncSession
-):
+async def handle_send_message(sid: str, request: SendMessageRequest, db_session: AsyncSession):
     """데모 메시지 전송 (DB 저장 없이 브로드캐스트만)."""
     session = await get_typed_session(sio, sid, namespace=DEMO_NAMESPACE)
 
@@ -99,6 +98,4 @@ async def handle_send_message(
     )
 
     await emit_new_message(sio, DEMO_ROOM_ID, result, namespace=DEMO_NAMESPACE)
-    logger.debug(
-        f"Demo message sent - user: {session.user_id[:8]}..., content: {request.content}"
-    )
+    logger.debug(f"Demo message sent - user: {session.user_id[:8]}..., content: {request.content}")

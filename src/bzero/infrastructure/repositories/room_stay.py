@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
@@ -38,16 +36,17 @@ class SqlAlchemyRoomStayRepository(RoomStayRepository):
         """
         return await self._session.run_sync(RoomStayRepositoryCore.create, room_stay)
 
-    async def find_by_room_stay_id(self, room_stay_id: Id) -> RoomStay | None:
+    async def find_by_room_stay_id(self, room_stay_id: Id, with_for_update: bool = False) -> RoomStay | None:
         """ID로 룸 스테이를 조회합니다.
 
         Args:
             room_stay_id: 조회할 룸 스테이 ID
+            with_for_update: 잠금 획득 여부
 
         Returns:
             조회된 룸 스테이 또는 None
         """
-        return await self._session.run_sync(RoomStayRepositoryCore.find_by_room_stay_id, room_stay_id)
+        return await self._session.run_sync(RoomStayRepositoryCore.find_by_room_stay_id, room_stay_id, with_for_update)
 
     async def find_checked_in_by_user_id(self, user_id: Id) -> RoomStay | None:
         """사용자의 체크인된 룸 스테이를 조회합니다.
@@ -82,16 +81,13 @@ class SqlAlchemyRoomStayRepository(RoomStayRepository):
         """
         return await self._session.run_sync(RoomStayRepositoryCore.find_all_by_ticket_id, ticket_id)
 
-    async def find_all_due_for_check_out(self, before: datetime) -> list[RoomStay]:
-        """체크아웃 예정 시간이 지난 룸 스테이를 조회합니다.
+    async def find_ids_due_for_checkout(self, limit: int) -> list[Id]:
+        """체크아웃 예정 시간이 지난 룸 스테이 ID 목록을 조회합니다."""
+        return await self._session.run_sync(RoomStayRepositoryCore.find_ids_due_for_checkout, limit)
 
-        Args:
-            before: 이 시간 이전에 체크아웃 예정인 룸 스테이를 조회
-
-        Returns:
-            체크아웃 예정 시간이 지난 룸 스테이 목록
-        """
-        return await self._session.run_sync(RoomStayRepositoryCore.find_all_due_for_check_out, before)
+    async def find_ids_due_for_reminder(self, limit: int) -> list[Id]:
+        """체크아웃 알림 대상 ID 목록을 조회합니다."""
+        return await self._session.run_sync(RoomStayRepositoryCore.find_ids_due_for_reminder, limit)
 
     async def update(self, room_stay: RoomStay) -> RoomStay:
         """룸 스테이를 업데이트합니다.
@@ -130,9 +126,9 @@ class SqlAlchemyRoomStaySyncRepository(RoomStaySyncRepository):
         """룸 스테이를 생성합니다."""
         return RoomStayRepositoryCore.create(self._session, room_stay)
 
-    def find_by_room_stay_id(self, room_stay_id: Id) -> RoomStay | None:
+    def find_by_room_stay_id(self, room_stay_id: Id, with_for_update: bool = False) -> RoomStay | None:
         """ID로 룸 스테이를 조회합니다."""
-        return RoomStayRepositoryCore.find_by_room_stay_id(self._session, room_stay_id)
+        return RoomStayRepositoryCore.find_by_room_stay_id(self._session, room_stay_id, with_for_update)
 
     def find_checked_in_by_user_id(self, user_id: Id) -> RoomStay | None:
         """사용자의 체크인된 룸 스테이를 조회합니다."""
@@ -146,9 +142,13 @@ class SqlAlchemyRoomStaySyncRepository(RoomStaySyncRepository):
         """티켓 ID로 모든 룸 스테이를 조회합니다."""
         return RoomStayRepositoryCore.find_all_by_ticket_id(self._session, ticket_id)
 
-    def find_all_due_for_check_out(self, before: datetime) -> list[RoomStay]:
-        """체크아웃 예정 시간이 지난 룸 스테이를 조회합니다."""
-        return RoomStayRepositoryCore.find_all_due_for_check_out(self._session, before)
+    def find_ids_due_for_checkout(self, limit: int) -> list[Id]:
+        """체크아웃 예정 시간이 지난 룸 스테이 ID 목록을 조회합니다."""
+        return RoomStayRepositoryCore.find_ids_due_for_checkout(self._session, limit)
+
+    def find_ids_due_for_reminder(self, limit: int) -> list[Id]:
+        """체크아웃 알림 대상 ID 목록을 조회합니다."""
+        return RoomStayRepositoryCore.find_ids_due_for_reminder(self._session, limit)
 
     def update(self, room_stay: RoomStay) -> RoomStay:
         """룸 스테이를 업데이트합니다."""

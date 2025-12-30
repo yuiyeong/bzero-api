@@ -87,10 +87,6 @@ class DirectMessageRoomResponse(BaseModel):
             ended_at=result.ended_at,
             created_at=result.created_at,
             updated_at=result.updated_at,
-            last_message=(
-                DirectMessageResponse.create_from(result.last_message)
-                if result.last_message
-                else None
-            ),
+            last_message=(DirectMessageResponse.create_from(result.last_message) if result.last_message else None),
             unread_count=result.unread_count,
         )

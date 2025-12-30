@@ -35,7 +35,6 @@ def find_free_port():
 async def init_test_db():
     """테스트용 기초 데이터(도시, 게스트하우스, 데모 룸)를 생성합니다."""
 
-
     async with get_async_db_session() as session:
         # 1. 도시 생성
         city = await session.get(CityModel, "00000000-0000-0000-0000-000000000000")
@@ -50,7 +49,7 @@ async def init_test_db():
                 is_active=True,
                 display_order=0,
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
             )
             session.add(city)
 
@@ -65,7 +64,7 @@ async def init_test_db():
                 guest_house_type=GuestHouseType.MIXED.value,
                 is_active=True,
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
             )
             session.add(gh)
 
@@ -78,7 +77,7 @@ async def init_test_db():
                 max_capacity=100,
                 current_capacity=0,
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
             )
             session.add(room)
 
@@ -97,12 +96,17 @@ def live_server_url():
 
     # 서버 실행 (uvicorn 직접 실행)
     cmd = [
-        sys.executable, "-m", "uvicorn",
+        sys.executable,
+        "-m",
+        "uvicorn",
         "bzero.main:create_app",
         "--factory",
-        "--host", "127.0.0.1",
-        "--port", str(port),
-        "--log-level", "error"
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+        "--log-level",
+        "error",
     ]
 
     # DB 초기화 (테이블 생성 및 데모 데이터)
@@ -175,11 +179,7 @@ async def test_chat_demo_e2e_flow(live_server_url):
         errors.append(data)
 
     # 1. 연결
-    await client.connect(
-        live_server_url,
-        socketio_path="/ws/socket.io/",
-        namespaces=["/demo"]
-    )
+    await client.connect(live_server_url, socketio_path="/ws/socket.io/", namespaces=["/demo"])
     assert client.connected
 
     # 2. 룸 입장

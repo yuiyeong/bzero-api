@@ -15,9 +15,11 @@ from bzero.domain.repositories.user import UserRepository
 from bzero.domain.services import (
     AirshipService,
     ChatMessageService,
+    CheckoutService,
     ConversationCardService,
     DiaryService,
     RoomStayService,
+    StayExtensionService,
     TicketService,
 )
 from bzero.domain.services.city import CityService
@@ -172,6 +174,30 @@ def get_room_stay_service(
     return RoomStayService(room_stay_repository)
 
 
+def get_stay_extension_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
+) -> StayExtensionService:
+    """Create StayExtensionService instance."""
+    room_stay_repository = SqlAlchemyRoomStayRepository(session)
+    point_transaction_repository = SqlAlchemyPointTransactionRepository(session)
+    point_transaction_service = PointTransactionService(user_repository, point_transaction_repository)
+    return StayExtensionService(
+        room_stay_repository,
+        user_repository,
+        point_transaction_service,
+    )
+
+
+def get_checkout_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> CheckoutService:
+    """Create CheckoutService instance."""
+    settings = get_settings()
+    room_stay_repository = SqlAlchemyRoomStayRepository(session)
+    return CheckoutService(room_stay_repository, settings.timezone)
+
+
 def get_diary_service(
     session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> DiaryService:
@@ -272,8 +298,6 @@ def create_conversation_card_service(session: AsyncSession) -> ConversationCardS
     )
 
 
-
-
 def create_room_stay_service(session: AsyncSession) -> RoomStayService:
     """세션을 직접 받아 RoomStayService를 생성합니다.
 
@@ -338,6 +362,8 @@ CurrentCityService = Annotated[CityService, Depends(get_city_service)]
 CurrentAirshipService = Annotated[AirshipService, Depends(get_airship_service)]
 CurrentTicketService = Annotated[TicketService, Depends(get_ticket_service)]
 CurrentRoomStayService = Annotated[RoomStayService, Depends(get_room_stay_service)]
+CurrentStayExtensionService = Annotated[StayExtensionService, Depends(get_stay_extension_service)]
+CurrentCheckoutService = Annotated[CheckoutService, Depends(get_checkout_service)]
 CurrentDiaryService = Annotated[DiaryService, Depends(get_diary_service)]
 CurrentCityQuestionService = Annotated[CityQuestionService, Depends(get_city_question_service)]
 CurrentQuestionnaireService = Annotated[QuestionnaireService, Depends(get_questionnaire_service)]

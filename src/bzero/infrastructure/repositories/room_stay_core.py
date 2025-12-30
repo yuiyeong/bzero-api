@@ -11,7 +11,7 @@
     (run_sync)     (직접 호출)
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import Select, Update, select, update
 from sqlalchemy.orm import Session
@@ -93,8 +93,44 @@ class RoomStayRepositoryCore:
                 scheduled_check_out_at=room_stay.scheduled_check_out_at,
                 actual_check_out_at=room_stay.actual_check_out_at,
                 extension_count=room_stay.extension_count,
+                is_checkout_reminder_sent=room_stay.is_checkout_reminder_sent,
             )
             .returning(RoomStayModel)
+        )
+
+    @staticmethod
+    def _query_find_ids_due_for_checkout(limit: int) -> Select[tuple[Id]]:
+        """체크아웃 예정 시간이 지난 룸 스테이 ID를 조회하는 쿼리를 생성합니다."""
+        now = datetime.now()
+        return (
+            select(RoomStayModel.room_stay_id)
+            .where(
+                RoomStayModel.scheduled_check_out_at < now,
+                RoomStayModel.status == RoomStayStatus.CHECKED_IN.value,
+                RoomStayModel.deleted_at.is_(None),
+            )
+            .limit(limit)
+        )
+
+    @staticmethod
+    def _query_find_ids_due_for_reminder(limit: int) -> Select[tuple[Id]]:
+        """체크아웃 알림 대상(1시간 이내 만료) 룸 스테이 ID를 조회하는 쿼리를 생성합니다.
+
+        조건:
+        1. CHECKED_IN 상태
+        2. 아직 알림 안 보냄 (is_checkout_reminder_sent=False)
+        3. 만료 시간 < 현재 + 1시간 (즉, 1시간 이내 만료 예정이거나 이미 지난 경우)
+        """
+        cutoff = datetime.now() + timedelta(hours=1)
+        return (
+            select(RoomStayModel.room_stay_id)
+            .where(
+                RoomStayModel.scheduled_check_out_at < cutoff,
+                RoomStayModel.is_checkout_reminder_sent.is_(False),
+                RoomStayModel.status == RoomStayStatus.CHECKED_IN.value,
+                RoomStayModel.deleted_at.is_(None),
+            )
+            .limit(limit)
         )
 
     # ==================== Entity/Model 변환 ====================
@@ -114,6 +150,7 @@ class RoomStayRepositoryCore:
             scheduled_check_out_at=entity.scheduled_check_out_at,
             actual_check_out_at=entity.actual_check_out_at,
             extension_count=entity.extension_count,
+            is_checkout_reminder_sent=entity.is_checkout_reminder_sent,
         )
 
     @staticmethod
@@ -131,6 +168,7 @@ class RoomStayRepositoryCore:
             scheduled_check_out_at=model.scheduled_check_out_at,
             actual_check_out_at=model.actual_check_out_at,
             extension_count=model.extension_count,
+            is_checkout_reminder_sent=model.is_checkout_reminder_sent,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -149,9 +187,16 @@ class RoomStayRepositoryCore:
         return RoomStayRepositoryCore.to_entity(model)
 
     @staticmethod
-    def find_by_room_stay_id(session: Session, room_stay_id: Id) -> RoomStay | None:
-        """ID로 룸 스테이를 조회합니다."""
+    def find_by_room_stay_id(session: Session, room_stay_id: Id, with_for_update: bool = False) -> RoomStay | None:
+        """ID로 룸 스테이를 조회합니다.
+
+        Args:
+            with_for_update: True인 경우 SELECT ... FOR UPDATE 적용
+        """
         stmt = RoomStayRepositoryCore._query_find_by_room_stay_id(room_stay_id)
+        if with_for_update:
+            stmt = stmt.with_for_update()
+
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
         return RoomStayRepositoryCore.to_entity(model) if model else None
@@ -187,6 +232,20 @@ class RoomStayRepositoryCore:
         result = session.execute(stmt)
         models = result.scalars().all()
         return [RoomStayRepositoryCore.to_entity(model) for model in models]
+
+    @staticmethod
+    def find_ids_due_for_checkout(session: Session, limit: int) -> list[Id]:
+        """체크아웃 대상 ID 목록을 조회합니다."""
+        stmt = RoomStayRepositoryCore._query_find_ids_due_for_checkout(limit)
+        result = session.execute(stmt)
+        return [Id(row[0]) for row in result.all()]
+
+    @staticmethod
+    def find_ids_due_for_reminder(session: Session, limit: int) -> list[Id]:
+        """알림 대상 ID 목록을 조회합니다."""
+        stmt = RoomStayRepositoryCore._query_find_ids_due_for_reminder(limit)
+        result = session.execute(stmt)
+        return [Id(row[0]) for row in result.all()]
 
     @staticmethod
     def update(session: Session, room_stay: RoomStay) -> RoomStay:

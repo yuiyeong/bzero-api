@@ -6,6 +6,7 @@ from bzero.domain.entities.diary import Diary
 from bzero.domain.entities.direct_message import DirectMessage
 from bzero.domain.entities.direct_message_room import DirectMessageRoom
 from bzero.domain.entities.guest_house import GuestHouse
+from bzero.domain.entities.notification import Notification
 from bzero.domain.entities.point_transaction import PointTransaction
 from bzero.domain.entities.room import Room
 from bzero.domain.entities.room_stay import RoomStay
@@ -23,6 +24,7 @@ __all__ = [
     "DirectMessage",
     "DirectMessageRoom",
     "GuestHouse",
+    "Notification",
     "PointTransaction",
     "Room",
     "RoomStay",

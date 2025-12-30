@@ -56,11 +56,19 @@ def create_celery_app() -> Celery:
                 "task": "bzero.worker.tasks.chat_messages.task_delete_expired_messages",
                 "schedule": crontab(hour=0, minute=0),  # 매일 자정에 실행
             },
+            "task-auto-checkout-batch-every-10m": {
+                "task": "bzero.worker.tasks.room_stays.task_auto_checkout_batch",
+                "schedule": crontab(minute="*/10"),
+            },
+            "task-send-checkout-reminder-batch-every-10m": {
+                "task": "bzero.worker.tasks.room_stays.task_send_checkout_reminder_batch",
+                "schedule": crontab(minute="*/10"),
+            },
         },
     )
 
     # bzero.worker.tasks 모듈에서 태스크 자동 발견
-    celery_app.autodiscover_tasks(["bzero.worker.tasks"])
+    celery_app.autodiscover_tasks(["bzero.worker.tasks", "bzero.worker.tasks.room_stays.batch"])
 
     return celery_app
 

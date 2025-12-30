@@ -158,9 +158,7 @@ class DirectMessageRoomRepositoryCore:
         receiver_id: Id,
     ) -> DirectMessageRoom | None:
         """룸과 사용자로 대화방을 조회합니다."""
-        stmt = DirectMessageRoomRepositoryCore._query_find_by_room_and_users(
-            room_id, requester_id, receiver_id
-        )
+        stmt = DirectMessageRoomRepositoryCore._query_find_by_room_and_users(room_id, requester_id, receiver_id)
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
         return DirectMessageRoomRepositoryCore.to_entity(model) if model else None
@@ -174,9 +172,7 @@ class DirectMessageRoomRepositoryCore:
         offset: int = 0,
     ) -> list[DirectMessageRoom]:
         """사용자와 상태로 대화방 목록을 조회합니다."""
-        stmt = DirectMessageRoomRepositoryCore._query_find_by_user_and_statuses(
-            user_id, statuses, limit, offset
-        )
+        stmt = DirectMessageRoomRepositoryCore._query_find_by_user_and_statuses(user_id, statuses, limit, offset)
         result = session.execute(stmt)
         models = result.scalars().all()
         return [DirectMessageRoomRepositoryCore.to_entity(model) for model in models]
@@ -184,9 +180,7 @@ class DirectMessageRoomRepositoryCore:
     @staticmethod
     def update(session: Session, dm_room: DirectMessageRoom) -> DirectMessageRoom:
         """대화방 정보를 업데이트합니다."""
-        stmt = select(DirectMessageRoomModel).where(
-            DirectMessageRoomModel.dm_room_id == dm_room.dm_room_id.value
-        )
+        stmt = select(DirectMessageRoomModel).where(DirectMessageRoomModel.dm_room_id == dm_room.dm_room_id.value)
         result = session.execute(stmt)
         model = result.scalar_one()
 

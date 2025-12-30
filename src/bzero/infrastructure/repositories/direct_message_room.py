@@ -67,9 +67,7 @@ class SqlAlchemyDirectMessageRoomRepository(DirectMessageRoomRepository):
 
     async def soft_delete_by_room_id(self, room_id: Id) -> int:
         """룸 ID로 대화방들을 soft delete 처리합니다."""
-        return await self._session.run_sync(
-            DirectMessageRoomRepositoryCore.soft_delete_by_room_id, room_id
-        )
+        return await self._session.run_sync(DirectMessageRoomRepositoryCore.soft_delete_by_room_id, room_id)
 
     async def count_by_user_and_statuses(
         self,

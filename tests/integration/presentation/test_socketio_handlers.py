@@ -511,12 +511,15 @@ async def test_auth_send_message_success(
 
     # Given: 인증 서버에 연결
     # verify_room_access를 mock하여 DB 세션 격리 문제 우회
-    with patch(
-        "bzero.presentation.socketio.handlers.chat.verify_room_access",
-        new_callable=AsyncMock,
-    ) as mock_verify, patch(
-        "bzero.presentation.socketio.handlers.chat.create_chat_message_service",
-    ) as mock_create_chat_service:
+    with (
+        patch(
+            "bzero.presentation.socketio.handlers.chat.verify_room_access",
+            new_callable=AsyncMock,
+        ) as mock_verify,
+        patch(
+            "bzero.presentation.socketio.handlers.chat.create_chat_message_service",
+        ) as mock_create_chat_service,
+    ):
         mock_verify.return_value = None  # 접근 허용
 
         # ChatMessageService mock 설정

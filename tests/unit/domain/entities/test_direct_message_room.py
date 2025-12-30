@@ -202,4 +202,3 @@ class TestDirectMessageRoom:
         """REJECTED 상태에서 메시지 전송이 불가능하다"""
         sample_dm_room.reject()
         assert sample_dm_room.can_send_message() is False
-

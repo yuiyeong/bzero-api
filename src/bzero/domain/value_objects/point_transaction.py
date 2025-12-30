@@ -27,3 +27,4 @@ class TransactionReference(str, Enum):
     DIARIES = "diaries"
     TICKETS = "tickets"
     QUESTIONNAIRES = "questionnaires"
+    ROOM_STAYS = "room_stays"

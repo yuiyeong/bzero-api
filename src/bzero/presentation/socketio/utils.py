@@ -20,9 +20,7 @@ from bzero.presentation.schemas.socketio import SocketSession
 logger = logging.getLogger(__name__)
 
 
-async def get_session_data(
-    sio: socketio.AsyncServer, sid: str, namespace: str = "/"
-) -> dict[str, Any]:
+async def get_session_data(sio: socketio.AsyncServer, sid: str, namespace: str = "/") -> dict[str, Any]:
     """세션 데이터를 조회하고 검증합니다.
 
     Args:
@@ -47,9 +45,7 @@ async def get_session_data(
     return session_data
 
 
-async def get_typed_session(
-    sio: socketio.AsyncServer, sid: str, namespace: str = "/"
-) -> SocketSession:
+async def get_typed_session(sio: socketio.AsyncServer, sid: str, namespace: str = "/") -> SocketSession:
     """세션 데이터를 SocketSession 모델로 반환합니다."""
     data = await get_session_data(sio, sid, namespace=namespace)
     return SocketSession.model_validate(data)

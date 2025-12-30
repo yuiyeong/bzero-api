@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
@@ -16,6 +15,7 @@ from bzero.domain.value_objects.chat_message import MessageContent, MessageType
 def mock_session():
     return AsyncMock()
 
+
 @pytest.fixture
 def mock_chat_message_service():
     service = MagicMock(spec=ChatMessageService)
@@ -23,11 +23,13 @@ def mock_chat_message_service():
     service.get_messages_by_room = AsyncMock()
     return service
 
+
 @pytest.fixture
 def mock_room_stay_service():
     service = MagicMock(spec=RoomStayService)
     service.get_stays_by_user_id_and_room_id = AsyncMock()
     return service
+
 
 class TestSendMessageUseCase:
     @pytest.mark.asyncio
@@ -49,7 +51,7 @@ class TestSendMessageUseCase:
             created_at=datetime.now(),
             updated_at=datetime.now(),
             deleted_at=None,
-            expires_at=datetime.now() + timedelta(days=3)
+            expires_at=datetime.now() + timedelta(days=3),
         )
         mock_chat_message_service.send_message.return_value = expected_message
 
@@ -61,6 +63,7 @@ class TestSendMessageUseCase:
         assert result.user_id == user_id
         mock_chat_message_service.send_message.assert_called_once()
         mock_session.commit.assert_called_once()
+
 
 class TestGetMessageHistoryUseCase:
     @pytest.mark.asyncio
@@ -86,8 +89,9 @@ class TestGetMessageHistoryUseCase:
                 created_at=datetime.now(),
                 updated_at=datetime.now(),
                 deleted_at=None,
-                expires_at=datetime.now() + timedelta(days=3)
-            ) for i in range(3)
+                expires_at=datetime.now() + timedelta(days=3),
+            )
+            for i in range(3)
         ]
         mock_chat_message_service.get_message_history.return_value = messages
 
