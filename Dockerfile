@@ -27,9 +27,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # builder stage에서 uv와 의존성 복사
-COPY --from=builder /root/.local/bin/uv /usr/local/bin/uv
+COPY --from=builder /root/.local /root/.local
 COPY --from=builder /app/.venv /app/.venv
-ENV PATH="/app/.venv/bin:${PATH}"
+ENV PATH="/root/.local/bin:/app/.venv/bin:${PATH}"
 
 # 소스 복사: src 레이아웃 유지
 COPY src/ ./src/
