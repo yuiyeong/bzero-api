@@ -33,8 +33,6 @@ ENV PATH="/root/.local/bin:/app/.venv/bin:${PATH}"
 
 # 소스 복사: src 레이아웃 유지
 COPY src/ ./src/
-COPY alembic.ini ./
-COPY migrations/ ./migrations/
 
 # 환경 변수
 ENV PYTHONPATH=/app/src
