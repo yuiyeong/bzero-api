@@ -203,8 +203,15 @@ class RoomStayRepositoryCore:
 
     @staticmethod
     def find_checked_in_by_user_id(session: Session, user_id: Id) -> RoomStay | None:
-        """사용자의 체크인된 룸 스테이를 조회합니다."""
+        """사용자의 체크인된 룸 스테이를 조회합니다.
+
+        Note:
+            데이터 무결성 문제(중복 체크인)가 있더라도 가장 최근의 체류를 반환하여
+            500 에러(MultipleResultsFound)를 방지합니다.
+        """
         stmt = RoomStayRepositoryCore._query_find_checked_in_by_user_id(user_id)
+        # 중복 데이터가 있을 경우 가장 최근 체크인된 기록을 우선으로 함
+        stmt = stmt.order_by(RoomStayModel.check_in_at.desc()).limit(1)
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
         return RoomStayRepositoryCore.to_entity(model) if model else None

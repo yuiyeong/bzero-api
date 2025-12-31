@@ -1,35 +1,105 @@
+from datetime import datetime, timedelta
+
 import pytest
 
+from bzero.domain.value_objects import Id, RoomStayStatus
+from bzero.infrastructure.db.airship_model import AirshipModel
+from bzero.infrastructure.db.city_model import CityModel
+from bzero.infrastructure.db.guest_house_model import GuestHouseModel
+from bzero.infrastructure.db.room_model import RoomModel
+from bzero.infrastructure.db.room_stay_model import RoomStayModel
+from bzero.infrastructure.db.ticket_model import TicketModel
+from bzero.infrastructure.db.user_model import UserModel
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayRepository
+
+
+@pytest.fixture
+async def setup_dependencies(test_session):
+    # 0. Airship
+    airship_id = Id().value
+    airship = AirshipModel(
+        airship_id=airship_id,
+        name="Test Airship",
+        description="Test Desc",
+        image_url="url",
+        cost_factor=1,
+        duration_factor=1,
+        display_order=1,
+        is_active=True,
+    )
+    test_session.add(airship)
+
+    # 1. User
+    user_id = Id().value
+    user = UserModel(user_id=user_id, email="test@example.com")
+    test_session.add(user)
+
+    # 2. City
+    city_id = Id().value
+    city = CityModel(
+        city_id=city_id,
+        name="Test City",
+        theme="Modern",
+        description="Desc",
+        image_url="url",
+        base_cost_points=100,
+        base_duration_hours=2,
+        is_active=True,
+        display_order=1,
+    )
+    test_session.add(city)
+
+    # 3. GuestHouse
+    gh_id = Id().value
+    gh = GuestHouseModel(
+        guest_house_id=gh_id,
+        city_id=city_id,
+        guest_house_type="MIXED",
+        name="Test GH",
+        description="Desc",
+        image_url="url",
+        is_active=True,
+    )
+    test_session.add(gh)
+
+    # 4. Room
+    room_id = Id().value
+    room = RoomModel(room_id=room_id, guest_house_id=gh_id, max_capacity=4, current_capacity=0)
+    test_session.add(room)
+    await test_session.flush()
+
+    # 5. Ticket
+    ticket_id = Id().value
+    ticket = TicketModel(
+        ticket_id=ticket_id,
+        user_id=user_id,
+        city_id=city_id,
+        city_name="Test City",
+        city_theme="Modern",
+        city_description="Desc",
+        city_image_url="url",
+        city_base_cost_points=100,
+        city_base_duration_hours=2,
+        airship_id=airship_id,
+        airship_name="Test Airship",
+        airship_description="Test Desc",
+        airship_image_url="url",
+        airship_cost_factor=1,
+        airship_duration_factor=1,
+        ticket_number="T-123",
+        cost_points=100,
+        status="completed",
+        departure_datetime=datetime.now(),
+        arrival_datetime=datetime.now(),
+    )
+    test_session.add(ticket)
+
+    await test_session.flush()
+    return {"user_id": user_id, "city_id": city_id, "gh_id": gh_id, "room_id": room_id, "ticket_id": ticket_id}
 
 
 @pytest.mark.asyncio
 class TestRoomStayRepository:
-    async def test_create_and_find_by_id(self, test_session):
-        """RoomStay 생성 및 ID 조회 테스트"""
-        # Given
-        # repository = SqlAlchemyRoomStayRepository(test_session)
-        # room_stay_id = Id()
-        # user_id = Id()
-
-        # NOTE: FK 제약조건이 있으나, 테스트 DB setup 시점에 FK Check를 끌 수 없으므로
-        # 실제로는 연관된 엔티티(City, User 등)를 먼저 생성해주는 것이 가장 안전함.
-        # 하지만 conftest에서 테이블만 생성되므로, 여기서는 간단히 단위 테스트처럼 보이지만
-        # Integration 테스트이므로 실제 DB에 넣으려면 FK 제약조건을 만족해야 함.
-        # 편의상 생략하고 싶지만 IntegrityError 발생 가능.
-        # 여기서는 Repository 자체 로직 검증에 집중하기 위해 FK가 없거나,
-        # 혹은 테스트 데이터 셋업 헬퍼가 필요함.
-        # 여기서는 일단 간단히 '생성' 자체를 테스트하기보다,
-        # Repository 메서드 동작(SQL 실행)을 확인하는 것에 초점.
-
-        # 하지만 FK 에러 피하기 번거로우므로, 여기서는
-        # mock 데이터를 넣는 것이 아니라 실제 데이터를 넣어야 함.
-        # FK 의존성이 많으므로 (City, GuestHouse, Room, Ticket, User)
-        # 셋업이 복잡함.
-        # 따라서 일단은 Repository 로직 테스트는 생략하거나,
-        # 꼭 필요한 메서드(find_ids_due_for_checkout 등) 위주로 테스트.
-        # 여기서는 스킵하거나, conftest에 데이터 셋업 헬퍼가 있다고 가정해야함.
-
     async def test_find_ids_due_for_checkout(self, test_session):
         """체크아웃 대상 조회 쿼리 테스트"""
         repository = SqlAlchemyRoomStayRepository(test_session)
@@ -42,3 +112,51 @@ class TestRoomStayRepository:
         repository = SqlAlchemyRoomStayRepository(test_session)
         result = await repository.find_ids_due_for_reminder(10)
         assert isinstance(result, list)
+
+    async def test_find_checked_in_by_user_id_with_duplicates(self, test_session, setup_dependencies):
+        """중복된 Active Stay가 있을 때 최신 것 하나만 반환하는지 테스트"""
+        repository = SqlAlchemyRoomStayRepository(test_session)
+        deps = setup_dependencies
+        user_id = deps["user_id"]
+
+        # Old active stay
+        old_stay = RoomStayModel(
+            room_stay_id=Id().value,
+            user_id=user_id,
+            city_id=deps["city_id"],
+            guest_house_id=deps["gh_id"],
+            room_id=deps["room_id"],
+            ticket_id=deps["ticket_id"],
+            status=RoomStayStatus.CHECKED_IN.value,
+            check_in_at=datetime.now() - timedelta(hours=2),
+            scheduled_check_out_at=datetime.now() + timedelta(hours=22),
+            extension_count=0,
+            is_checkout_reminder_sent=False,
+        )
+        test_session.add(old_stay)
+
+        # New active stay (Simulating corruption or race condition)
+        new_stay_id = Id().value
+        new_stay = RoomStayModel(
+            room_stay_id=new_stay_id,
+            user_id=user_id,
+            city_id=deps["city_id"],
+            guest_house_id=deps["gh_id"],
+            room_id=deps["room_id"],
+            ticket_id=deps["ticket_id"],
+            status=RoomStayStatus.CHECKED_IN.value,
+            check_in_at=datetime.now(),  # More recent
+            scheduled_check_out_at=datetime.now() + timedelta(hours=24),
+            extension_count=0,
+            is_checkout_reminder_sent=False,
+        )
+        test_session.add(new_stay)
+        await test_session.flush()
+
+        # Act & Assert
+        # Should NOT raise MultipleResultsFound
+        # Should return the 'new_stay' because check_in_at is later
+        result = await repository.find_checked_in_by_user_id(Id(user_id))
+
+        assert result is not None
+        assert result.room_stay_id == Id(new_stay_id)
