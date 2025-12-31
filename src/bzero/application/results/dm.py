@@ -36,10 +36,10 @@ class DirectMessageResult:
     def create_from(cls, message: DirectMessage) -> "DirectMessageResult":
         """DirectMessage 엔티티로부터 Result를 생성합니다."""
         return cls(
-            dm_id=str(message.dm_id.value),
-            dm_room_id=str(message.dm_room_id.value),
-            from_user_id=str(message.from_user_id.value),
-            to_user_id=str(message.to_user_id.value),
+            dm_id=message.dm_id.to_hex(),
+            dm_room_id=message.dm_room_id.to_hex(),
+            from_user_id=message.from_user_id.to_hex(),
+            to_user_id=message.to_user_id.to_hex(),
             content=message.content.value,
             is_read=message.is_read,
             created_at=message.created_at,
@@ -87,11 +87,11 @@ class DirectMessageRoomResult:
     ) -> "DirectMessageRoomResult":
         """DirectMessageRoom 엔티티로부터 Result를 생성합니다."""
         return cls(
-            dm_room_id=str(dm_room.dm_room_id.value),
-            guesthouse_id=str(dm_room.guesthouse_id.value),
-            room_id=str(dm_room.room_id.value),
-            user1_id=str(dm_room.requester_id.value),
-            user2_id=str(dm_room.receiver_id.value),
+            dm_room_id=dm_room.dm_room_id.to_hex(),
+            guesthouse_id=dm_room.guesthouse_id.to_hex(),
+            room_id=dm_room.room_id.to_hex(),
+            user1_id=dm_room.requester_id.to_hex(),
+            user2_id=dm_room.receiver_id.to_hex(),
             status=str(dm_room.status.value),
             started_at=dm_room.started_at,
             ended_at=dm_room.ended_at,
