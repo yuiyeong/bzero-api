@@ -4,8 +4,8 @@
 """
 
 from bzero.application.results import ChatMessageResult
-from bzero.domain.services import ChatMessageService, RoomStayService
-from bzero.domain.value_objects import Id
+from bzero.domain.services import ChatMessageService, RoomStayService, UserService
+from bzero.domain.value_objects import AuthProvider, Id
 
 
 class GetMessageHistoryUseCase:
@@ -17,21 +17,25 @@ class GetMessageHistoryUseCase:
 
     def __init__(
         self,
+        user_service: UserService,
         chat_message_service: ChatMessageService,
         room_stay_service: RoomStayService,
     ):
         """GetMessageHistoryUseCase를 초기화합니다.
 
         Args:
+            user_service: 사용자 도메인 서비스
             chat_message_service: 채팅 메시지 도메인 서비스
             room_stay_service: 룸 스테이 도메인 서비스
         """
+        self._user_service = user_service
         self._chat_message_service = chat_message_service
         self._room_stay_service = room_stay_service
 
     async def execute(
         self,
-        user_id: str,
+        provider: str,
+        provider_user_id: str,
         room_id: str,
         cursor: str | None = None,
         limit: int = 50,
@@ -39,7 +43,8 @@ class GetMessageHistoryUseCase:
         """메시지 히스토리 조회를 실행합니다.
 
         Args:
-            user_id: 요청한 사용자 ID (hex 문자열, 접근 권한 확인용)
+            provider_user_id:
+            provider:
             room_id: 조회할 룸 ID (hex 문자열)
             cursor: 페이지네이션 커서 (이전 응답의 마지막 message_id)
             limit: 최대 조회 개수 (기본값: 50)
@@ -49,10 +54,17 @@ class GetMessageHistoryUseCase:
 
         Raises:
             ForbiddenRoomForUserError: 사용자가 해당 룸에 체류 중이지 않은 경우
+
         """
+        # 0. 사용자 ID 검증
+        user = await self._user_service.find_user_by_provider_and_provider_user_id(
+            provider=AuthProvider(provider),
+            provider_user_id=provider_user_id,
+        )
+
         # 1. 사용자가 해당 룸에 체류 중인지 검증
         await self._room_stay_service.get_stays_by_user_id_and_room_id(
-            user_id=Id.from_hex(user_id),
+            user_id=user.user_id,
             room_id=Id.from_hex(room_id),
         )
 

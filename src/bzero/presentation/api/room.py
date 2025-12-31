@@ -65,6 +65,7 @@ async def get_room_members(
 async def get_room_history(
     room_id: str,
     jwt_payload: CurrentJWTPayload,
+    user_service: CurrentUserService,
     chat_message_service: CurrentChatMessageService,
     room_stay_service: CurrentRoomStayService,
     cursor: str | None = None,
@@ -75,6 +76,7 @@ async def get_room_history(
     Args:
         room_id: 방 ID (UUID v7 hex)
         jwt_payload: JWT 페이로드 (인증된 사용자 정보)
+        user_service: 사용자 도메인 서비스
         chat_message_service: 채팅 메시지 도메인 서비스
         room_stay_service: 체류 도메인 서비스
         cursor: 페이지네이션 커서 (이전 응답의 마지막 message_id)
@@ -84,11 +86,13 @@ async def get_room_history(
         ListResponse[ChatMessageResponse]: 메시지 목록
     """
     use_case = GetMessageHistoryUseCase(
+        user_service=user_service,
         chat_message_service=chat_message_service,
         room_stay_service=room_stay_service,
     )
     results = await use_case.execute(
-        user_id=jwt_payload.provider_user_id,
+        provider=jwt_payload.provider,
+        provider_user_id=jwt_payload.provider_user_id,
         room_id=room_id,
         cursor=cursor,
         limit=limit,

@@ -68,9 +68,11 @@ async def connect(sid: str, environ: dict, auth: dict | None):
             user_service = UserService(user_repository, user_identity_repository, settings.timezone)
 
             try:
+                provider = payload.get("app_metadata", {}).get("provider")
+                provider_user_id = payload.get("sub")
                 user = await user_service.find_user_by_provider_and_provider_user_id(
-                    provider=AuthProvider("supabase"),  # JWT는 항상 supbase provider 사용
-                    provider_user_id=payload["sub"],
+                    provider=AuthProvider(provider),
+                    provider_user_id=provider_user_id,
                 )
                 user_id = user.user_id.value.hex
             except Exception:
