@@ -4,7 +4,6 @@ from datetime import datetime
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid_utils import uuid7
 
 from bzero.domain.entities.direct_message_room import DirectMessageRoom
 from bzero.domain.value_objects import DMStatus, Id
@@ -28,7 +27,7 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
     """테스트용 샘플 유저 2명 생성."""
     now = datetime.now()
     user1 = UserModel(
-        user_id=uuid7(),
+        user_id=Id().value,
         email="user1@example.com",
         nickname="유저1",
         profile_emoji="👤",
@@ -36,7 +35,7 @@ async def sample_users(test_session: AsyncSession) -> tuple[UserModel, UserModel
         created_at=now,
     )
     user2 = UserModel(
-        user_id=uuid7(),
+        user_id=Id().value,
         email="user2@example.com",
         nickname="유저2",
         profile_emoji="👥",
@@ -55,7 +54,7 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
 
     # Create a city
     city = CityModel(
-        city_id=uuid7(),
+        city_id=Id().value,
         name="테스트 도시",
         theme="테스트",
         description="테스트용 도시",
@@ -69,7 +68,7 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
 
     # Create a guest house
     guest_house = GuestHouseModel(
-        guest_house_id=uuid7(),
+        guest_house_id=Id().value,
         city_id=city.city_id,
         name="테스트 게스트하우스",
         guest_house_type="WANDERER",
@@ -79,7 +78,7 @@ async def sample_room(test_session: AsyncSession) -> RoomModel:
 
     # Create a room
     room = RoomModel(
-        room_id=uuid7(),
+        room_id=Id().value,
         guest_house_id=guest_house.guest_house_id,
         max_capacity=10,
         current_capacity=0,
@@ -214,7 +213,7 @@ class TestDirectMessageRoomRepository:
 
         # Create additional users for different DM rooms
         user3 = UserModel(
-            user_id=uuid7(),
+            user_id=Id().value,
             email="user3@example.com",
             nickname="유저3",
             profile_emoji="👩",
