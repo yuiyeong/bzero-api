@@ -152,7 +152,10 @@ class NotificationService:
     async def create_checkout_reminder(self, user_id: Id, message: str) -> Notification:
         return await self._notification_repository.create(
             Notification.create(
-                user_id=user_id, notification_type=NotificationType.CHECKOUT_REMINDER, title="체크아웃 알림", message=message
+                user_id=user_id,
+                notification_type=NotificationType.CHECKOUT_REMINDER,
+                title="체크아웃 알림",
+                message=message,
             )
         )
 
@@ -234,6 +237,9 @@ class NotificationSyncService:
     def create_checkout_reminder(self, user_id: Id, message: str) -> Notification:
         return self._notification_repository.create(
             Notification.create(
-                user_id=user_id, notification_type=NotificationType.CHECKOUT_REMINDER, title="체크아웃 알림", message=message
+                user_id=user_id,
+                notification_type=NotificationType.CHECKOUT_REMINDER,
+                title="체크아웃 알림",
+                message=message,
             )
         )

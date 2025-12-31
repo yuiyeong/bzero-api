@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 import pytest
@@ -18,7 +17,6 @@ class TestRoomStayAPI:
         DataResponse(data=None) 반환 가능.
         """
         # Given: Create User
-
 
         # We need to create a user that matches the auth_headers
         # auth_headers uses default provider_user_id="test-user-id-123", provider="email"

@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 sio = get_socketio_server()
 
 
-
-
 def socket_handler[T: BaseModel](schema: type[T] | None = None, namespace: str = "/"):
     """Socket.IO 핸들러를 위한 데코레이터.
 

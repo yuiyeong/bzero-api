@@ -91,7 +91,9 @@ async def extend_current_stay(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient points") from e
     except (NoActiveStayError, InvalidStayStatusError) as e:
         # 락 획득 후 상태가 변경되었을 수 있음
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active stay found or invalid status") from e
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No active stay found or invalid status"
+        ) from e
     except ForbiddenRoomForUserError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden") from e
 
