@@ -5,6 +5,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from bzero.core.database import close_db_connection, setup_db_connection
@@ -67,6 +68,44 @@ def create_app() -> FastAPI:
     static_dir = Path(__file__).parent.parent.parent / "static"
     if static_dir.exists():
         b0.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    @b0.get("/docs/socket.io", include_in_schema=False)
+    async def asyncapi_docs():
+        """Socket.IO AsyncAPI 문서 (Standalone React Component)"""
+        docs_path = Path(__file__).parent.parent.parent / "docs" / "asyncapi.yaml"
+        if not docs_path.exists():
+            return HTMLResponse("AsyncAPI definition not found.", status_code=404)
+
+        asyncapi_content = docs_path.read_text(encoding="utf-8")
+
+        # AsyncAPI React Component HTML Template
+        # Config: showSidebar=true, sidebarOrganization='byTags'
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>B0 Chat API (Socket.IO)</title>
+          <link rel="stylesheet" href="https://unpkg.com/@asyncapi/react-component@latest/styles/default.min.css">
+          <style>
+            body {{ margin: 0; padding: 0; }}
+            #asyncapi {{ height: 100vh; }}
+          </style>
+        </head>
+        <body>
+          <div id="asyncapi"></div>
+          <script src="https://unpkg.com/@asyncapi/react-component@latest/browser/standalone/index.js"></script>
+          <script>
+            const schema = {asyncapi_content!r};
+            const config = {{
+              showErrors: true,
+              sidebarOrganization: 'byTags',
+            }};
+            AsyncApiStandalone.render({{ schema, config }}, document.getElementById('asyncapi'));
+          </script>
+        </body>
+        </html>
+        """
+        return HTMLResponse(html_content)
 
     @b0.get("/")
     def check_health():

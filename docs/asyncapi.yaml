@@ -1,0 +1,165 @@
+asyncapi: '2.6.0'
+info:
+  title: B0 Chat API (Socket.IO)
+  version: '1.0.0'
+  description: |
+    B0 실시간 채팅을 위한 Socket.IO 인터페이스 사양입니다.
+
+    ## 연결 정보
+    - **URL**: `wss://api.basementzero.cloud/ws`
+    - **Path**: `/socket.io/` (Default EIO path)
+    - **Transports**: `websocket`, `polling`
+    - **Authentication**: 연결 시 Handshake Query Param 또는 Header에 JWT 토큰 필요 (미구현 시 명시 필요, 현재 코드는 connect 핸들러 확인 필요)
+
+  contact:
+    name: B0 Backend Team
+    url: https://github.com/Start-B0/bzero-api
+
+servers:
+  production:
+    url: wss://api.basementzero.cloud
+    protocol: socket.io
+    description: Production Server
+    variables:
+      path:
+        default: /ws/socket.io
+
+channels:
+  /:
+    description: 기본 네임스페이스 (인증 채팅)
+    publish:
+      description: 클라이언트가 서버로 보내는 이벤트
+      message:
+        oneOf:
+          - $ref: '#/components/messages/JoinRoom'
+          - $ref: '#/components/messages/SendMessage'
+          - $ref: '#/components/messages/ShareCard'
+    subscribe:
+      description: 서버가 클라이언트로 보내는 이벤트
+      message:
+        oneOf:
+          - $ref: '#/components/messages/NewMessage'
+          - $ref: '#/components/messages/SystemMessage'
+          - $ref: '#/components/messages/Error'
+
+components:
+  messages:
+    JoinRoom:
+      name: join_room
+      title: 룸 입장
+      summary: 특정 채팅 룸에 입장합니다.
+      payload:
+        $ref: '#/components/schemas/JoinRoomRequest'
+
+    SendMessage:
+      name: send_message
+      title: 메시지 전송
+      summary: 텍스트 메시지를 전송합니다.
+      payload:
+        $ref: '#/components/schemas/SendMessageRequest'
+
+    ShareCard:
+      name: share_card
+      title: 카드 공유
+      summary: 대화 카드를 룸에 공유합니다.
+      payload:
+        $ref: '#/components/schemas/ShareCardRequest'
+
+    NewMessage:
+      name: new_message
+      title: 새 메시지 수신
+      summary: 룸에 새 메시지(텍스트 또는 카드)가 도착했을 때 발생합니다.
+      payload:
+        type: object
+        properties:
+          message:
+            $ref: '#/components/schemas/ChatMessageResponse'
+
+    SystemMessage:
+      name: system_message
+      title: 시스템 메시지 수신
+      summary: 입장/퇴장 등 시스템 알림이 발생했을 때 발생합니다.
+      payload:
+        type: object
+        properties:
+          message:
+            $ref: '#/components/schemas/ChatMessageResponse'
+
+    Error:
+      name: error
+      title: 에러 발생
+      summary: 요청 처리 중 에러가 발생했을 때 발생합니다.
+      payload:
+        type: object
+        properties:
+          error:
+            type: string
+            description: 에러 코드 (예 RATE_LIMIT_EXCEEDED, UNAUTHORIZED)
+
+  schemas:
+    JoinRoomRequest:
+      type: object
+      required:
+        - room_id
+      properties:
+        room_id:
+          type: string
+          format: uuid
+          description: 입장할 룸 ID
+
+    SendMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: 전송할 메시지 내용
+
+    ShareCardRequest:
+      type: object
+      required:
+        - card_id
+      properties:
+        card_id:
+          type: string
+          format: uuid
+          description: 공유할 카드 ID
+
+    ChatMessageResponse:
+      type: object
+      required:
+        - message_id
+        - room_id
+        - content
+        - message_type
+        - is_system
+        - created_at
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        room_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: 시스템 메시지인 경우 null
+        content:
+          type: string
+        card_id:
+          type: string
+          format: uuid
+          nullable: true
+        message_type:
+          type: string
+          enum: [text, card_shared, system]
+        is_system:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
