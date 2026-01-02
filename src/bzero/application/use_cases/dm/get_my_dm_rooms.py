@@ -86,7 +86,19 @@ class GetMyDMRoomsUseCase:
             offset=offset,
         )
 
-        # 2. 각 대화방의 마지막 메시지와 읽지 않은 메시지 개수 조회
+        # 2. 참여자 정보 조회를 위한 ID 수집
+        user_ids_to_fetch = set()
+        for dm_room in dm_rooms:
+            user_ids_to_fetch.add(dm_room.requester_id)
+            user_ids_to_fetch.add(dm_room.receiver_id)
+
+        user_map = {}
+        if user_ids_to_fetch:
+            users = await self._user_service.get_users_by_user_ids(tuple(user_ids_to_fetch))
+            for u in users:
+                user_map[u.user_id.value] = u
+
+        # 3. 각 대화방의 상세 정보 (마지막 메시지, 읽지 않은 개수, 참여자 정보) 조합
         results = []
         for dm_room in dm_rooms:
             # 마지막 메시지 조회
@@ -98,11 +110,17 @@ class GetMyDMRoomsUseCase:
                 user_id=user_id_vo,
             )
 
+            # 참여자 정보
+            requester = user_map.get(dm_room.requester_id.value)
+            receiver = user_map.get(dm_room.receiver_id.value)
+
             results.append(
                 DirectMessageRoomResult.create_from(
                     dm_room,
                     last_message=last_message,
                     unread_count=unread_count,
+                    requester=requester,
+                    receiver=receiver,
                 )
             )
 

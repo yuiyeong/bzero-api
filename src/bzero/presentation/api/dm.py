@@ -24,6 +24,10 @@ from bzero.presentation.schemas.dm import (
     DirectMessageResponse,
     DirectMessageRoomResponse,
 )
+from bzero.presentation.socketio.handlers.dm import (
+    emit_dm_request_notification,
+    emit_dm_status_changed,
+)
 
 
 router = APIRouter(prefix="/dm", tags=["dm"])
@@ -70,6 +74,13 @@ async def request_dm(
         target_id=request.to_user_id,
     )
 
+    # 알림 전송 (Socket.IO)
+    await emit_dm_request_notification(
+        to_user_id=request.to_user_id,
+        dm_room_id=result.dm_room_id,
+        from_user_id=result.requester_id,
+    )
+
     return DirectMessageRoomResponse.create_from(result)
 
 
@@ -110,6 +121,14 @@ async def accept_dm_request(
         provider_user_id=jwt_payload.provider_user_id,
     )
 
+    # 알림 전송 (요청자에게)
+    await emit_dm_status_changed(
+        to_user_id=result.requester_id,
+        dm_room_id=result.dm_room_id,
+        status="accepted",
+        updated_by_user_id=result.receiver_id,
+    )
+
     return DirectMessageRoomResponse.create_from(result)
 
 
@@ -148,6 +167,14 @@ async def reject_dm_request(
         dm_room_id=dm_room_id,
         provider=jwt_payload.provider,
         provider_user_id=jwt_payload.provider_user_id,
+    )
+
+    # 알림 전송 (요청자에게)
+    await emit_dm_status_changed(
+        to_user_id=result.requester_id,
+        dm_room_id=result.dm_room_id,
+        status="rejected",
+        updated_by_user_id=result.receiver_id,
     )
 
     return DirectMessageRoomResponse.create_from(result)
