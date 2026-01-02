@@ -63,8 +63,8 @@ class DirectMessageRoomResponse(BaseModel):
     dm_room_id: str = Field(..., description="대화방 고유 식별자")
     guesthouse_id: str = Field(..., description="게스트하우스 고유 식별자")
     room_id: str = Field(..., description="룸 고유 식별자")
-    user1_id: str = Field(..., description="대화 신청자 고유 식별자")
-    user2_id: str = Field(..., description="대화 수신자 고유 식별자")
+    requester_id: str = Field(..., description="대화 신청자 고유 식별자")
+    receiver_id: str = Field(..., description="대화 수신자 고유 식별자")
     status: str = Field(..., description="대화방 상태 (pending, accepted, active, rejected, ended)")
     started_at: datetime | None = Field(None, description="대화 시작 일시")
     ended_at: datetime | None = Field(None, description="대화 종료 일시")
@@ -72,6 +72,10 @@ class DirectMessageRoomResponse(BaseModel):
     updated_at: datetime = Field(..., description="수정 일시")
     last_message: DirectMessageResponse | None = Field(None, description="마지막 메시지")
     unread_count: int = Field(0, description="읽지 않은 메시지 개수")
+    requester_nickname: str | None = Field(None, description="대화 신청자 닉네임")
+    requester_profile_image: str | None = Field(None, description="대화 신청자 프로필 이미지")
+    receiver_nickname: str | None = Field(None, description="대화 수신자 닉네임")
+    receiver_profile_image: str | None = Field(None, description="대화 수신자 프로필 이미지")
 
     @classmethod
     def create_from(cls, result: DirectMessageRoomResult) -> "DirectMessageRoomResponse":
@@ -80,8 +84,8 @@ class DirectMessageRoomResponse(BaseModel):
             dm_room_id=result.dm_room_id,
             guesthouse_id=result.guesthouse_id,
             room_id=result.room_id,
-            user1_id=result.user1_id,
-            user2_id=result.user2_id,
+            requester_id=result.requester_id,
+            receiver_id=result.receiver_id,
             status=result.status,
             started_at=result.started_at,
             ended_at=result.ended_at,
@@ -89,4 +93,8 @@ class DirectMessageRoomResponse(BaseModel):
             updated_at=result.updated_at,
             last_message=(DirectMessageResponse.create_from(result.last_message) if result.last_message else None),
             unread_count=result.unread_count,
+            requester_nickname=result.requester_nickname,
+            requester_profile_image=result.requester_profile_image,
+            receiver_nickname=result.receiver_nickname,
+            receiver_profile_image=result.receiver_profile_image,
         )

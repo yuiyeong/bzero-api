@@ -99,7 +99,7 @@ class DirectMessageService:
 
         # 4. 첫 메시지인 경우 상태 전환 (ACCEPTED → ACTIVE)
         if dm_room.status == DMStatus.ACCEPTED:
-            dm_room.activate(now)
+            dm_room.activate()
             dm_room = await self._dm_room_repository.update(dm_room)
 
         # 5. 메시지 생성
@@ -110,7 +110,6 @@ class DirectMessageService:
             to_user_id=to_user_id,
             content=content,
             created_at=now,
-            updated_at=now,
         )
         created_message = await self._dm_repository.create(message)
 

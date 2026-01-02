@@ -249,8 +249,8 @@ class TestDirectMessageApi:
         assert response.status_code in (200, 201)
         data = response.json()
         assert data["dm_room_id"] is not None
-        assert data["user1_id"].replace("-", "") == str(user1.user_id).replace("-", "")
-        assert data["user2_id"].replace("-", "") == str(user2.user_id).replace("-", "")
+        assert data["requester_id"].replace("-", "") == str(user1.user_id).replace("-", "")
+        assert data["receiver_id"].replace("-", "") == str(user2.user_id).replace("-", "")
         assert data["status"] == "pending"
 
         return data["dm_room_id"]

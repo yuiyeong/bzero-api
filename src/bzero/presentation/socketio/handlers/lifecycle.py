@@ -86,6 +86,9 @@ async def connect(sid: str, environ: dict, auth: dict | None):
         # 세션 데이터 저장
         await sio.save_session(sid, {"user_id": user_id, "room_id": room_id})
 
+        # 사용자별 고유 룸 입장 (알림 전송용)
+        await sio.enter_room(sid, f"user:{user_id}")
+
         logger.info(f"User {user_id} authenticated (sid: {sid})")
         return True
 

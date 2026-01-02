@@ -5,9 +5,14 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from bzero.domain.entities.direct_message import DirectMessage
 from bzero.domain.entities.direct_message_room import DirectMessageRoom
+
+
+if TYPE_CHECKING:
+    from bzero.domain.entities.user import User
 
 
 @dataclass(frozen=True)
@@ -54,8 +59,8 @@ class DirectMessageRoomResult:
         dm_room_id: 대화방 ID
         guesthouse_id: 게스트하우스 ID
         room_id: 룸 ID
-        user1_id: 대화 신청자 ID
-        user2_id: 대화 수신자 ID
+        requester_id: 대화 신청자 ID
+        receiver_id: 대화 수신자 ID
         status: 대화방 상태 (pending, accepted, active, rejected, ended)
         started_at: 대화 시작 일시 (ACCEPTED 시 기록)
         ended_at: 대화 종료 일시 (ENDED 시 기록)
@@ -68,8 +73,8 @@ class DirectMessageRoomResult:
     dm_room_id: str
     guesthouse_id: str
     room_id: str
-    user1_id: str
-    user2_id: str
+    requester_id: str
+    receiver_id: str
     status: str
     started_at: datetime | None
     ended_at: datetime | None
@@ -77,6 +82,10 @@ class DirectMessageRoomResult:
     updated_at: datetime
     last_message: DirectMessageResult | None = None
     unread_count: int = 0
+    requester_nickname: str | None = None
+    requester_profile_image: str | None = None
+    receiver_nickname: str | None = None
+    receiver_profile_image: str | None = None
 
     @classmethod
     def create_from(
@@ -84,14 +93,16 @@ class DirectMessageRoomResult:
         dm_room: DirectMessageRoom,
         last_message: DirectMessage | None = None,
         unread_count: int = 0,
+        requester: "User | None" = None,
+        receiver: "User | None" = None,
     ) -> "DirectMessageRoomResult":
         """DirectMessageRoom 엔티티로부터 Result를 생성합니다."""
         return cls(
             dm_room_id=dm_room.dm_room_id.to_hex(),
             guesthouse_id=dm_room.guesthouse_id.to_hex(),
             room_id=dm_room.room_id.to_hex(),
-            user1_id=dm_room.requester_id.to_hex(),
-            user2_id=dm_room.receiver_id.to_hex(),
+            requester_id=dm_room.requester_id.to_hex(),
+            receiver_id=dm_room.receiver_id.to_hex(),
             status=str(dm_room.status.value),
             started_at=dm_room.started_at,
             ended_at=dm_room.ended_at,
@@ -99,4 +110,8 @@ class DirectMessageRoomResult:
             updated_at=dm_room.updated_at,
             last_message=DirectMessageResult.create_from(last_message) if last_message else None,
             unread_count=unread_count,
+            requester_nickname=requester.nickname.value if requester and requester.nickname else None,
+            requester_profile_image=requester.profile.value if requester and requester.profile else None,
+            receiver_nickname=receiver.nickname.value if receiver and receiver.nickname else None,
+            receiver_profile_image=receiver.profile.value if receiver and receiver.profile else None,
         )
