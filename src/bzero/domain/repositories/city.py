@@ -30,23 +30,27 @@ class CityRepository(ABC):
         """
 
     @abstractmethod
-    async def find_active_cities(self, offset: int = 0, limit: int = 20) -> list[City]:
-        """활성화된 도시 목록을 조회합니다.
+    async def find_cities(self, offset: int = 0, limit: int = 20, active_only: bool = True) -> list[City]:
+        """도시 목록을 조회합니다.
 
         display_order 순서대로 정렬하여 반환합니다.
 
         Args:
             offset: 조회 시작 위치 (기본값: 0)
             limit: 조회할 최대 개수 (기본값: 20)
+            active_only: 활성화된 도시만 조회할지 여부 (기본값: True)
 
         Returns:
-            활성화된 도시 목록 (display_order 오름차순)
+            도시 목록 (display_order 오름차순)
         """
 
     @abstractmethod
-    async def count_active_cities(self) -> int:
-        """활성화된 도시의 총 개수를 조회합니다.
+    async def count_cities(self, active_only: bool = True) -> int:
+        """도시의 총 개수를 조회합니다.
+
+        Args:
+            active_only: 활성화된 도시만 카운트할지 여부 (기본값: True)
 
         Returns:
-            활성화된 도시의 총 개수
+            도시의 총 개수
         """

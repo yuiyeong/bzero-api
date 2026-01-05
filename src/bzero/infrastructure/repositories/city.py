@@ -28,31 +28,25 @@ class SqlAlchemyCityRepository(CityRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
-    async def find_active_cities(self, offset: int = 0, limit: int = 20) -> list[City]:
-        stmt = (
-            select(CityModel)
-            .where(
-                CityModel.is_active.is_(True),
-                CityModel.deleted_at.is_(None),
-            )
-            .order_by(CityModel.display_order.asc())
-            .offset(offset)
-            .limit(limit)
-        )
-        result = await self._session.execute(stmt)
+    async def find_cities(self, offset: int = 0, limit: int = 20, active_only: bool = True) -> list[City]:
+        query = select(CityModel).where(CityModel.deleted_at.is_(None))
+
+        if active_only:
+            query = query.where(CityModel.is_active.is_(True))
+
+        query = query.order_by(CityModel.display_order.asc()).offset(offset).limit(limit)
+
+        result = await self._session.execute(query)
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
-    async def count_active_cities(self) -> int:
-        stmt = (
-            select(func.count())
-            .select_from(CityModel)
-            .where(
-                CityModel.is_active.is_(True),
-                CityModel.deleted_at.is_(None),
-            )
-        )
-        result = await self._session.execute(stmt)
+    async def count_cities(self, active_only: bool = True) -> int:
+        query = select(func.count()).select_from(CityModel).where(CityModel.deleted_at.is_(None))
+
+        if active_only:
+            query = query.where(CityModel.is_active.is_(True))
+
+        result = await self._session.execute(query)
         return result.scalar_one()
 
     @staticmethod
