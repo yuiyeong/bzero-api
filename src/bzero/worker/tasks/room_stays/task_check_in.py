@@ -57,6 +57,7 @@ def task_check_in(ticket_id: str) -> dict:
         )
         room_stay_service = RoomStaySyncService(
             room_stay_sync_repository=SqlAlchemyRoomStaySyncRepository(session),
+            room_sync_repository=SqlAlchemyRoomSyncRepository(session),
             timezone=timezone,
         )
 
