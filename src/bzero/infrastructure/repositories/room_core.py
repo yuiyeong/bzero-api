@@ -75,6 +75,19 @@ class RoomRepositoryCore:
             .returning(RoomModel)
         )
 
+    @staticmethod
+    def _query_decrease_capacity(room_id: Id) -> Update:
+        """방 인원을 1 감소시키는 쿼리를 생성합니다 (Atomic Update)."""
+        return (
+            update(RoomModel)
+            .where(
+                RoomModel.room_id == room_id.value,
+                RoomModel.deleted_at.is_(None),
+                RoomModel.current_capacity > 0,  # 음수 방지
+            )
+            .values(current_capacity=RoomModel.current_capacity - 1)
+        )
+
     # ==================== 락 충돌 처리 ====================
 
     @classmethod
@@ -158,3 +171,9 @@ class RoomRepositoryCore:
         if model is None:
             raise NotFoundRoomError
         return RoomRepositoryCore.to_entity(model)
+
+    @staticmethod
+    def decrease_capacity(session: Session, room_id: Id) -> None:
+        """방 인원을 1 감소시킵니다 (Atomic Update)."""
+        stmt = RoomRepositoryCore._query_decrease_capacity(room_id)
+        session.execute(stmt)

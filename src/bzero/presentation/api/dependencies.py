@@ -41,6 +41,7 @@ from bzero.infrastructure.repositories.direct_message import SqlAlchemyDirectMes
 from bzero.infrastructure.repositories.direct_message_room import SqlAlchemyDirectMessageRoomRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
 from bzero.infrastructure.repositories.questionnaire import SqlAlchemyQuestionnaireRepository
+from bzero.infrastructure.repositories.room import SqlAlchemyRoomRepository
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStayRepository
 from bzero.infrastructure.repositories.ticket import SqlAlchemyTicketRepository
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
@@ -195,7 +196,8 @@ def get_checkout_service(
     """Create CheckoutService instance."""
     settings = get_settings()
     room_stay_repository = SqlAlchemyRoomStayRepository(session)
-    return CheckoutService(room_stay_repository, settings.timezone)
+    room_repository = SqlAlchemyRoomRepository(session)
+    return CheckoutService(room_stay_repository, room_repository, settings.timezone)
 
 
 def get_diary_service(

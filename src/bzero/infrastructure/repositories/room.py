@@ -33,6 +33,9 @@ class SqlAlchemyRoomRepository(RoomRepository):
     async def update(self, room: Room) -> Room:
         return await self._session.run_sync(RoomRepositoryCore.update, room)
 
+    async def decrease_capacity(self, room_id: Id) -> None:
+        await self._session.run_sync(RoomRepositoryCore.decrease_capacity, room_id)
+
 
 class SqlAlchemyRoomSyncRepository(RoomSyncRepository):
     """SQLAlchemy 기반 RoomRepository (동기).
