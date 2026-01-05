@@ -114,6 +114,10 @@ class DirectMessageRoomService:
         user2(수신자)만 수락할 수 있습니다.
         PENDING 상태인 대화방만 수락할 수 있습니다.
 
+        Idempotency:
+            이미 ACCEPTED 또는 ACTIVE 상태인 경우, 참여자 여부만 확인하고
+            별도 상태 변경 없이 성공으로 간주하여 반환합니다.
+
         Args:
             dm_room_id: 대화방 ID
             user_id: 수락하는 사용자 ID
@@ -128,11 +132,19 @@ class DirectMessageRoomService:
         """
         dm_room = await self._get_dm_room_or_raise(dm_room_id)
 
-        # 권한 검증 (receiver만 수락 가능)
+        # 1. 멱등성 처리: 이미 수락된 경우
+        # Race Condition 방지: 동시에 두 번 수락 요청이 와도 에러 없이 성공 처리
+        if dm_room.status in [DMStatus.ACCEPTED, DMStatus.ACTIVE]:
+            # 참여자인지만 확인
+            if not dm_room.is_participant(user_id):
+                raise ForbiddenDMRoomAccessError
+            return dm_room
+
+        # 2. 권한 검증 (receiver만 수락 가능)
         if not dm_room.can_accept_or_reject(user_id):
             raise ForbiddenDMRoomAccessError
 
-        # 상태 전이 (엔티티 메서드)
+        # 3. 상태 전이 (엔티티 메서드)
         now = datetime.now(self._timezone)
         dm_room.accept(now)
 

@@ -7,6 +7,7 @@ from bzero.core.loggers import background_logger
 from bzero.core.settings import get_settings
 from bzero.domain.services.room_stay import NotificationSyncService, RoomStaySyncService
 from bzero.infrastructure.repositories.notification import SqlAlchemyNotificationSyncRepository
+from bzero.infrastructure.repositories.room import SqlAlchemyRoomSyncRepository
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStaySyncRepository
 
 
@@ -27,7 +28,8 @@ def task_auto_checkout_batch() -> None:
 
     with session_factory() as session:
         room_stay_repo = SqlAlchemyRoomStaySyncRepository(session)
-        service = RoomStaySyncService(room_stay_repo, settings.timezone)
+        room_repo = SqlAlchemyRoomSyncRepository(session)
+        service = RoomStaySyncService(room_stay_repo, room_repo, settings.timezone)
 
         # 1. 대상 조회 (Chunking: 1000건)
         # 만료 시간 < 현재 시간 인 건들

@@ -11,6 +11,7 @@ from bzero.domain.errors import (
     NoActiveStayError,
 )
 from bzero.domain.repositories.notification import NotificationRepository, NotificationSyncRepository
+from bzero.domain.repositories.room import RoomRepository, RoomSyncRepository
 from bzero.domain.repositories.room_stay import RoomStayRepository, RoomStaySyncRepository
 from bzero.domain.repositories.user import UserRepository
 from bzero.domain.services.point_transaction import PointTransactionService
@@ -111,8 +112,14 @@ class StayExtensionService:
 class CheckoutService:
     """체크아웃 서비스 (비동기 - 사용자/API용)."""
 
-    def __init__(self, room_stay_repository: RoomStayRepository, timezone: ZoneInfo):
+    def __init__(
+        self,
+        room_stay_repository: RoomStayRepository,
+        room_repository: RoomRepository,
+        timezone: ZoneInfo,
+    ):
         self._room_stay_repository = room_stay_repository
+        self._room_repository = room_repository
         self._timezone = timezone
 
     async def checkout(self, room_stay_id: Id, user_id: Id) -> RoomStay:
@@ -137,6 +144,9 @@ class CheckoutService:
         now = datetime.now(self._timezone)
         room_stay.status = RoomStayStatus.CHECKED_OUT
         room_stay.actual_check_out_at = now
+
+        # 3. 방 인원 감소 (Atomic)
+        await self._room_repository.decrease_capacity(room_stay.room_id)
 
         # TODO: 마지막 사용자 체크아웃 시 방 정리 로직 (Issue #55) - 추후 구현 필요 시 추가
 
@@ -171,9 +181,11 @@ class RoomStaySyncService:
     def __init__(
         self,
         room_stay_sync_repository: RoomStaySyncRepository,
+        room_sync_repository: RoomSyncRepository,
         timezone: ZoneInfo,
     ) -> None:
         self._room_stay_repository = room_stay_sync_repository
+        self._room_repository = room_sync_repository
         self._timezone = timezone
 
     def assign_room(self, ticket: Ticket, room: Room) -> RoomStay:
@@ -224,6 +236,10 @@ class RoomStaySyncService:
         # 3. 체크아웃 처리
         room_stay.status = RoomStayStatus.CHECKED_OUT
         room_stay.actual_check_out_at = now
+
+        # 4. 방 인원 감소 (Atomic)
+        self._room_repository.decrease_capacity(room_stay.room_id)
+
         self._room_stay_repository.update(room_stay)
         return True
 
