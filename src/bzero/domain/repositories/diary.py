@@ -48,6 +48,7 @@ class DiaryRepository(ABC):
         user_id: Id,
         limit: int = 20,
         offset: int = 0,
+        room_stay_id: Id | None = None,
     ) -> list[Diary]:
         """사용자의 모든 일기를 페이지네이션으로 조회합니다.
 

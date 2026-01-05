@@ -107,6 +107,7 @@ class DiaryService:
         user_id: Id,
         limit: int = 20,
         offset: int = 0,
+        room_stay_id: Id | None = None,
     ) -> tuple[list[Diary], int]:
         """사용자의 일기 목록을 페이지네이션으로 조회합니다.
 
@@ -122,6 +123,7 @@ class DiaryService:
             user_id=user_id,
             limit=limit,
             offset=offset,
+            room_stay_id=room_stay_id,
         )
         total = await self._diary_repository.count_by_user_id(user_id)
         return diaries, total

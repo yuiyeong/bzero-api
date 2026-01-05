@@ -51,18 +51,18 @@ class DiaryRepositoryCore:
         user_id: Id,
         limit: int,
         offset: int,
+        room_stay_id: Id | None = None,
     ) -> Select[tuple[DiaryModel]]:
         """사용자의 모든 일기를 조회하는 쿼리를 생성합니다."""
-        return (
-            select(DiaryModel)
-            .where(
-                DiaryModel.user_id == user_id.value,
-                DiaryModel.deleted_at.is_(None),
-            )
-            .order_by(DiaryModel.created_at.desc())
-            .limit(limit)
-            .offset(offset)
+        query = select(DiaryModel).where(
+            DiaryModel.user_id == user_id.value,
+            DiaryModel.deleted_at.is_(None),
         )
+
+        if room_stay_id:
+            query = query.where(DiaryModel.room_stay_id == room_stay_id.value)
+
+        return query.order_by(DiaryModel.created_at.desc()).limit(limit).offset(offset)
 
     @staticmethod
     def _query_count_by_user_id(user_id: Id) -> Select[tuple[int]]:
@@ -170,9 +170,10 @@ class DiaryRepositoryCore:
         user_id: Id,
         limit: int,
         offset: int,
+        room_stay_id: Id | None = None,
     ) -> list[Diary]:
         """사용자의 모든 일기를 조회합니다."""
-        stmt = DiaryRepositoryCore._query_find_all_by_user_id(user_id, limit, offset)
+        stmt = DiaryRepositoryCore._query_find_all_by_user_id(user_id, limit, offset, room_stay_id)
         result = session.execute(stmt)
         models = result.scalars().all()
         return [DiaryRepositoryCore.to_entity(model) for model in models]

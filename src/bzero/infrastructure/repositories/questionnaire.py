@@ -74,6 +74,7 @@ class SqlAlchemyQuestionnaireRepository(QuestionnaireRepository):
         user_id: Id,
         limit: int = 20,
         offset: int = 0,
+        room_stay_id: Id | None = None,
     ) -> list[Questionnaire]:
         """사용자의 모든 문답지를 조회합니다.
 
@@ -81,6 +82,7 @@ class SqlAlchemyQuestionnaireRepository(QuestionnaireRepository):
             user_id: 사용자 ID
             limit: 조회할 최대 개수
             offset: 건너뛸 개수
+            room_stay_id: 체류 ID (옵션). 지정 시 해당 체류의 문답지만 조회합니다.
 
         Returns:
             문답지 목록
@@ -90,6 +92,7 @@ class SqlAlchemyQuestionnaireRepository(QuestionnaireRepository):
             user_id,
             limit,
             offset,
+            room_stay_id,
         )
 
     async def find_all_by_room_stay_id(self, room_stay_id: Id) -> list[Questionnaire]:

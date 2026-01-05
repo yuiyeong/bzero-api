@@ -96,8 +96,10 @@ async def get_my_questionnaires(
     jwt_payload: CurrentJWTPayload,
     user_service: CurrentUserService,
     questionnaire_service: CurrentQuestionnaireService,
+    room_stay_service: CurrentRoomStayService,
     offset: Annotated[int, Query(ge=0, description="조회 시작 위치")] = 0,
     limit: Annotated[int, Query(ge=1, le=100, description="조회할 최대 개수")] = 20,
+    current_stay_only: Annotated[bool, Query(description="현재 체류 중인 문답지만 조회할지 여부")] = False,
 ) -> ListResponse[QuestionnaireResponse]:
     """내 문답지 목록을 조회합니다.
 
@@ -105,8 +107,10 @@ async def get_my_questionnaires(
         jwt_payload: JWT 페이로드 (인증된 사용자 정보)
         user_service: 사용자 도메인 서비스
         questionnaire_service: 문답지 도메인 서비스
+        room_stay_service: 체류 도메인 서비스
         offset: 조회 시작 위치 (기본값: 0)
         limit: 조회할 최대 개수 (기본값: 20, 최대: 100)
+        current_stay_only: 현재 체류 중인 문답지만 조회할지 여부 (기본값: False)
 
     Returns:
         QuestionnaireListResponse: 문답지 목록과 페이지네이션 정보
@@ -114,12 +118,14 @@ async def get_my_questionnaires(
     use_case = GetQuestionnairesByUserUseCase(
         user_service=user_service,
         questionnaire_service=questionnaire_service,
+        room_stay_service=room_stay_service,
     )
     result = await use_case.execute(
         provider=jwt_payload.provider,
         provider_user_id=jwt_payload.provider_user_id,
         limit=limit,
         offset=offset,
+        current_stay_only=current_stay_only,
     )
     return ListResponse(
         list=[QuestionnaireResponse.create_from(q) for q in result.items],
