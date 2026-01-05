@@ -87,6 +87,7 @@ class QuestionnaireService:
         user_id: Id,
         limit: int = 20,
         offset: int = 0,
+        room_stay_id: Id | None = None,
     ) -> tuple[list[Questionnaire], int]:
         """사용자의 문답지 목록을 페이지네이션으로 조회합니다.
 
@@ -94,6 +95,7 @@ class QuestionnaireService:
             user_id: 사용자 ID
             limit: 조회 개수
             offset: 오프셋
+            room_stay_id: 체류 ID (옵션)
 
         Returns:
             (문답지 목록, 전체 개수) 튜플
@@ -102,6 +104,7 @@ class QuestionnaireService:
             user_id=user_id,
             limit=limit,
             offset=offset,
+            room_stay_id=room_stay_id,
         )
         total = await self._questionnaire_repository.count_by_user_id(user_id)
         return questionnaires, total

@@ -49,18 +49,18 @@ class QuestionnaireRepositoryCore:
         user_id: Id,
         limit: int,
         offset: int,
+        room_stay_id: Id | None = None,
     ) -> Select[tuple[QuestionnaireModel]]:
         """사용자의 모든 문답지를 조회하는 쿼리를 생성합니다."""
-        return (
-            select(QuestionnaireModel)
-            .where(
-                QuestionnaireModel.user_id == user_id.value,
-                QuestionnaireModel.deleted_at.is_(None),
-            )
-            .order_by(QuestionnaireModel.created_at.desc())
-            .limit(limit)
-            .offset(offset)
+        query = select(QuestionnaireModel).where(
+            QuestionnaireModel.user_id == user_id.value,
+            QuestionnaireModel.deleted_at.is_(None),
         )
+
+        if room_stay_id:
+            query = query.where(QuestionnaireModel.room_stay_id == room_stay_id.value)
+
+        return query.order_by(QuestionnaireModel.created_at.desc()).limit(limit).offset(offset)
 
     @staticmethod
     def _query_find_all_by_room_stay_id(room_stay_id: Id) -> Select[tuple[QuestionnaireModel]]:
@@ -200,9 +200,10 @@ class QuestionnaireRepositoryCore:
         user_id: Id,
         limit: int,
         offset: int,
+        room_stay_id: Id | None = None,
     ) -> list[Questionnaire]:
         """사용자의 모든 문답지를 조회합니다."""
-        stmt = QuestionnaireRepositoryCore._query_find_all_by_user_id(user_id, limit, offset)
+        stmt = QuestionnaireRepositoryCore._query_find_all_by_user_id(user_id, limit, offset, room_stay_id)
         result = session.execute(stmt)
         models = result.scalars().all()
         return [QuestionnaireRepositoryCore.to_entity(model) for model in models]

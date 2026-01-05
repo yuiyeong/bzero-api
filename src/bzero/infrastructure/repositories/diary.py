@@ -68,6 +68,7 @@ class SqlAlchemyDiaryRepository(DiaryRepository):
         user_id: Id,
         limit: int,
         offset: int,
+        room_stay_id: Id | None = None,
     ) -> list[Diary]:
         """사용자의 모든 일기를 조회합니다.
 
@@ -75,6 +76,7 @@ class SqlAlchemyDiaryRepository(DiaryRepository):
             user_id: 사용자 ID
             limit: 조회할 최대 개수
             offset: 건너뛸 개수
+            room_stay_id: 체류 ID (옵션). 지정 시 해당 체류의 일기만 조회합니다.
 
         Returns:
             일기 목록
@@ -84,6 +86,7 @@ class SqlAlchemyDiaryRepository(DiaryRepository):
             user_id,
             limit,
             offset,
+            room_stay_id,
         )
 
     async def count_by_user_id(self, user_id: Id) -> int:
