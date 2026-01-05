@@ -14,20 +14,26 @@ class CityService:
     def __init__(self, city_repository: CityRepository):
         self._city_repository = city_repository
 
-    async def get_active_cities(self, offset: int = 0, limit: int = 20) -> tuple[list[City], int]:
-        """활성화된 도시 목록을 조회합니다.
+    async def get_cities(
+        self,
+        offset: int = 0,
+        limit: int = 20,
+        active_only: bool = True,
+    ) -> tuple[list[City], int]:
+        """도시 목록을 조회합니다.
 
         display_order 순서대로 정렬하여 반환합니다.
 
         Args:
             offset: 조회 시작 위치 (기본값: 0)
             limit: 조회할 최대 개수 (기본값: 20)
+            active_only: 활성화된 도시만 조회할지 여부 (기본값: True)
 
         Returns:
-            (활성화된 도시 목록, 전체 개수) 튜플
+            (도시 목록, 전체 개수) 튜플
         """
-        cities = await self._city_repository.find_active_cities(offset, limit)
-        total = await self._city_repository.count_active_cities()
+        cities = await self._city_repository.find_cities(offset, limit, active_only)
+        total = await self._city_repository.count_cities(active_only)
         return cities, total
 
     async def get_city_by_id(self, city_id: Id) -> City:

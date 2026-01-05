@@ -4,8 +4,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from bzero.application.use_cases.cities.get_active_cities import (
-    GetActiveCitiesUseCase,
+from bzero.application.use_cases.cities.get_cities import (
+    GetCitiesUseCase,
 )
 from bzero.application.use_cases.cities.get_city_by_id import GetCityByIdUseCase
 from bzero.presentation.api.dependencies import CurrentCityService
@@ -19,21 +19,27 @@ router = APIRouter(prefix="/cities", tags=["cities"])
 @router.get(
     "",
     response_model=ListResponse[CityResponse],
-    summary="활성 도시 목록 조회",
-    description="활성화된 도시 목록을 display_order 순서대로 조회합니다.",
+    summary="도시 목록 조회",
+    description="도시 목록을 display_order 순서대로 조회합니다.",
 )
-async def get_active_cities(
+async def get_cities(
     city_service: CurrentCityService,
     offset: Annotated[int, Query(ge=0, description="조회 시작 위치")] = 0,
     limit: Annotated[int, Query(ge=1, le=100, description="조회할 최대 개수")] = 20,
+    include_inactive: Annotated[bool, Query(description="비활성화된 도시 포함 여부")] = False,
 ) -> ListResponse[CityResponse]:
-    """활성화된 도시 목록 조회.
+    """도시 목록 조회.
 
-    - is_active=True인 도시만 반환
+    - include_inactive=False(기본값): 활성화된 도시만 조회
+    - include_inactive=True: 비활성화된 도시 포함 조회
     - display_order 오름차순 정렬
-    - pagination 지원 (기본값: offset=0, limit=20)
+    - pagination 지원
     """
-    result = await GetActiveCitiesUseCase(city_service).execute(offset, limit)
+    result = await GetCitiesUseCase(city_service).execute(
+        offset=offset,
+        limit=limit,
+        active_only=not include_inactive,
+    )
     return ListResponse(
         list=[CityResponse.create_from(city) for city in result.items],
         pagination=Pagination(total=result.total, offset=result.offset, limit=result.limit),
