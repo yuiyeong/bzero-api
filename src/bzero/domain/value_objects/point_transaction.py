@@ -19,6 +19,7 @@ class TransactionReason(str, Enum):
     TICKET = "ticket"
     EXTENSION = "extension"
     REFUND = "refund"
+    DAILY_LOGIN = "daily_login"
     ETC = "etc"
 
 
@@ -28,3 +29,4 @@ class TransactionReference(str, Enum):
     TICKETS = "tickets"
     QUESTIONNAIRES = "questionnaires"
     ROOM_STAYS = "room_stays"
+    REWARDS = "rewards"

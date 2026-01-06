@@ -16,6 +16,7 @@ from bzero.domain.value_objects.point_transaction import (
     TransactionStatus,
     TransactionType,
 )
+from bzero.domain.value_objects.reward import RewardType
 from bzero.domain.value_objects.room_stay import RoomStayStatus
 from bzero.domain.value_objects.ticket import AirshipSnapshot, CitySnapshot, TicketStatus
 from bzero.domain.value_objects.user import AuthProvider, Balance, Email, Nickname, Profile
@@ -36,6 +37,7 @@ __all__ = [
     "Nickname",
     "NotificationType",
     "Profile",
+    "RewardType",
     "RoomStayStatus",
     "TicketStatus",
     "TransactionReason",

@@ -4,6 +4,7 @@ from bzero.domain.services.city import CityService
 from bzero.domain.services.conversation_card import ConversationCardService
 from bzero.domain.services.diary import DiaryService
 from bzero.domain.services.point_transaction import PointTransactionService
+from bzero.domain.services.reward import RewardService
 from bzero.domain.services.room_stay import (
     CheckoutService,
     NotificationService,
@@ -27,6 +28,7 @@ __all__ = [
     "NotificationService",
     "NotificationSyncService",
     "PointTransactionService",
+    "RewardService",
     "RoomStayService",
     "RoomStaySyncService",
     "StayExtensionService",
