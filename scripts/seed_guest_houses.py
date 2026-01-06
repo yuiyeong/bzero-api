@@ -18,7 +18,7 @@ async def seed_guest_houses():
         guest_house_repository = SqlAlchemyGuestHouseRepository(session)
 
         now = datetime.now(settings.timezone)
-        cities = await city_repository.find_active_cities()
+        cities = await city_repository.find_cities(active_only=True)
 
         for city in cities:
             await guest_house_repository.create(
