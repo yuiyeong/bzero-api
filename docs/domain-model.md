@@ -94,6 +94,10 @@ graph TB
         PointBalance[Point Balance<br/>포인트 잔액]
     end
 
+    subgraph RewardContext[보상 컨텍스트]
+        Reward[Reward<br/>보상]
+    end
+
     UserContext -->|구매| TravelContext
     TravelContext -->|도착/체크인| RoomContext
     RoomContext -->|단체 대화| ChatContext
@@ -103,6 +107,8 @@ graph TB
     TravelContext -->|티켓 구매<br/>포인트 차감| PointContext
     RoomContext -->|연장<br/>포인트 차감| PointContext
     ReflectionContext -->|일기/문답지<br/>포인트 획득| PointContext
+    UserContext -->|보상 수령| RewardContext
+    RewardContext -->|포인트 획득| PointContext
 
     style UserContext fill:#e1f5ff
     style TravelContext fill:#fff4e1
@@ -111,6 +117,7 @@ graph TB
     style DMContext fill:#d4f1e1
     style ReflectionContext fill:#f4e1ff
     style PointContext fill:#ffe1f4
+    style RewardContext fill:#fff0e1
 ```
 
 ### 1. 사용자 컨텍스트 (User Context)
@@ -179,6 +186,16 @@ graph TB
 - PointTransaction (포인트 거래)
 - Point Balance (포인트 잔액)
 - Earn/Spend Rules (획득/사용 규칙)
+
+### 8. 보상 컨텍스트 (Reward Context)
+
+**책임**: 일일 출석 등 보상 지급 및 중복 수령 방지
+
+**핵심 개념**:
+- Reward (보상 기록)
+- RewardType (보상 유형: 일일 출석 등)
+- Reference Date (기준 날짜, KST 기준)
+- Idempotent Claim (멱등성 보장 보상 수령)
 
 ---
 
@@ -346,7 +363,7 @@ graph TB
 
 **값 객체**:
 - TransactionType (EARN, SPEND)
-- TransactionReason (SIGNUP, DIARY, QUESTIONNAIRE, TICKET, EXTENSION)
+- TransactionReason (SIGNUP, DIARY, QUESTIONNAIRE, TICKET, EXTENSION, DAILY_LOGIN)
 - TransactionStatus (PENDING, COMPLETED, FAILED)
 
 **불변식**:
@@ -355,9 +372,29 @@ graph TB
 - 모든 거래는 트랜잭션으로 처리
 
 **도메인 로직**:
-- **포인트 획득**: SIGNUP(1000P), DIARY(50P/일), QUESTIONNAIRE(50P/도시)
+- **포인트 획득**: SIGNUP(1000P), DIARY(50P/일), QUESTIONNAIRE(50P/도시), DAILY_LOGIN(100P/일)
 - **포인트 사용**: TICKET(300P/500P), EXTENSION(300P)
 - **잔액 계산**: balance_after = balance_before + amount (EARN) 또는 - amount (SPEND)
+
+### 8. Reward Aggregate
+
+**애그리게이트 루트**: Reward
+
+**엔티티**:
+- Reward (보상)
+
+**값 객체**:
+- RewardType (DAILY_LOGIN)
+
+**불변식**:
+- 같은 사용자가 같은 유형의 보상을 같은 날짜에 중복 수령할 수 없음 (user_id, reward_type, reference_date UNIQUE)
+- 보상 금액은 0보다 커야 함
+- reference_date는 KST 기준으로 계산
+
+**도메인 로직**:
+- **일일 출석 보상**: 하루 1회 100P 지급 (KST 기준 자정에 초기화)
+- **멱등성 보장**: 동일 요청 시 기존 보상 정보 반환 (claimed=False)
+- **포인트 연동**: 보상 지급 시 PointTransaction 생성
 
 ---
 
@@ -426,6 +463,12 @@ graph TB
         PointTransaction --> TransactionReason
     end
 
+    subgraph RewardAggregate[Reward Aggregate]
+        Reward[Reward<br/>보상<br/>AR]
+        RewardType[RewardType<br/>VO]
+        Reward --> RewardType
+    end
+
     User -->|구매| Ticket
     Ticket -->|체크인| RoomStay
     User -->|체류| RoomStay
@@ -440,6 +483,8 @@ graph TB
     Ticket -.->|구매 시<br/>포인트 차감| PointTransaction
     Diary -.->|작성 시<br/>포인트 획득| PointTransaction
     Questionnaire -.->|완성 시<br/>포인트 획득| PointTransaction
+    User -->|수령| Reward
+    Reward -.->|지급 시<br/>포인트 획득| PointTransaction
 
     style UserAggregate fill:#e1f5ff
     style TravelAggregate fill:#fff4e1
@@ -448,6 +493,7 @@ graph TB
     style DMAggregate fill:#d4f1e1
     style ReflectionAggregate fill:#f4e1ff
     style PointAggregate fill:#ffe1f4
+    style RewardAggregate fill:#fff0e1
 ```
 
 **범례**:
@@ -787,6 +833,30 @@ PURCHASED → BOARDING → COMPLETED
 - 트랜잭션 무결성 보장
 - 거래 상세 내역 관리
 
+### Reward (보상)
+
+**식별자**: reward_id (UUID v7)
+
+**속성**:
+- user_id: UUID (FK, NOT NULL)
+- reward_type: RewardType (VO, NOT NULL)
+- amount: Integer (NOT NULL, 지급 포인트)
+- reference_date: Date (NOT NULL, KST 기준 날짜)
+- point_transaction_id: UUID (FK, nullable, 연결된 포인트 트랜잭션)
+- created_at: DateTime
+
+**책임**:
+- 보상 지급 기록 관리
+- 중복 수령 방지 (user_id, reward_type, reference_date UNIQUE)
+- 포인트 트랜잭션 연동
+
+**도메인 메서드**:
+- `create()`: 새 보상 생성 (팩토리 메서드)
+
+**불변식**:
+- 같은 사용자가 같은 유형의 보상을 같은 날짜에 중복 수령 불가
+- reference_date는 KST 기준으로 계산
+
 ### Notification Aggregate (신규)
 
 **애그리게이트 루트**: Notification
@@ -938,11 +1008,18 @@ PURCHASED → BOARDING → COMPLETED
 
 ### TransactionReason
 
-**속성**: SIGNUP, DIARY, QUESTIONNAIRE, TICKET, EXTENSION
+**속성**: SIGNUP, DIARY, QUESTIONNAIRE, TICKET, EXTENSION, DAILY_LOGIN
 
 ### TransactionStatus
 
 **속성**: PENDING, COMPLETED, FAILED
+
+### RewardType
+
+**속성**: DAILY_LOGIN
+
+**설명**:
+- DAILY_LOGIN: 일일 출석 보상 (100P/일, KST 기준)
 
 ---
 
@@ -1008,6 +1085,11 @@ PURCHASED → BOARDING → COMPLETED
 - **PointsEarned**: 포인트 획득
 - **PointsSpent**: 포인트 사용
 - **InsufficientPoints**: 포인트 부족
+
+### Reward Domain Events
+
+- **DailyLoginRewardClaimed**: 일일 출석 보상 수령 (포인트 획득)
+- **RewardAlreadyClaimed**: 이미 보상을 수령한 경우 (멱등성)
 
 ---
 
@@ -1147,6 +1229,25 @@ PURCHASED → BOARDING → COMPLETED
 - 키 형식: `rate_limit:chat:{user_id}:{room_id}`
 - TTL: 제한 시간만큼 설정
 - 제한 초과 시 429 에러 반환
+
+### RewardService (보상 서비스)
+
+**책임**: 보상 지급 및 중복 수령 방지
+
+**주요 로직**:
+- **일일 출석 보상 지급** (`claim_daily_login`):
+  - 오늘(KST 기준) 이미 보상을 받았는지 확인
+  - 이미 받았으면 `AlreadyClaimedRewardError` 발생
+  - 사용자 존재 여부 확인
+  - PointTransactionService를 통해 100P 지급
+  - Reward 엔티티 생성 및 저장
+- **오늘 보상 조회** (`get_today_reward`):
+  - 사용자의 오늘(KST 기준) 특정 유형 보상 조회
+
+**의존성**:
+- RewardRepository
+- UserRepository
+- PointTransactionService
 
 ### OnboardingService (온보딩 서비스)
 
@@ -1346,6 +1447,15 @@ PURCHASED → BOARDING → COMPLETED
 - 거래 유형별 조회 (획득/사용)
 - 거래 기록 저장
 
+### RewardRepository
+
+**책임**: 보상 기록의 영속성 관리
+
+**주요 기능**:
+- 보상 생성 (create)
+- 사용자 ID, 보상 유형, 기준 날짜로 존재 여부 확인 (exists_by_user_type_date)
+- 사용자 ID, 보상 유형, 기준 날짜로 보상 조회 (find_by_user_type_date)
+
 ---
 
 ## 도메인 규칙 요약
@@ -1392,6 +1502,7 @@ PURCHASED → BOARDING → COMPLETED
 
 **획득**:
 - 회원가입: 1000P (최초 1회)
+- 일일 출석: 100P (하루 1회, KST 기준)
 - 일기 작성: 50P (체류당 1회)
 - 문답지 답변: 50P (답변당)
 
