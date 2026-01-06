@@ -17,6 +17,7 @@ from bzero.infrastructure.db.diary_model import DiaryModel  # noqa: F401
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel  # noqa: F401
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel  # noqa: F401
 from bzero.infrastructure.db.questionnaire_model import QuestionnaireModel  # noqa: F401
+from bzero.infrastructure.db.reward_model import RewardModel  # noqa: F401
 from bzero.infrastructure.db.room_model import RoomModel  # noqa: F401
 from bzero.infrastructure.db.room_stay_model import RoomStayModel  # noqa: F401
 from bzero.infrastructure.db.task_failure_log_model import TaskFailureLogModel  # noqa: F401
