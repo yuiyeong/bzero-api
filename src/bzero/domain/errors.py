@@ -50,6 +50,8 @@ class ErrorCode(str, Enum):
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
     DUPLICATED_DM_REQUEST = "이미 대화 신청이 존재합니다."
 
+    ALREADY_CLAIMED_REWARD = "이미 해당 보상을 받았습니다."
+
     PROFILE_INCOMPLETE = "프로필이 완료되지 않았습니다."
 
     # DM (1:1 대화) 관련 에러
@@ -236,6 +238,13 @@ class NotFoundConversationCardError(NotFoundError):
 class DuplicatedRewardError(DuplicatedError):
     def __init__(self):
         super().__init__(ErrorCode.DUPLICATED_REWARD)
+
+
+class AlreadyClaimedRewardError(BeZeroError):
+    """이미 해당 보상을 받은 경우"""
+
+    def __init__(self):
+        super().__init__(ErrorCode.ALREADY_CLAIMED_REWARD)
 
 
 class UnauthorizedError(AuthError):

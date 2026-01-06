@@ -7,6 +7,7 @@ from bzero.application.results.conversation_card_result import ConversationCardR
 from bzero.application.results.diary_result import DiaryResult
 from bzero.application.results.dm import DirectMessageResult, DirectMessageRoomResult
 from bzero.application.results.questionnaire_result import QuestionnaireResult
+from bzero.application.results.reward_result import RewardResult
 from bzero.application.results.room_stay_result import RoomStayResult
 from bzero.application.results.ticket_result import TicketResult
 from bzero.application.results.user_result import UserResult
@@ -23,6 +24,7 @@ __all__ = [
     "DirectMessageRoomResult",
     "PaginatedResult",
     "QuestionnaireResult",
+    "RewardResult",
     "RoomStayResult",
     "TicketResult",
     "UserResult",

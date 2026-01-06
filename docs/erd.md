@@ -24,6 +24,7 @@
 - TICKET (tickets)
 - POINT_TRANSACTION (point_transactions)
 - TASK_FAILURE_LOG (task_failure_logs)
+- REWARD (rewards)
 
 ### 미구현 (Phase 1 예정)
 
@@ -123,7 +124,7 @@ erDiagram
         uuid user_id FK "NOT NULL, USER, CASCADE"
         varchar_20 transaction_type "NOT NULL, EARN|SPEND"
         int amount "NOT NULL"
-        varchar_30 reason "NOT NULL, SIGN_UP|DIARY|QUESTIONNAIRE|TICKET|EXTEND"
+        varchar_30 reason "NOT NULL, SIGN_UP|DIARY|QUESTIONNAIRE|TICKET|EXTEND|DAILY_LOGIN"
         varchar_20 status "NOT NULL, DEFAULT PENDING, PENDING|COMPLETED|FAILED"
         varchar_50 reference_type "NULL"
         uuid reference_id "NULL"
@@ -146,12 +147,24 @@ erDiagram
         datetime updated_at "NOT NULL, DEFAULT NOW()"
     }
 
+    REWARD {
+        uuid reward_id PK
+        uuid user_id FK "NOT NULL, USER"
+        varchar_50 reward_type "NOT NULL, daily_login"
+        int amount "NOT NULL"
+        date reference_date "NOT NULL, KST 기준"
+        uuid point_transaction_id FK "NULL, POINT_TRANSACTION"
+        datetime created_at "NOT NULL, DEFAULT NOW()"
+    }
+
 %% 관계 (구현 완료)
     USER ||--o{ USER_IDENTITY: "인증"
     USER ||--o{ TICKET: "구매"
     USER ||--o{ POINT_TRANSACTION: "거래"
+    USER ||--o{ REWARD: "보상"
     CITY ||--o{ TICKET: "목적지"
     AIRSHIP ||--o{ TICKET: "비행선 타입"
+    POINT_TRANSACTION ||--o| REWARD: "포인트 지급"
 ```
 
 ---
@@ -384,7 +397,7 @@ erDiagram
         uuid user_id FK "NOT NULL, USER, CASCADE"
         varchar_20 transaction_type "NOT NULL, EARN|SPEND"
         int amount "NOT NULL"
-        varchar_30 reason "NOT NULL, SIGN_UP|DIARY|QUESTIONNAIRE|TICKET|EXTEND"
+        varchar_30 reason "NOT NULL, SIGN_UP|DIARY|QUESTIONNAIRE|TICKET|EXTEND|DAILY_LOGIN"
         varchar_20 status "NOT NULL, DEFAULT PENDING, PENDING|COMPLETED|FAILED"
         varchar_50 reference_type "NULL"
         uuid reference_id "NULL"
@@ -393,6 +406,16 @@ erDiagram
         varchar_255 description "NULL"
         datetime created_at "NOT NULL, DEFAULT NOW()"
         datetime updated_at "NOT NULL, DEFAULT NOW()"
+    }
+
+    REWARD {
+        uuid reward_id PK
+        uuid user_id FK "NOT NULL, USER"
+        varchar_50 reward_type "NOT NULL, daily_login"
+        int amount "NOT NULL"
+        date reference_date "NOT NULL, KST 기준"
+        uuid point_transaction_id FK "NULL, POINT_TRANSACTION"
+        datetime created_at "NOT NULL, DEFAULT NOW()"
     }
 
     TASK_FAILURE_LOG {
@@ -419,6 +442,7 @@ erDiagram
     USER ||--o{ DIARY: "작성"
     USER ||--o{ QUESTIONNAIRE: "작성"
     USER ||--o{ POINT_TRANSACTION: "거래"
+    USER ||--o{ REWARD: "보상"
     CITY ||--o{ TICKET: "목적지"
     CITY ||--o{ GUESTHOUSE: "게스트하우스"
     CITY ||--o{ CONVERSATION_CARD: "테마"
@@ -439,6 +463,7 @@ erDiagram
     ROOM ||--o{ DIRECT_MESSAGE_ROOM: "1:1대화"
     CONVERSATION_CARD ||--o{ CHAT_MESSAGE: "공유"
     DIRECT_MESSAGE_ROOM ||--o{ DIRECT_MESSAGE: "메시지"
+    POINT_TRANSACTION ||--o| REWARD: "포인트 지급"
 ```
 
 ---
@@ -477,6 +502,11 @@ erDiagram
 ### 7. TASK_FAILURE_LOG (task_failure_logs)
 
 - 별도 인덱스 없음
+
+### 8. REWARD (rewards)
+
+- `idx_rewards_user_type_date`: (user_id, reward_type, reference_date) UNIQUE
+- `idx_rewards_user_id`: (user_id)
 
 ---
 
@@ -536,6 +566,7 @@ erDiagram
 - USER: `email` (partial), `nickname` (partial) - WHERE deleted_at IS NULL
 - USER_IDENTITY: `(provider, provider_user_id)` (partial) - WHERE deleted_at IS NULL
 - TICKET: `(user_id, status, departure_datetime)` (partial) - WHERE deleted_at IS NULL
+- REWARD: `(user_id, reward_type, reference_date)` - 사용자별 보상 유형별 날짜별 1회
 
 ### UNIQUE 제약 (미구현)
 
@@ -592,8 +623,12 @@ erDiagram
 ### POINT_TRANSACTION
 
 - `transaction_type`: EARN, SPEND
-- `reason`: SIGN_UP, DIARY, QUESTIONNAIRE, TICKET, EXTEND
+- `reason`: SIGN_UP, DIARY, QUESTIONNAIRE, TICKET, EXTEND, DAILY_LOGIN
 - `status`: PENDING, COMPLETED, FAILED
+
+### REWARD
+
+- `reward_type`: DAILY_LOGIN (일일 출석 보상)
 
 ---
 

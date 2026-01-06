@@ -46,6 +46,7 @@ from bzero.infrastructure.db.conversation_card_model import ConversationCardMode
 from bzero.infrastructure.db.diary_model import DiaryModel  # noqa: F401
 from bzero.infrastructure.db.direct_message_room_model import DirectMessageRoomModel  # noqa: F401
 from bzero.infrastructure.db.direct_message_model import DirectMessageModel  # noqa: F401
+from bzero.infrastructure.db.reward_model import RewardModel  # noqa: F401
 
 
 async def ensure_test_database_exists(settings: Settings) -> None:

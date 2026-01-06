@@ -6,6 +6,7 @@ from bzero.infrastructure.db.direct_message_model import DirectMessageModel
 from bzero.infrastructure.db.direct_message_room_model import DirectMessageRoomModel
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel
+from bzero.infrastructure.db.reward_model import RewardModel
 from bzero.infrastructure.db.room_model import RoomModel
 from bzero.infrastructure.db.room_stay_model import RoomStayModel
 from bzero.infrastructure.db.task_failure_log_model import TaskFailureLogModel
@@ -24,6 +25,7 @@ __all__ = [
     "DirectMessageRoomModel",
     "GuestHouseModel",
     "PointTransactionModel",
+    "RewardModel",
     "RoomModel",
     "RoomStayModel",
     "SoftDeleteMixin",
