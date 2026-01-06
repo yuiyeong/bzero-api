@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -355,6 +355,27 @@ def create_dm_service(session: AsyncSession) -> "DirectMessageService":
     )
 
 
+def verify_admin_key(
+    x_admin_key: Annotated[str, Header(description="Admin API Key")] = "",
+) -> bool:
+    """Verify admin API key from X-Admin-Key header.
+
+    Args:
+        x_admin_key: Admin API key from header
+
+    Returns:
+        True if key is valid
+
+    Raises:
+        HTTPException 403: When admin key is missing or invalid
+    """
+    settings = get_settings()
+    admin_key = settings.admin_api_key.get_secret_value()
+    if not admin_key or x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid admin key")
+    return True
+
+
 # Type aliases
 DBSession = Annotated[AsyncSession, Depends(get_async_db_session)]
 CurrentJWTPayload = Annotated[JWTPayload, Depends(get_jwt_payload)]
@@ -371,3 +392,4 @@ CurrentCityQuestionService = Annotated[CityQuestionService, Depends(get_city_que
 CurrentQuestionnaireService = Annotated[QuestionnaireService, Depends(get_questionnaire_service)]
 CurrentTaskScheduler = Annotated[TaskScheduler, Depends(get_task_scheduler)]
 CurrentChatMessageService = Annotated[ChatMessageService, Depends(get_chat_message_service)]
+AdminKeyVerified = Annotated[bool, Depends(verify_admin_key)]

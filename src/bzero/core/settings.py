@@ -97,6 +97,9 @@ class Settings(BaseSettings):
     auth: AuthSettings = AuthSettings()
     celery: CelerySettings = CelerySettings()
 
+    # Admin API Key (for protected admin endpoints)
+    admin_api_key: SecretStr = SecretStr("")
+
     timezone: ZoneInfo = ZoneInfo("Asia/Seoul")
 
     @property

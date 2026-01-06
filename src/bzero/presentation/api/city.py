@@ -2,18 +2,55 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
+from bzero.application.use_cases.cities.create_city import CreateCityUseCase
 from bzero.application.use_cases.cities.get_cities import (
     GetCitiesUseCase,
 )
 from bzero.application.use_cases.cities.get_city_by_id import GetCityByIdUseCase
-from bzero.presentation.api.dependencies import CurrentCityService
-from bzero.presentation.schemas.city import CityResponse
+from bzero.presentation.api.dependencies import (
+    AdminKeyVerified,
+    CurrentCityService,
+    DBSession,
+)
+from bzero.presentation.schemas.city import CityCreateRequest, CityResponse
 from bzero.presentation.schemas.common import DataResponse, ListResponse, Pagination
 
 
 router = APIRouter(prefix="/cities", tags=["cities"])
+
+
+@router.post(
+    "",
+    response_model=DataResponse[CityResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="도시 생성 (Admin)",
+    description="새로운 도시를 생성합니다. is_active=false로 생성하면 Coming Soon 도시가 됩니다. X-Admin-Key 헤더 필수.",
+)
+async def create_city(
+    request: CityCreateRequest,
+    city_service: CurrentCityService,
+    session: DBSession,
+    _admin_verified: AdminKeyVerified,
+) -> DataResponse[CityResponse]:
+    """도시 생성 (Admin).
+
+    - X-Admin-Key 헤더로 인증 필요
+    - is_active=false: Coming Soon 도시 (터미널에서 비활성 상태로 표시)
+    - is_active=true: 활성 도시 (티켓 예매 가능)
+    """
+    result = await CreateCityUseCase(city_service, session).execute(
+        name=request.name,
+        theme=request.theme,
+        description=request.description,
+        image_url=request.image_url,
+        base_cost_points=request.base_cost_points,
+        base_duration_hours=request.base_duration_hours,
+        is_active=request.is_active,
+        display_order=request.display_order,
+    )
+    return DataResponse(data=CityResponse.create_from(result))
 
 
 @router.get(
