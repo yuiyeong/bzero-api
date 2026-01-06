@@ -18,7 +18,7 @@ import socketio
 DEMO_ROOM_ID = "00000000-0000-0000-0000-000000000000"
 
 
-async def test_demo_chat():
+async def test_demo_chat():  # noqa: PLR0915
     """데모 채팅 기능 테스트."""
     print("\n🧪 [테스트 1] 데모 채팅 연결 및 메시지 전송")
     print("=" * 60)
@@ -109,7 +109,7 @@ async def test_demo_chat():
 
     except Exception as e:
         print(f"\n❌ 테스트 실패: {e}")
-        import traceback
+        import traceback  # noqa: PLC0415
 
         traceback.print_exc()
         return False
@@ -203,7 +203,7 @@ async def test_concurrent_connections():
         await asyncio.gather(*tasks)
         await asyncio.sleep(1)
 
-        if connected_count != 5:
+        if connected_count != 5:  # noqa: PLR2004
             print(f"❌ 연결 실패 (연결됨: {connected_count}/5)")
             return False
 
@@ -226,7 +226,7 @@ async def test_concurrent_connections():
 
     except Exception as e:
         print(f"\n❌ 테스트 실패: {e}")
-        import traceback
+        import traceback  # noqa: PLC0415
 
         traceback.print_exc()
         return False
@@ -276,7 +276,7 @@ async def main():
 
     total = len(results)
     passed = sum(1 for _, result in results if result)
-    print(f"\n총 {total}개 테스트 중 {passed}개 통과 ({passed/total*100:.0f}%)")
+    print(f"\n총 {total}개 테스트 중 {passed}개 통과 ({passed / total * 100:.0f}%)")
     print(f"⏰ 종료 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60 + "\n")
 

@@ -37,3 +37,16 @@ class CityResponse(BaseModel):
             created_at=result.created_at,
             updated_at=result.updated_at,
         )
+
+
+class CityCreateRequest(BaseModel):
+    """도시 생성 요청 스키마 (Admin)"""
+
+    name: str = Field(..., min_length=1, max_length=50, description="도시 이름")
+    theme: str = Field(..., min_length=1, max_length=50, description="도시 테마")
+    description: str | None = Field(None, max_length=200, description="도시 설명")
+    image_url: str | None = Field(None, description="도시 이미지 URL")
+    base_cost_points: int = Field(default=300, ge=0, description="기준 가격 (포인트)")
+    base_duration_hours: int = Field(default=3, ge=1, description="기준 비행 시간 (시간)")
+    is_active: bool = Field(default=False, description="활성화 여부 (Coming Soon은 false)")
+    display_order: int = Field(default=0, ge=0, description="표시 순서")

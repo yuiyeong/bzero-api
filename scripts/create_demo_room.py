@@ -47,7 +47,7 @@ async def create_demo_room():
                 session.add(city)
                 print(f"✅ 데모 도시 생성: {city.name}")
             else:
-                print(f"ℹ️  데모 도시 이미 존재: {city.name}")
+                print(f"ℹ️  데모 도시 이미 존재: {city.name}")  # noqa: RUF001
 
             # 2. 데모 게스트하우스 생성 (이미 있으면 skip)
             guest_house = await session.get(GuestHouseModel, DEMO_GUEST_HOUSE_ID)
@@ -63,7 +63,7 @@ async def create_demo_room():
                 session.add(guest_house)
                 print(f"✅ 데모 게스트하우스 생성: {guest_house.name}")
             else:
-                print(f"ℹ️  데모 게스트하우스 이미 존재: {guest_house.name}")
+                print(f"ℹ️  데모 게스트하우스 이미 존재: {guest_house.name}")  # noqa: RUF001
 
             # 3. 데모 룸 생성 (이미 있으면 skip)
             room = await session.get(RoomModel, DEMO_ROOM_ID)
@@ -79,7 +79,7 @@ async def create_demo_room():
                 session.add(room)
                 print(f"✅ 데모 룸 생성: {room.room_id}")
             else:
-                print(f"ℹ️  데모 룸 이미 존재: {room.room_id}")
+                print(f"ℹ️  데모 룸 이미 존재: {room.room_id}")  # noqa: RUF001
 
             # 4. 커밋
             await session.commit()

@@ -17,7 +17,8 @@ class SqlAlchemyCityRepository(CityRepository):
         city_model = self._to_model(city)
         self._session.add(city_model)
         await self._session.flush()
-        return city
+        await self._session.refresh(city_model)
+        return self._to_entity(city_model)
 
     async def find_by_id(self, city_id: Id) -> City | None:
         stmt = select(CityModel).where(

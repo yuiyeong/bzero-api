@@ -212,3 +212,82 @@ class TestGetCityById:
         # Then
         # UUID 파싱 실패로 400 또는 404 예상
         assert response.status_code in [400, 404, 422]
+
+
+class TestCreateCity:
+    """POST /api/v1/cities 테스트 (Admin)"""
+
+    async def test_create_city_success(self, client: AsyncClient):
+        """도시 생성 성공 (Admin Key 포함)"""
+        # Given
+        payload = {
+            "name": "테스트 도시",
+            "theme": "테스트 테마",
+            "description": "테스트 설명",
+            "image_url": "https://example.com/test.jpg",
+            "base_cost_points": 500,
+            "base_duration_hours": 5,
+            "is_active": False,
+            "display_order": 99,
+        }
+        headers = {"X-Admin-Key": "test-admin-key-12345"}
+
+        # When
+        response = await client.post("/api/v1/cities", json=payload, headers=headers)
+
+        # Then
+        assert response.status_code == 201
+        data = response.json()
+        assert "data" in data
+        city_data = data["data"]
+
+        assert city_data["name"] == payload["name"]
+        assert city_data["theme"] == payload["theme"]
+        assert city_data["is_active"] is False
+        assert "city_id" in city_data
+
+    async def test_create_city_forbidden_missing_key(self, client: AsyncClient):
+        """Admin Key 누락 시 403 Forbidden"""
+        # Given
+        payload = {
+            "name": "테스트 도시",
+            "theme": "테스트 테마",
+        }
+
+        # When (Header 없음)
+        response = await client.post("/api/v1/cities", json=payload)
+
+        # Then
+        assert response.status_code == 403
+        assert "Forbidden" in response.json()["detail"]
+
+    async def test_create_city_forbidden_invalid_key(self, client: AsyncClient):
+        """잘못된 Admin Key 사용 시 403 Forbidden"""
+        # Given
+        payload = {
+            "name": "테스트 도시",
+            "theme": "테스트 테마",
+        }
+        headers = {"X-Admin-Key": "wrong-key"}
+
+        # When
+        response = await client.post("/api/v1/cities", json=payload, headers=headers)
+
+        # Then
+        assert response.status_code == 403
+        assert "Forbidden" in response.json()["detail"]
+
+    async def test_create_city_validation_error(self, client: AsyncClient):
+        """필수 필드 누락 시 422 Validation Error"""
+        # Given
+        payload = {
+            # name, theme 누락
+            "description": "설명만 있음"
+        }
+        headers = {"X-Admin-Key": "test-admin-key-12345"}
+
+        # When
+        response = await client.post("/api/v1/cities", json=payload, headers=headers)
+
+        # Then
+        assert response.status_code == 422
