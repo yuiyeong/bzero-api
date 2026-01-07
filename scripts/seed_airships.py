@@ -15,7 +15,7 @@ def get_seed(timezone: ZoneInfo) -> list[Airship]:
         Airship.create(
             name="고속선",
             description="신속하게 도시로 이동합니다.",
-            image_url="https://spphmqtqpxauvvgntilq.supabase.co/storage/v1/object/public/images/img_express_airship.webp",
+            image_url="https://spphmqtqpxauvvgntilq.supabase.co/storage/v1/object/public/images/airships/img_express_airship.webp",
             cost_factor=3,
             duration_factor=1,
             display_order=1,
@@ -26,7 +26,7 @@ def get_seed(timezone: ZoneInfo) -> list[Airship]:
         Airship.create(
             name="일반선",
             description="느긋하게 여행을 즐기며 도시로 이동합니다.",
-            image_url="https://spphmqtqpxauvvgntilq.supabase.co/storage/v1/object/public/images/img_normal_airship.webp",
+            image_url="https://spphmqtqpxauvvgntilq.supabase.co/storage/v1/object/public/images/airships/img_normal_airship.webp",
             cost_factor=1,
             duration_factor=3,
             display_order=2,
