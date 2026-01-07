@@ -6,7 +6,7 @@ from bzero.domain.entities.user_identity import UserIdentity
 from bzero.domain.errors import DuplicatedUserError, NotFoundUserError
 from bzero.domain.repositories.user import UserRepository
 from bzero.domain.repositories.user_identity import UserIdentityRepository
-from bzero.domain.value_objects import AuthProvider, Email, Id
+from bzero.domain.value_objects import AuthProvider, Email, Id, Nickname
 
 
 class UserService:
@@ -76,25 +76,26 @@ class UserService:
         provider: AuthProvider,
         provider_user_id: str,
         raise_exception: bool = True,
-    ) -> User:
+    ) -> User | None:
         """인증 제공자 정보로 사용자를 조회합니다.
 
         Args:
             provider: 인증 제공자 (예: AuthProvider.GOOGLE)
             provider_user_id: 제공자의 user_id
-            raise_exception: NotFoundUserError 를 발생시킬지
+            raise_exception: 사용자가 없을 때 예외 발생 여부 (기본값: True)
 
         Returns:
-            조회된 User
+            조회된 User 또는 None
 
         Raises:
-            NotFoundUserError: 사용자가 존재하지 않을 때
+            NotFoundUserError: 사용자가 존재하지 않고 raise_exception이 True일 때
         """
         user = await self._user_repository.find_by_provider_and_provider_user_id(
             provider=provider,
             provider_user_id=provider_user_id,
         )
-        if raise_exception and user is None:
+
+        if not user and raise_exception:
             raise NotFoundUserError
         return user
 
@@ -111,6 +112,10 @@ class UserService:
             NotFoundUserError: 사용자가 존재하지 않을 때
         """
         return await self._user_repository.update(user)
+
+    async def find_user_by_nickname(self, nickname: Nickname) -> User | None:
+        """닉네임으로 사용자를 조회합니다."""
+        return await self._user_repository.find_by_nickname(nickname)
 
     async def get_users_by_user_ids(self, user_ids: tuple[Id]) -> list[User]:
         return await self._user_repository.find_all_by_user_ids(user_ids)
