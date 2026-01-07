@@ -48,6 +48,7 @@ class ErrorCode(str, Enum):
     DUPLICATED_DIARY = "이미 해당 체류에 일기가 존재합니다."
     DUPLICATED_QUESTIONNAIRE = "이미 해당 질문에 답변이 존재합니다."
     DUPLICATED_USER = "이미 존재하는 사용자입니다."
+    DUPLICATED_NICKNAME = "이미 사용 중인 닉네임입니다."
     DUPLICATED_DM_REQUEST = "이미 대화 신청이 존재합니다."
 
     ALREADY_CLAIMED_REWARD = "이미 해당 보상을 받았습니다."
@@ -255,6 +256,11 @@ class UnauthorizedError(AuthError):
 class DuplicatedUserError(DuplicatedError):
     def __init__(self):
         super().__init__(ErrorCode.DUPLICATED_USER)
+
+
+class DuplicatedNicknameError(DuplicatedError):
+    def __init__(self):
+        super().__init__(ErrorCode.DUPLICATED_NICKNAME)
 
 
 class ProfileIncompleteError(BadRequestError):

@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results.user_result import UserResult
+from bzero.domain.errors import DuplicatedNicknameError
 from bzero.domain.services import UserService
 from bzero.domain.value_objects import AuthProvider, Nickname, Profile
 
@@ -47,7 +48,14 @@ class UpdateUserUseCase:
             provider=AuthProvider(provider),
             provider_user_id=provider_user_id,
         )
-        user.nickname = Nickname(nickname)
+
+        new_nickname = Nickname(nickname)
+        if user.nickname != new_nickname:
+            existing_user = await self._user_service.find_user_by_nickname(new_nickname)
+            if existing_user:
+                raise DuplicatedNicknameError
+
+        user.nickname = new_nickname
         user.profile = Profile(emoji)
 
         updated_user = await self._user_service.update_user(user)
