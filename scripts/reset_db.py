@@ -19,7 +19,8 @@ from bzero.core.settings import get_settings
 
 # 시드 스크립트 실행 순서
 SEED_SCRIPTS = [
-    "seed_cities.py",
+    "seed_active_cities.py",
+    "seed_inactive_cities.py",
     "seed_airships.py",
     "seed_guest_houses.py",
     "seed_city_questions.py",
@@ -75,6 +76,9 @@ def run_seed_script(script_name: str):
         print(result.stderr)
         sys.exit(1)
     print(f"✓ {script_name} 완료")
+    if result.stdout.strip():
+        for line in result.stdout.strip().split("\n"):
+            print(f"  {line}")
 
 
 def main():

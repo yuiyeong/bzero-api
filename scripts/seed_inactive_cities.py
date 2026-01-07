@@ -6,77 +6,60 @@ import httpx
 # 설정
 API_URL = "http://localhost:8000/api/v1/cities"
 ADMIN_KEY = "test-key-for-local-dev"
+DEFAULT_IMAGE_URL = "https://spphmqtqpxauvvgntilq.supabase.co/storage/v1/object/public/images/cities/icon_unknown.webp"
 
 # Coming Soon 도시 데이터 (10개)
 CITIES = [
     {
         "name": "엠마시아",
         "theme": "희망",
-        "emoji": "🌾",
-        "color": "#84CC16",
         "description": "새벽빛이 스며드는 초원에서 희망을 심다",
+        "image_url": "https://spphmqtqpxauvvgntilq.supabase.co/storage/v1/object/public/images/cities/icon_emmasia.webp",
     },
     {
         "name": "다마린",
         "theme": "고요",
-        "emoji": "🌫️",
-        "color": "#64748B",
         "description": "물안개 사이로 들리는 고요한 파도 소리",
+        "image_url": "https://spphmqtqpxauvvgntilq.supabase.co/storage/v1/object/public/images/cities/icon_damarin.webp",
     },
     {
         "name": "갈리시아",
         "theme": "성찰",
-        "emoji": "🌇",
-        "color": "#F59E0B",
         "description": "붉은 노을 아래, 나를 만나는 순례의 끝",
     },
     {
         "name": "벨라모어",
         "theme": "용서",
-        "emoji": "🏔️",
-        "color": "#E0F2FE",
         "description": "하얀 눈처럼 마음의 짐을 내려놓는 곳",
     },
     {
         "name": "아르카디아",
         "theme": "용기",
-        "emoji": "🌊",
-        "color": "#3B82F6",
         "description": "거센 물줄기 앞에서 두려움을 마주하다",
     },
     {
         "name": "루미나",
         "theme": "연결",
-        "emoji": "✨",
-        "color": "#A855F7",
         "description": "별빛 아래 잊혀진 인연을 되찾다",
     },
     {
         "name": "테라노바",
         "theme": "감사",
-        "emoji": "🌻",
-        "color": "#EAB308",
         "description": "황금빛 들판에서 작은 것에 감사하다",
     },
     {
         "name": "노크테르",
         "theme": "꿈",
-        "emoji": "🌙",
-        "color": "#6366F1",
         "description": "달빛 호수에 비친 진정한 꿈을 찾다",
     },
     {
         "name": "코르디아",
         "theme": "사랑",
-        "emoji": "🌸",
-        "color": "#EC4899",
         "description": "만개한 꽃들 사이에서 사랑을 배우다",
     },
     {
         "name": "에피스테마",
         "theme": "지혜",
-        "emoji": "📚",
-        "color": "#78716C",
         "description": "천년의 지혜가 잠든 책장 사이를 거닐다",
     },
 ]
@@ -97,6 +80,7 @@ async def seed_cities():
             return
 
         headers = {"X-Admin-Key": ADMIN_KEY}
+        total_active_cities = resp.json()["pagination"]["total"]
 
         for i, city_data in enumerate(CITIES):
             if city_data["name"] in existing_names:
@@ -107,11 +91,11 @@ async def seed_cities():
                 "name": city_data["name"],
                 "theme": city_data["theme"],
                 "description": city_data["description"],
-                "image_url": None,  # 이미지는 추후 추가
+                "image_url": city_data.get("image_url", DEFAULT_IMAGE_URL),
                 "base_cost_points": 300,
                 "base_duration_hours": 3,
                 "is_active": False,  # Coming Soon
-                "display_order": 10 + i,  # 기존 도시 뒤에 순차 배치
+                "display_order": total_active_cities + i,  # 기존 도시 뒤에 순차 배치
             }
 
             try:
