@@ -569,3 +569,97 @@ class TestRoomSyncRepositoryUpdate:
         # When/Then: NotFoundRoomError 발생
         with pytest.raises(NotFoundRoomError):
             room_sync_repository.update(non_existent_room)
+
+
+class TestRoomSyncRepositoryDecreaseCapacity:
+    """RoomSyncRepository.decrease_capacity() 메서드 테스트."""
+
+    def test_decrease_capacity_success(
+        self,
+        room_sync_repository: SqlAlchemyRoomSyncRepository,
+        sample_guest_house_sync: GuestHouseModel,
+        test_sync_session: Session,
+    ):
+        """방 인원을 1 감소시킬 수 있어야 합니다."""
+        # Given: current_capacity가 3인 룸 생성
+        now = datetime.now()
+        room_model = RoomModel(
+            room_id=uuid7(),
+            guest_house_id=sample_guest_house_sync.guest_house_id,
+            max_capacity=6,
+            current_capacity=3,
+            created_at=now,
+            updated_at=now,
+        )
+        test_sync_session.add(room_model)
+        test_sync_session.flush()
+
+        room_id = Id(str(room_model.room_id))
+
+        # When: decrease_capacity 호출
+        room_sync_repository.decrease_capacity(room_id)
+        test_sync_session.flush()
+
+        # Then: current_capacity가 2로 감소
+        test_sync_session.refresh(room_model)
+        assert room_model.current_capacity == 2
+
+    def test_decrease_capacity_to_zero(
+        self,
+        room_sync_repository: SqlAlchemyRoomSyncRepository,
+        sample_guest_house_sync: GuestHouseModel,
+        test_sync_session: Session,
+    ):
+        """current_capacity가 1일 때 0으로 감소시킬 수 있어야 합니다."""
+        # Given: current_capacity가 1인 룸 생성
+        now = datetime.now()
+        room_model = RoomModel(
+            room_id=uuid7(),
+            guest_house_id=sample_guest_house_sync.guest_house_id,
+            max_capacity=6,
+            current_capacity=1,
+            created_at=now,
+            updated_at=now,
+        )
+        test_sync_session.add(room_model)
+        test_sync_session.flush()
+
+        room_id = Id(str(room_model.room_id))
+
+        # When: decrease_capacity 호출
+        room_sync_repository.decrease_capacity(room_id)
+        test_sync_session.flush()
+
+        # Then: current_capacity가 0으로 감소
+        test_sync_session.refresh(room_model)
+        assert room_model.current_capacity == 0
+
+    def test_decrease_capacity_does_not_go_negative(
+        self,
+        room_sync_repository: SqlAlchemyRoomSyncRepository,
+        sample_guest_house_sync: GuestHouseModel,
+        test_sync_session: Session,
+    ):
+        """current_capacity가 0일 때는 감소하지 않아야 합니다 (음수 방지)."""
+        # Given: current_capacity가 0인 룸 생성
+        now = datetime.now()
+        room_model = RoomModel(
+            room_id=uuid7(),
+            guest_house_id=sample_guest_house_sync.guest_house_id,
+            max_capacity=6,
+            current_capacity=0,
+            created_at=now,
+            updated_at=now,
+        )
+        test_sync_session.add(room_model)
+        test_sync_session.flush()
+
+        room_id = Id(str(room_model.room_id))
+
+        # When: decrease_capacity 호출
+        room_sync_repository.decrease_capacity(room_id)
+        test_sync_session.flush()
+
+        # Then: current_capacity가 0 유지 (음수로 가지 않음)
+        test_sync_session.refresh(room_model)
+        assert room_model.current_capacity == 0

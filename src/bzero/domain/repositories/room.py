@@ -118,3 +118,14 @@ class RoomSyncRepository(ABC):
         Returns:
             업데이트된 방 엔티티
         """
+
+    @abstractmethod
+    def decrease_capacity(self, room_id: Id) -> None:
+        """방의 현재 인원을 1 감소시킵니다 (Atomic Update).
+
+        DB 레벨에서 `current_capacity = current_capacity - 1` 연산을 수행하여
+        동시성을 보장합니다.
+
+        Args:
+            room_id: 방 ID
+        """

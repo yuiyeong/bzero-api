@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from bzero.application.use_cases.cities.get_active_cities import (
-    GetActiveCitiesUseCase,
+from bzero.application.use_cases.cities.get_cities import (
+    GetCitiesUseCase,
 )
 from bzero.application.use_cases.cities.get_city_by_id import GetCityByIdUseCase
 from bzero.domain.entities.city import City
@@ -73,14 +73,14 @@ def sample_cities():
     ]
 
 
-class TestGetActiveCitiesUseCase:
-    """GetActiveCitiesUseCase 테스트"""
+class TestGetCitiesUseCase:
+    """GetCitiesUseCase 테스트"""
 
     async def test_execute_returns_active_cities(self, mock_city_service, sample_cities):
         """활성 도시 목록을 반환한다"""
         # Given
-        mock_city_service.get_active_cities.return_value = (sample_cities, 2)
-        use_case = GetActiveCitiesUseCase(mock_city_service)
+        mock_city_service.get_cities.return_value = (sample_cities, 2)
+        use_case = GetCitiesUseCase(mock_city_service)
 
         # When
         result = await use_case.execute()
@@ -94,13 +94,13 @@ class TestGetActiveCitiesUseCase:
         assert result.total == 2
         assert result.offset == 0
         assert result.limit == 20
-        mock_city_service.get_active_cities.assert_called_once_with(0, 20)
+        mock_city_service.get_cities.assert_called_once_with(0, 20, True)
 
     async def test_execute_with_pagination(self, mock_city_service, sample_cities):
         """pagination 파라미터로 도시 목록을 조회한다"""
         # Given
-        mock_city_service.get_active_cities.return_value = (sample_cities[:1], 2)
-        use_case = GetActiveCitiesUseCase(mock_city_service)
+        mock_city_service.get_cities.return_value = (sample_cities[:1], 2)
+        use_case = GetCitiesUseCase(mock_city_service)
 
         # When
         result = await use_case.execute(offset=0, limit=1)
@@ -111,13 +111,13 @@ class TestGetActiveCitiesUseCase:
         assert result.total == 2
         assert result.offset == 0
         assert result.limit == 1
-        mock_city_service.get_active_cities.assert_called_once_with(0, 1)
+        mock_city_service.get_cities.assert_called_once_with(0, 1, True)
 
     async def test_execute_returns_empty_list_when_no_cities(self, mock_city_service):
         """활성 도시가 없을 때 빈 리스트를 반환한다"""
         # Given
-        mock_city_service.get_active_cities.return_value = ([], 0)
-        use_case = GetActiveCitiesUseCase(mock_city_service)
+        mock_city_service.get_cities.return_value = ([], 0)
+        use_case = GetCitiesUseCase(mock_city_service)
 
         # When
         result = await use_case.execute()
@@ -125,7 +125,7 @@ class TestGetActiveCitiesUseCase:
         # Then
         assert result.items == []
         assert result.total == 0
-        mock_city_service.get_active_cities.assert_called_once_with(0, 20)
+        mock_city_service.get_cities.assert_called_once_with(0, 20, True)
 
 
 class TestGetCityByIdUseCase:

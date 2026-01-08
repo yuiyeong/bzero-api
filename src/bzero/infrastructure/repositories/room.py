@@ -61,3 +61,6 @@ class SqlAlchemyRoomSyncRepository(RoomSyncRepository):
 
     def update(self, room: Room) -> Room:
         return RoomRepositoryCore.update(self._session, room)
+
+    def decrease_capacity(self, room_id: Id) -> None:
+        RoomRepositoryCore.decrease_capacity(self._session, room_id)

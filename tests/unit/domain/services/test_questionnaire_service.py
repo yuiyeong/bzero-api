@@ -209,7 +209,7 @@ class TestQuestionnaireServiceGetQuestionnairesByUserId:
         assert total == 1
         assert questionnaires[0].user_id == sample_questionnaire.user_id
         mock_questionnaire_repository.find_all_by_user_id.assert_called_once_with(
-            user_id=sample_questionnaire.user_id, limit=20, offset=0
+            user_id=sample_questionnaire.user_id, limit=20, offset=0, room_stay_id=None
         )
         mock_questionnaire_repository.count_by_user_id.assert_called_once_with(sample_questionnaire.user_id)
 
@@ -232,7 +232,9 @@ class TestQuestionnaireServiceGetQuestionnairesByUserId:
         # Then
         assert len(questionnaires) == 0
         assert total == 50
-        mock_questionnaire_repository.find_all_by_user_id.assert_called_once_with(user_id=user_id, limit=10, offset=20)
+        mock_questionnaire_repository.find_all_by_user_id.assert_called_once_with(
+            user_id=user_id, limit=10, offset=20, room_stay_id=None
+        )
 
     async def test_get_questionnaires_by_user_id_returns_empty_list(
         self,

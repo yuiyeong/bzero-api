@@ -138,17 +138,17 @@ class TestCityRepositoryFindById:
         assert city is None
 
 
-class TestCityRepositoryFindActiveCities:
-    """CityRepository.find_active_cities() 메서드 테스트."""
+class TestCityRepositoryFindCities:
+    """CityRepository.find_cities() 메서드 테스트."""
 
-    async def test_find_active_cities(
+    async def test_find_cities_active_only(
         self,
         city_repository: SqlAlchemyCityRepository,
         sample_cities: list[CityModel],
     ):
         """활성화된 도시 목록을 조회할 수 있어야 합니다."""
         # When: 활성화된 도시 목록 조회
-        cities = await city_repository.find_active_cities()
+        cities = await city_repository.find_cities(active_only=True)
 
         # Then: 2개의 활성 도시가 조회됨 (세렌시아, 로렌시아)
         assert len(cities) == 2
@@ -156,75 +156,75 @@ class TestCityRepositoryFindActiveCities:
         assert cities[1].name == "로렌시아"
         assert all(city.is_active for city in cities)
 
-    async def test_find_active_cities_ordered_by_display_order(
+    async def test_find_cities_ordered_by_display_order(
         self,
         city_repository: SqlAlchemyCityRepository,
         sample_cities: list[CityModel],
     ):
-        """활성화된 도시는 display_order 순으로 정렬되어야 합니다."""
+        """도시는 display_order 순으로 정렬되어야 합니다."""
         # When: 활성화된 도시 목록 조회
-        cities = await city_repository.find_active_cities()
+        cities = await city_repository.find_cities(active_only=True)
 
         # Then: display_order 순으로 정렬됨
         assert cities[0].display_order == 1
         assert cities[1].display_order == 2
 
-    async def test_find_active_cities_with_pagination(
+    async def test_find_cities_with_pagination(
         self,
         city_repository: SqlAlchemyCityRepository,
         sample_cities: list[CityModel],
     ):
         """pagination 파라미터로 도시 목록을 조회할 수 있어야 합니다."""
         # When: offset=0, limit=1로 조회
-        cities = await city_repository.find_active_cities(offset=0, limit=1)
+        cities = await city_repository.find_cities(offset=0, limit=1, active_only=True)
 
         # Then: 1개만 조회됨
         assert len(cities) == 1
         assert cities[0].name == "세렌시아"
 
-    async def test_find_active_cities_with_offset(
+    async def test_find_cities_with_offset(
         self,
         city_repository: SqlAlchemyCityRepository,
         sample_cities: list[CityModel],
     ):
         """offset 파라미터로 시작 위치를 지정할 수 있어야 합니다."""
         # When: offset=1로 조회
-        cities = await city_repository.find_active_cities(offset=1, limit=10)
+        cities = await city_repository.find_cities(offset=1, limit=10, active_only=True)
 
         # Then: 두 번째 도시부터 조회됨
         assert len(cities) == 1
         assert cities[0].name == "로렌시아"
 
-    async def test_count_active_cities(
+    async def test_count_cities_active_only(
         self,
         city_repository: SqlAlchemyCityRepository,
         sample_cities: list[CityModel],
     ):
         """활성화된 도시의 총 개수를 조회할 수 있어야 합니다."""
         # When: 활성화된 도시 개수 조회
-        count = await city_repository.count_active_cities()
+        count = await city_repository.count_cities(active_only=True)
 
         # Then: 2개가 반환됨
         assert count == 2
 
-    async def test_find_active_cities_empty(
+    async def test_find_cities_empty(
         self,
         city_repository: SqlAlchemyCityRepository,
     ):
-        """활성화된 도시가 없으면 빈 리스트를 반환해야 합니다."""
-        # When: 활성화된 도시 목록 조회 (샘플 데이터 없음)
-        cities = await city_repository.find_active_cities()
+        """도시가 없으면 빈 리스트를 반환해야 합니다."""
+        # When: 도시 목록 조회 (샘플 데이터 없음)
+        cities = await city_repository.find_cities(active_only=True)
 
         # Then: 빈 리스트 반환
         assert cities == []
 
-    async def test_count_active_cities_empty(
+    async def test_count_cities_empty(
         self,
         city_repository: SqlAlchemyCityRepository,
     ):
-        """활성화된 도시가 없으면 0을 반환해야 합니다."""
-        # When: 활성화된 도시 개수 조회 (샘플 데이터 없음)
-        count = await city_repository.count_active_cities()
+        """도시가 없으면 0을 반환해야 합니다."""
+        # When: 도시 개수 조회 (샘플 데이터 없음)
+        count = await city_repository.count_cities(active_only=True)
 
         # Then: 0이 반환됨
         assert count == 0
