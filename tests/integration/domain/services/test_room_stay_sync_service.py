@@ -16,6 +16,7 @@ from bzero.infrastructure.db.guest_house_model import GuestHouseModel
 from bzero.infrastructure.db.room_model import RoomModel
 from bzero.infrastructure.db.ticket_model import TicketModel
 from bzero.infrastructure.db.user_model import UserModel
+from bzero.infrastructure.repositories.room import SqlAlchemyRoomSyncRepository
 from bzero.infrastructure.repositories.room_stay import SqlAlchemyRoomStaySyncRepository
 
 
@@ -29,7 +30,8 @@ def timezone() -> ZoneInfo:
 def room_stay_sync_service(test_sync_session: Session, timezone: ZoneInfo) -> RoomStaySyncService:
     """RoomStaySyncService fixture를 생성합니다."""
     room_stay_repository = SqlAlchemyRoomStaySyncRepository(test_sync_session)
-    return RoomStaySyncService(room_stay_repository, timezone)
+    room_repository = SqlAlchemyRoomSyncRepository(test_sync_session)
+    return RoomStaySyncService(room_stay_repository, room_repository, timezone)
 
 
 @pytest.fixture

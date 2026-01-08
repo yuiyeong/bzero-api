@@ -9,6 +9,7 @@ from uuid_utils import uuid7
 from bzero.core.settings import get_settings
 from bzero.domain.entities import Airship, City, Room, Ticket
 from bzero.domain.errors import InvalidTicketStatusError
+from bzero.domain.repositories.room import RoomSyncRepository
 from bzero.domain.repositories.room_stay import RoomStaySyncRepository
 from bzero.domain.services.room_stay import RoomStaySyncService
 from bzero.domain.value_objects import Id, TicketStatus
@@ -22,12 +23,19 @@ def mock_room_stay_repository() -> MagicMock:
 
 
 @pytest.fixture
+def mock_room_repository() -> MagicMock:
+    """Mock RoomSyncRepository"""
+    return MagicMock(spec=RoomSyncRepository)
+
+
+@pytest.fixture
 def room_stay_service(
     mock_room_stay_repository: MagicMock,
+    mock_room_repository: MagicMock,
 ) -> RoomStaySyncService:
     """RoomStaySyncService with mocked repositories"""
     timezone = get_settings().timezone
-    return RoomStaySyncService(mock_room_stay_repository, timezone)
+    return RoomStaySyncService(mock_room_stay_repository, mock_room_repository, timezone)
 
 
 @pytest.fixture

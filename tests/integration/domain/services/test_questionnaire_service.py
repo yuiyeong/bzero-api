@@ -222,6 +222,7 @@ def sample_room_stay_entity(sample_room_stay_model: RoomStayModel) -> RoomStay:
         scheduled_check_out_at=sample_room_stay_model.scheduled_check_out_at,
         actual_check_out_at=sample_room_stay_model.actual_check_out_at,
         extension_count=sample_room_stay_model.extension_count or 0,
+        is_checkout_reminder_sent=sample_room_stay_model.is_checkout_reminder_sent or False,
         created_at=sample_room_stay_model.created_at,
         updated_at=sample_room_stay_model.updated_at,
     )

@@ -220,7 +220,7 @@ class TestDiaryServiceGetDiariesByUserId:
         assert total == 1
         assert diaries[0].user_id == sample_diary.user_id
         mock_diary_repository.find_all_by_user_id.assert_called_once_with(
-            user_id=sample_diary.user_id, limit=20, offset=0
+            user_id=sample_diary.user_id, limit=20, offset=0, room_stay_id=None
         )
         mock_diary_repository.count_by_user_id.assert_called_once_with(sample_diary.user_id)
 
@@ -241,7 +241,9 @@ class TestDiaryServiceGetDiariesByUserId:
         # Then
         assert len(diaries) == 0
         assert total == 50
-        mock_diary_repository.find_all_by_user_id.assert_called_once_with(user_id=user_id, limit=10, offset=20)
+        mock_diary_repository.find_all_by_user_id.assert_called_once_with(
+            user_id=user_id, limit=10, offset=20, room_stay_id=None
+        )
 
     async def test_get_diaries_by_user_id_returns_empty_list(
         self,

@@ -43,9 +43,15 @@ def stay_extension_service(mock_room_stay_repository, mock_user_repository, mock
 
 
 @pytest.fixture
-def checkout_service(mock_room_stay_repository):
+def mock_room_repository():
+    return AsyncMock()
+
+
+@pytest.fixture
+def checkout_service(mock_room_stay_repository, mock_room_repository):
     return CheckoutService(
         room_stay_repository=mock_room_stay_repository,
+        room_repository=mock_room_repository,
         timezone=ZoneInfo("Asia/Seoul"),
     )
 
