@@ -18,6 +18,7 @@ dependencies = [
     "sqlalchemy[postgresql-asyncpg]>=2.0.44",
     "uuid-utils>=0.11.1",
     "uvicorn[standard]>=0.38.0",
+    "flower>=2.0.1",
 ]
 
 [project.scripts]
