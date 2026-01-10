@@ -75,6 +75,12 @@ class CelerySettings(BaseModel):
     result_backend: str = "redis://localhost:6379/1"
 
 
+class SentrySettings(BaseModel):
+    dsn: SecretStr = SecretStr("")
+    traces_sample_rate: float = 1.0
+    environment: str = "local"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -96,6 +102,7 @@ class Settings(BaseSettings):
     cors: CorsSettings = CorsSettings()
     auth: AuthSettings = AuthSettings()
     celery: CelerySettings = CelerySettings()
+    sentry: SentrySettings = SentrySettings()
 
     # Admin API Key (for protected admin endpoints)
     admin_api_key: SecretStr = SecretStr("")

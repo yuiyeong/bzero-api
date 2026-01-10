@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import sentry_sdk
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +33,15 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+
+    # Sentry 초기화
+    if settings.sentry.dsn.get_secret_value():
+        sentry_sdk.init(
+            dsn=settings.sentry.dsn.get_secret_value(),
+            environment=settings.sentry.environment,
+            traces_sample_rate=settings.sentry.traces_sample_rate,
+            send_default_pii=True,  # 개인정보 포함 전송 허용 (필요시 조정)
+        )
 
     b0 = FastAPI(
         title=settings.app_name,
