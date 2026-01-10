@@ -38,16 +38,20 @@ DEMO_NAMESPACE = "/demo"
 
 
 @sio.event
-async def connect(sid: str, environ: dict, auth: dict | None):
+async def connect(sid: str, environ: dict, auth: dict | None = None):
     """클라이언트 연결 이벤트 (인증 필요)."""
+    logger.info(f"Client connecting to Namespace '/': {sid}, Auth data provided: {bool(auth)}")
+
     try:
         if not auth:
+            logger.warning(f"Connection rejected [/]: No auth data. sid={sid}")
             raise ConnectionRefusedError("No auth data provided")
 
         token = auth.get("token")
         room_id = auth.get("room_id")
 
         if not token or not room_id:
+            logger.warning(f"Connection rejected [/]: Missing token or room_id. sid={sid}")
             raise ConnectionRefusedError("Missing token or room_id")
 
         settings = get_settings()
@@ -57,8 +61,8 @@ async def connect(sid: str, environ: dict, auth: dict | None):
                 secret=settings.auth.supabase_jwt_secret.get_secret_value(),
                 algorithm=settings.auth.jwt_algorithm,
             )
-        except Exception:
-            logger.info("JWT verification failed")
+        except Exception as e:
+            logger.warning(f"Connection rejected [/]: JWT verification failed. sid={sid}, error={e}")
             raise ConnectionRefusedError("Invalid token") from None
 
         async with get_async_db_session_ctx() as session:
@@ -77,11 +81,18 @@ async def connect(sid: str, environ: dict, auth: dict | None):
                 user_id = user.user_id.value.hex
             except Exception:
                 # 사용자가 없는 경우
+                logger.warning(f"Connection rejected [/]: User not found in DB. sid={sid}, sub={provider_user_id}")
                 raise ConnectionRefusedError("User not found") from None
 
             # 2. 룸 접근 권한 검증
-            room_stay_service = create_room_stay_service(session)
-            await VerifyRoomAccessUseCase(room_stay_service).execute(user_id, room_id)
+            try:
+                room_stay_service = create_room_stay_service(session)
+                await VerifyRoomAccessUseCase(room_stay_service).execute(user_id, room_id)
+            except Exception as e:
+                logger.warning(
+                    f"Connection rejected [/]: VerifyRoomAccess failed. sid={sid}, user={user_id}, room={room_id}, error={e}"
+                )
+                raise ConnectionRefusedError("Forbidden access to room") from e
 
         # 세션 데이터 저장
         await sio.save_session(sid, {"user_id": user_id, "room_id": room_id})
@@ -92,12 +103,23 @@ async def connect(sid: str, environ: dict, auth: dict | None):
         logger.info(f"User {user_id} authenticated (sid: {sid})")
         return True
 
-    except ValueError as e:
-        logger.warning(f"Connection refused: {e}")
-        raise ConnectionRefusedError(str(e)) from e
+    except ConnectionRefusedError:
+        raise
     except Exception as e:
-        logger.error(f"Connection error: {e}")
+        logger.exception(f"Unexpected connection error [/]: {e}")
         raise ConnectionRefusedError("Internal server error") from e
+
+
+@sio.event(namespace="/ws")
+async def connect_ws_namespace(sid: str, environ: dict, auth: dict | None = None):
+    """
+    잘못된 네임스페이스(/ws)로 연결 시도 시 로그를 남기고 거부하는 핸들러.
+    클라이언트가 실수로 Path를 Namespace로 오해하고 연결하는 경우를 탐지하기 위함.
+    """
+    logger.warning(
+        f"Client attempted to connect to WRONG namespace '/ws'. sid={sid}. Check client configuration (path vs namespace)."
+    )
+    raise ConnectionRefusedError("Wrong namespace: /ws is not a valid namespace. Use default '/' namespace.")
 
 
 @sio.event
