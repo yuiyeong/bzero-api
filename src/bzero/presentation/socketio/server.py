@@ -16,7 +16,7 @@ sio = socketio.AsyncServer(
     async_mode="asgi",
     cors_allowed_origins=cors_allowed_origins,
     logger=True,
-    engineio_logger=False,
+    engineio_logger=True,
     # 하트비트 설정 (자동 관리)
     ping_interval=25,  # 25초마다 ping
     ping_timeout=60,  # 60초 응답 없으면 연결 종료
