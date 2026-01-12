@@ -6,16 +6,13 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from bzero.core.settings import get_settings
 from bzero.domain.entities import ChatMessage
 from bzero.domain.errors import NotFoundChatMessageError, RateLimitExceededError
 from bzero.domain.ports.rate_limiter import RateLimiter
 from bzero.domain.repositories.chat_message import ChatMessageRepository, ChatMessageSyncRepository
 from bzero.domain.value_objects import Id
 from bzero.domain.value_objects.chat_message import MessageContent
-
-
-# 메시지 보관 기간 (일)
-MESSAGE_RETENTION_DAYS = 3
 
 
 class ChatMessageService:
@@ -46,6 +43,7 @@ class ChatMessageService:
         self._chat_message_repository = chat_message_repository
         self._rate_limiter = rate_limiter
         self._timezone = timezone
+        self._settings = get_settings()
 
     def _calculate_expires_at(self, created_at: datetime) -> datetime:
         """메시지 만료 일시를 계산합니다.
@@ -54,9 +52,9 @@ class ChatMessageService:
             created_at: 메시지 생성 일시
 
         Returns:
-            만료 일시 (생성 시간 + MESSAGE_RETENTION_DAYS일)
+            만료 일시 (생성 시간 + 설정을 통환 보존 기간)
         """
-        return created_at + timedelta(days=MESSAGE_RETENTION_DAYS)
+        return created_at + timedelta(days=self._settings.CHAT_MESSAGE_RETENTION_DAYS)
 
     async def send_message(
         self,
@@ -243,10 +241,10 @@ class ChatMessageSyncService:
         self._chat_message_repository = chat_message_sync_repository
 
     def delete_expired_messages(self, before_datetime: datetime) -> int:
-        """만료 시간이 지난 메시지를 soft delete 처리합니다.
+        """만료 시간이 지난 메시지를 영구 삭제(Hard Delete)합니다.
 
         매일 자정에 Celery Beat가 실행하는 배치 작업입니다.
-        expires_at < before_datetime 조건을 만족하는 메시지를 삭제합니다.
+        expires_at < before_datetime 조건을 만족하는 메시지를 물리적으로 삭제합니다.
 
         Args:
             before_datetime: 이 시간 이전에 만료된 메시지를 삭제 (예: 현재 시간)
@@ -263,5 +261,5 @@ class ChatMessageSyncService:
         # 2. 메시지 ID 목록 추출
         message_ids = [msg.message_id for msg in expired_messages]
 
-        # 3. Soft delete 처리
-        return self._chat_message_repository.delete_messages(message_ids)
+        # 3. Hard delete 처리
+        return self._chat_message_repository.hard_delete_messages(message_ids)

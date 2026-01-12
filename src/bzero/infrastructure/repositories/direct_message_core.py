@@ -4,9 +4,10 @@
 비동기 리포지토리는 run_sync로, 동기 리포지토리는 직접 호출합니다.
 """
 
+from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Select, func, select, update
+from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from bzero.domain.entities.direct_message import DirectMessage
@@ -91,6 +92,14 @@ class DirectMessageRepositoryCore:
         )
 
     @staticmethod
+    def _query_find_expired_messages(before_datetime: datetime) -> Select[tuple[DirectMessageModel]]:
+        """만료 시간이 지난 메시지를 조회하는 쿼리를 생성합니다."""
+        return select(DirectMessageModel).where(
+            DirectMessageModel.expires_at < before_datetime,
+            DirectMessageModel.deleted_at.is_(None),
+        )
+
+    @staticmethod
     def to_entity(model: DirectMessageModel) -> DirectMessage:
         """ORM 모델을 도메인 엔티티로 변환합니다."""
         return DirectMessage(
@@ -103,6 +112,7 @@ class DirectMessageRepositoryCore:
             created_at=model.created_at,
             updated_at=model.updated_at,
             deleted_at=model.deleted_at,
+            expires_at=model.expires_at,
         )
 
     @staticmethod
@@ -117,6 +127,7 @@ class DirectMessageRepositoryCore:
             is_read=entity.is_read,
             created_at=entity.created_at,
             deleted_at=entity.deleted_at,
+            expires_at=entity.expires_at,
         )
 
     # ==================== DB 작업 로직 ====================
@@ -204,3 +215,29 @@ class DirectMessageRepositoryCore:
         stmt = DirectMessageRepositoryCore._query_count_unread(dm_room_id, user_id)
         result = session.execute(stmt)
         return result.scalar() or 0
+
+    @staticmethod
+    def find_expired_messages(session: Session, before_datetime: datetime) -> list[DirectMessage]:
+        """만료 시간이 지난 메시지를 조회합니다."""
+        stmt = DirectMessageRepositoryCore._query_find_expired_messages(before_datetime)
+        result = session.execute(stmt)
+        models = result.scalars().all()
+        return [DirectMessageRepositoryCore.to_entity(model) for model in models]
+
+    @staticmethod
+    def hard_delete_messages(session: Session, dm_ids: list[Id]) -> int:
+        """메시지를 영구 삭제(Hard Delete)합니다.
+
+        보존 기간이 지난 메시지를 물리적으로 삭제하여 공간을 확보합니다.
+        WARNING: 복구 불가능합니다.
+        """
+        if not dm_ids:
+            return 0
+
+        dm_id_values = [dm_id.value for dm_id in dm_ids]
+        stmt = (
+            delete(DirectMessageModel)
+            .where(DirectMessageModel.dm_id.in_(dm_id_values))
+        )
+        result = session.execute(stmt)
+        return result.rowcount  # type: ignore[attr-defined]

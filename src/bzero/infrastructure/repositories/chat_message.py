@@ -73,3 +73,7 @@ class SqlAlchemyChatMessageSyncRepository(ChatMessageSyncRepository):
     def delete_messages(self, message_ids: list[Id]) -> int:
         """메시지를 soft delete 처리합니다."""
         return ChatMessageRepositoryCore.delete_messages(self._session, message_ids)
+
+    def hard_delete_messages(self, message_ids: list[Id]) -> int:
+        """메시지를 영구 삭제(Hard Delete)합니다."""
+        return ChatMessageRepositoryCore.hard_delete_messages(self._session, message_ids)

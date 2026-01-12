@@ -4,6 +4,7 @@
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from bzero.domain.entities.direct_message import DirectMessage
 from bzero.domain.value_objects import Id
@@ -106,4 +107,35 @@ class DirectMessageRepository(ABC):
 
         Returns:
             최근 메시지 또는 None
+        """
+
+class DirectMessageSyncRepository(ABC):
+    """DirectMessage 리포지토리 인터페이스 (동기).
+
+    Celery 백그라운드 태스크에서 사용되는 동기 리포지토리입니다.
+    비동기 환경에서는 DirectMessageRepository를 사용하세요.
+    """
+
+    @abstractmethod
+    def find_expired_messages(self, before_datetime: datetime) -> list[DirectMessage]:
+        """만료 시간이 지난 메시지를 조회합니다.
+
+        Args:
+            before_datetime: 기준 시간 (expires_at < before_datetime)
+
+        Returns:
+            만료된 메시지 목록
+        """
+
+    @abstractmethod
+    def hard_delete_messages(self, dm_ids: list[Id]) -> int:
+        """메시지를 영구 삭제(Hard Delete)합니다.
+
+        보존 기간이 지난 메시지를 물리적으로 삭제합니다.
+
+        Args:
+            dm_ids: 삭제할 메시지 ID 목록
+
+        Returns:
+            삭제된 메시지 개수
         """

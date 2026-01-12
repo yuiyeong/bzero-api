@@ -102,3 +102,16 @@ class ChatMessageSyncRepository(ABC):
         Returns:
             삭제된 메시지 개수
         """
+
+    @abstractmethod
+    def hard_delete_messages(self, message_ids: list[Id]) -> int:
+        """메시지를 영구 삭제(Hard Delete)합니다.
+
+        보존 기간이 지난 메시지를 물리적으로 삭제합니다.
+
+        Args:
+            message_ids: 삭제할 메시지 ID 목록
+
+        Returns:
+            삭제된 메시지 개수
+        """

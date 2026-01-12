@@ -109,6 +109,10 @@ class Settings(BaseSettings):
 
     timezone: ZoneInfo = ZoneInfo("Asia/Seoul")
 
+    # Message Retention Policies (in days)
+    CHAT_MESSAGE_RETENTION_DAYS: float = 3.0
+    DM_RETENTION_DAYS: float = 3.0
+
     @property
     def is_debug(self) -> bool:
         return self.environment not in (Environment.TEST, Environment.PRODUCTION)
