@@ -10,6 +10,8 @@ Redis를 브로커와 결과 백엔드로 사용하며, 동기 DB 연결을 관�
 from celery import Celery
 from celery.schedules import crontab
 from celery.signals import worker_process_init, worker_process_shutdown
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 from bzero.core.database import close_sync_db_connection, setup_sync_db_connection
 from bzero.core.loggers import background_logger, setup_loggers
@@ -37,6 +39,20 @@ def create_celery_app() -> Celery:
             "bzero.worker.tasks.tickets.task_complete_ticket",
         ],
     )
+
+    # Sentry 초기화 (Celery 설정)
+    if settings.sentry.dsn.get_secret_value():
+        sentry_sdk.init(
+            dsn=settings.sentry.dsn.get_secret_value(),
+            environment=settings.sentry.environment,
+            traces_sample_rate=settings.sentry.traces_sample_rate,
+            integrations=[
+                CeleryIntegration(
+                    monitor_beat_tasks=True,
+                    propagate_traces=True,
+                ),
+            ],
+        )
 
     celery_app.conf.update(
         # 타임존 설정
