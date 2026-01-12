@@ -3,7 +3,9 @@
 1:1 대화 메시지 도메인 엔티티의 영속성을 담당합니다.
 """
 
-from sqlalchemy import Boolean, ForeignKey, Index, Text, text
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Text, text
 from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -36,6 +38,7 @@ class DirectMessageModel(Base, AuditMixin, SoftDeleteMixin):
     to_user_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("users.user_id"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         # 인덱스: 대화방별 메시지 조회 (시간순, Soft Delete 제외)
@@ -51,5 +54,10 @@ class DirectMessageModel(Base, AuditMixin, SoftDeleteMixin):
             "to_user_id",
             "is_read",
             postgresql_where=text("deleted_at IS NULL"),
+        ),
+        # 인덱스: 만료된 메시지 조회 (삭제 배치용)
+        Index(
+            "idx_direct_messages_expires",
+            "expires_at",
         ),
     )

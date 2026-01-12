@@ -3,9 +3,10 @@
 1:1 대화 메시지의 전송, 조회, 읽음 처리 등 핵심 비즈니스 로직을 처리합니다.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from bzero.core.settings import get_settings
 from bzero.domain.entities.direct_message import DirectMessage
 from bzero.domain.entities.direct_message_room import DirectMessageRoom
 from bzero.domain.errors import (
@@ -15,7 +16,7 @@ from bzero.domain.errors import (
     RateLimitExceededError,
 )
 from bzero.domain.ports.rate_limiter import RateLimiter
-from bzero.domain.repositories.direct_message import DirectMessageRepository
+from bzero.domain.repositories.direct_message import DirectMessageRepository, DirectMessageSyncRepository
 from bzero.domain.repositories.direct_message_room import DirectMessageRoomRepository
 from bzero.domain.value_objects import DMStatus, Id
 from bzero.domain.value_objects.chat_message import MessageContent
@@ -53,6 +54,7 @@ class DirectMessageService:
         self._dm_room_repository = dm_room_repository
         self._rate_limiter = rate_limiter
         self._timezone = timezone
+        self._settings = get_settings()
 
     async def send_message(
         self,
@@ -96,6 +98,7 @@ class DirectMessageService:
             raise RateLimitExceededError
 
         now = datetime.now(self._timezone)
+        expires_at = now + timedelta(days=self._settings.DM_RETENTION_DAYS)
 
         # 4. 첫 메시지인 경우 상태 전환 (ACCEPTED → ACTIVE)
         if dm_room.status == DMStatus.ACCEPTED:
@@ -110,6 +113,7 @@ class DirectMessageService:
             to_user_id=to_user_id,
             content=content,
             created_at=now,
+            expires_at=expires_at,
         )
         created_message = await self._dm_repository.create(message)
 
@@ -209,3 +213,45 @@ class DirectMessageService:
         if message is None:
             raise NotFoundDMMessageError
         return message
+
+
+class DirectMessageSyncService:
+    """1:1 메시지 도메인 서비스 (동기).
+
+    Celery 백그라운드 태스크에서 만료 메시지 삭제 등의 배치 작업을 처리합니다.
+
+    Attributes:
+        _dm_repository: 메시지 저장소 (동기)
+    """
+
+    def __init__(self, dm_sync_repository: "DirectMessageSyncRepository"):
+        """DirectMessageSyncService를 초기화합니다.
+
+        Args:
+            dm_sync_repository: 1:1 메시지 동기 저장소 인터페이스
+        """
+        self._dm_repository = dm_sync_repository
+
+    def delete_expired_messages(self, before_datetime: datetime) -> int:
+        """만료 시간이 지난 메시지를 영구 삭제(Hard Delete)합니다.
+
+        매일 자정에 Celery Beat가 실행하는 배치 작업입니다.
+        expires_at < before_datetime 조건을 만족하는 메시지를 물리적으로 삭제합니다.
+
+        Args:
+            before_datetime: 이 시간 이전에 만료된 메시지를 삭제
+
+        Returns:
+            삭제된 메시지 개수
+        """
+        # 1. 만료된 메시지 조회
+        expired_messages = self._dm_repository.find_expired_messages(before_datetime)
+
+        if not expired_messages:
+            return 0
+
+        # 2. 메시지 ID 목록 추출
+        message_ids = [msg.dm_id for msg in expired_messages]
+
+        # 3. Hard delete 처리
+        return self._dm_repository.hard_delete_messages(message_ids)

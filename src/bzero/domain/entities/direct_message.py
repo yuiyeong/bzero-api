@@ -35,6 +35,7 @@ class DirectMessage:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
+    expires_at: datetime
 
     @classmethod
     def create(
@@ -44,6 +45,7 @@ class DirectMessage:
         to_user_id: Id,
         content: MessageContent,
         created_at: datetime,
+        expires_at: datetime,
     ) -> "DirectMessage":
         """새 1:1 메시지를 생성합니다.
 
@@ -53,6 +55,7 @@ class DirectMessage:
             to_user_id: 수신자 ID
             content: 메시지 내용 (최대 300자)
             created_at: 생성 일시
+            expires_at: 만료 일시
 
         Returns:
             새로 생성된 DirectMessage 엔티티 (is_read: False)
@@ -67,6 +70,7 @@ class DirectMessage:
             created_at=created_at,
             updated_at=created_at,
             deleted_at=None,
+            expires_at=expires_at,
         )
 
     def mark_as_read(self) -> None:

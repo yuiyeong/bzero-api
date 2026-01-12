@@ -3,10 +3,13 @@
 SqlAlchemy를 사용한 1:1 메시지 리포지토리 구현입니다.
 """
 
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from bzero.domain.entities.direct_message import DirectMessage
-from bzero.domain.repositories.direct_message import DirectMessageRepository
+from bzero.domain.repositories.direct_message import DirectMessageRepository, DirectMessageSyncRepository
 from bzero.domain.value_objects import Id
 from bzero.infrastructure.repositories.direct_message_core import DirectMessageRepositoryCore
 
@@ -70,3 +73,22 @@ class SqlAlchemyDirectMessageRepository(DirectMessageRepository):
     async def find_latest_by_dm_room(self, dm_room_id: Id) -> DirectMessage | None:
         """대화방의 가장 최근 메시지를 조회합니다."""
         return await self._session.run_sync(DirectMessageRepositoryCore.find_latest_by_dm_room, dm_room_id)
+
+
+class SqlAlchemyDirectMessageSyncRepository(DirectMessageSyncRepository):
+    """SqlAlchemy 기반 DirectMessage 리포지토리 (동기).
+
+    Celery 백그라운드 태스크에서 사용됩니다.
+    Core 메서드를 직접 호출합니다.
+    """
+
+    def __init__(self, session: Session):
+        self._session = session
+
+    def find_expired_messages(self, before_datetime: datetime) -> list[DirectMessage]:
+        """만료 시간이 지난 메시지를 조회합니다."""
+        return DirectMessageRepositoryCore.find_expired_messages(self._session, before_datetime)
+
+    def hard_delete_messages(self, dm_ids: list[Id]) -> int:
+        """메시지를 영구 삭제(Hard Delete)합니다."""
+        return DirectMessageRepositoryCore.hard_delete_messages(self._session, dm_ids)

@@ -13,7 +13,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Select, func, select, update
+from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from bzero.domain.entities import ChatMessage
@@ -192,6 +192,24 @@ class ChatMessageRepositoryCore:
                 ChatMessageModel.deleted_at.is_(None),
             )
             .values(deleted_at=func.now())
+        )
+        result = session.execute(stmt)
+        return result.rowcount  # type: ignore[attr-defined]
+
+    @staticmethod
+    def hard_delete_messages(session: Session, message_ids: list[Id]) -> int:
+        """메시지를 영구 삭제(Hard Delete)합니다.
+
+        보존 기간이 지난 메시지를 물리적으로 삭제하여 공간을 확보합니다.
+        WARNING: 복구 불가능합니다.
+        """
+        if not message_ids:
+            return 0
+
+        message_id_values = [msg_id.value for msg_id in message_ids]
+        stmt = (
+            delete(ChatMessageModel)
+            .where(ChatMessageModel.message_id.in_(message_id_values))
         )
         result = session.execute(stmt)
         return result.rowcount  # type: ignore[attr-defined]

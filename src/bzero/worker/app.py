@@ -34,6 +34,7 @@ def create_celery_app() -> Celery:
         backend=settings.celery.result_backend,
         include=[
             "bzero.worker.tasks.chat_messages.task_delete_expired_messages",
+            "bzero.worker.tasks.direct_messages.task_cleanup_direct_messages",
             "bzero.worker.tasks.room_stays.batch",
             "bzero.worker.tasks.room_stays.task_check_in",
             "bzero.worker.tasks.tickets.task_complete_ticket",
@@ -56,7 +57,7 @@ def create_celery_app() -> Celery:
 
     celery_app.conf.update(
         # 타임존 설정
-        timezone=settings.timezone,
+        timezone=str(settings.timezone),
         enable_utc=True,
         # 태스크 직렬화 설정
         task_serializer="json",
@@ -76,7 +77,11 @@ def create_celery_app() -> Celery:
         beat_schedule={
             "delete-expired-messages-daily": {
                 "task": "bzero.worker.tasks.chat_messages.task_delete_expired_messages",
-                "schedule": crontab(hour=0, minute=0),  # 매일 자정에 실행
+                "schedule": crontab(hour=6, minute=0),  # 매일 아침 6시에 실행
+            },
+            "cleanup-direct-messages-daily": {
+                "task": "bzero.worker.tasks.direct_messages.task_cleanup_direct_messages",
+                "schedule": crontab(hour=6, minute=0),  # 매일 아침 6시에 실행
             },
             "task-auto-checkout-batch-every-10m": {
                 "task": "bzero.worker.tasks.room_stays.task_auto_checkout_batch",
