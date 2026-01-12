@@ -147,28 +147,40 @@ class ChatMessageService:
         self,
         room_id: Id,
         content: MessageContent,
-    ) -> ChatMessage:
+        roomstays_id: Id | None = None,
+    ) -> tuple[ChatMessage, bool]:
         """시스템 메시지를 생성합니다.
 
         입장/퇴장/공지 등의 시스템 이벤트를 알릴 때 사용합니다.
         시스템 메시지는 Rate Limiting을 적용하지 않습니다.
+        roomstays_id가 제공된 경우 중복 생성을 방지합니다 (이미 존재하면 해당 메시지 반환).
 
         Args:
             room_id: 메시지를 전송할 룸 ID
             content: 시스템 메시지 내용
+            roomstays_id: 체류 ID (중복 체크용, optional)
 
         Returns:
-            생성된 시스템 메시지 (SYSTEM 타입, user_id=None)
+            (시스템 메시지, 생성 여부) 튜플
+            - if True: 새로 생성됨
+            - if False: 기존 메시지 반환됨
         """
+        # 중복 체크
+        if roomstays_id:
+            existing_message = await self._chat_message_repository.find_system_message_by_room_stay_id(roomstays_id)
+            if existing_message:
+                return existing_message, False
+
         current = datetime.now(self._timezone)
         message = ChatMessage.create_system_message(
             room_id=room_id,
             content=content,
+            roomstays_id=roomstays_id,
             created_at=current,
             updated_at=current,
             expires_at=self._calculate_expires_at(current),
         )
-        return await self._chat_message_repository.create(message)
+        return await self._chat_message_repository.create(message), True
 
     async def get_message_history(
         self,

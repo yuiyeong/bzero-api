@@ -1,3 +1,4 @@
+from bzero.domain.errors import ForbiddenRoomForUserError
 from bzero.domain.services.room_stay import RoomStayService
 from bzero.domain.value_objects import Id
 
@@ -17,17 +18,28 @@ class VerifyRoomAccessUseCase:
         """
         self._room_stay_service = room_stay_service
 
-    async def execute(self, user_id: str, room_id: str) -> None:
-        """사용자의 룸 접근 권한을 검증합니다.
+    async def execute(self, user_id: str, room_id: str) -> str:
+        """사용자의 룸 접근 권한을 검증하고 투숙 ID를 반환합니다.
 
         Args:
             user_id: 사용자 ID (hex)
             room_id: 룸 ID (hex)
 
+        Returns:
+            room_stay_id (hex string)
+
         Raises:
             ForbiddenRoomForUserError: 접근 권한이 없는 경우
         """
-        await self._room_stay_service.get_stays_by_user_id_and_room_id(
-            user_id=Id.from_hex(user_id),
-            room_id=Id.from_hex(room_id),
-        )
+        u_id = Id.from_hex(user_id)
+        r_id = Id.from_hex(room_id)
+
+        stay = await self._room_stay_service.get_checked_in_by_user_id(u_id)
+
+        if not stay:
+            raise ForbiddenRoomForUserError
+
+        if stay.room_id != r_id:
+            raise ForbiddenRoomForUserError
+
+        return stay.room_stay_id.value.hex

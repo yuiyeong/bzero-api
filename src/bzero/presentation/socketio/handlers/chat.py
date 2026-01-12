@@ -46,7 +46,7 @@ async def handle_join_room(sid: str, request: JoinRoomRequest, db_session: Async
 
     # 1. 룸 접근 권한 검증
     room_stay_service = create_room_stay_service(db_session)
-    await VerifyRoomAccessUseCase(room_stay_service).execute(session.user_id, session.room_id)
+    room_stay_id = await VerifyRoomAccessUseCase(room_stay_service).execute(session.user_id, session.room_id)
 
     # 2. Socket.IO 룸 입장
     await sio.enter_room(sid, session.room_id)
@@ -54,11 +54,13 @@ async def handle_join_room(sid: str, request: JoinRoomRequest, db_session: Async
     # 3. 입장 시스템 메시지 생성 및 브로드캐스트
     chat_message_service = create_chat_message_service(db_session)
     use_case = CreateSystemMessageUseCase(db_session, chat_message_service)
-    result = await use_case.execute(
+    result, is_created = await use_case.execute(
         room_id=session.room_id,
         content=SystemMessage.USER_JOINED,
+        roomstays_id=room_stay_id,
     )
-    await emit_system_message(sio, session.room_id, result)
+    if is_created:
+        await emit_system_message(sio, session.room_id, result)
 
 
 @sio.on("send_message")

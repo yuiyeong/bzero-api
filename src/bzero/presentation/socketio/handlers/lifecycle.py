@@ -5,13 +5,12 @@ from typing import Any
 from uuid import uuid4
 
 from bzero.application.results import ChatMessageResult
-from bzero.application.use_cases.chat_messages import CreateSystemMessageUseCase
 from bzero.application.use_cases.room_stays import VerifyRoomAccessUseCase
 from bzero.core.database import get_async_db_session_ctx
 from bzero.core.settings import get_settings
 from bzero.domain.services.user import UserService
 from bzero.domain.value_objects import AuthProvider, Id
-from bzero.domain.value_objects.chat_message import MessageContent, SystemMessage
+from bzero.domain.value_objects.chat_message import MessageContent
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.user import SqlAlchemyUserRepository
 from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdentityRepository
@@ -126,17 +125,8 @@ async def connect_ws_namespace(sid: str, environ: dict, auth: dict | None = None
 async def disconnect(sid: str, reason: Any = None):
     """클라이언트 연결 해제 이벤트."""
     try:
-        session = await get_typed_session(sio, sid, namespace="/")
-
-        async with get_async_db_session_ctx() as db_session:
-            chat_message_service = create_chat_message_service(db_session)
-            use_case = CreateSystemMessageUseCase(db_session, chat_message_service)
-
-            result = await use_case.execute(
-                room_id=session.room_id,
-                content=SystemMessage.USER_LEFT,
-            )
-            await emit_system_message(sio, session.room_id, result, namespace="/")
+        # session = await get_typed_session(sio, sid, namespace="/")
+        pass
 
     except Exception as e:
         # 연결 해제 시의 에러는 로깅만 하고 무시 (이미 끊어진 상태일 수 있음)
@@ -179,7 +169,7 @@ async def disconnect_demo(sid: str, reason: Any = None):
 
         async with get_async_db_session_ctx() as db_session:
             chat_message_service = create_chat_message_service(db_session)
-            system_message = await chat_message_service.create_system_message(
+            system_message, _ = await chat_message_service.create_system_message(
                 room_id=Id.from_hex(DEMO_ROOM_ID),
                 content=MessageContent(f"사용자 {session.user_id[:8]}... 님이 퇴장했습니다."),
             )
