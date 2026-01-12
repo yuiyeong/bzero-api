@@ -37,6 +37,7 @@ def create_celery_app() -> Celery:
             "bzero.worker.tasks.direct_messages.task_cleanup_direct_messages",
             "bzero.worker.tasks.room_stays.batch",
             "bzero.worker.tasks.room_stays.task_check_in",
+            "bzero.worker.tasks.tickets.batch",
             "bzero.worker.tasks.tickets.task_complete_ticket",
         ],
     )
@@ -90,6 +91,10 @@ def create_celery_app() -> Celery:
             "task-send-checkout-reminder-batch-every-10m": {
                 "task": "bzero.worker.tasks.room_stays.task_send_checkout_reminder_batch",
                 "schedule": crontab(minute="*/10"),
+            },
+            "task-complete-tickets-and-check-in-every-1m": {
+                "task": "bzero.worker.tasks.tickets.task_complete_tickets_and_check_in_batch",
+                "schedule": crontab(minute="*"),  # 매 1분마다 실행
             },
         },
     )

@@ -6,7 +6,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results import TicketResult
-from bzero.domain.ports import TaskScheduler
 from bzero.domain.services import AirshipService, CityService, PointTransactionService, TicketService, UserService
 from bzero.domain.value_objects import AuthProvider, Id, TransactionReason, TransactionReference
 
@@ -15,14 +14,13 @@ class PurchaseTicketUseCase:
     """비행선 티켓 구매 유스케이스.
 
     사용자가 선택한 도시와 비행선으로 티켓을 구매합니다.
-    구매 시 포인트가 차감되고, 도착 시간에 자동으로 티켓이 완료 처리되도록
-    백그라운드 작업이 예약됩니다.
+    구매 시 포인트가 차감됩니다.
 
     비즈니스 규칙:
         - 비용 = 도시 기본 비용 * 비행선 비용 배율
         - 소요 시간 = 도시 기본 시간 * 비행선 시간 배율
         - 구매 즉시 BOARDING 상태로 전환 (즉시 탑승)
-        - 도착 시간에 Celery 작업으로 COMPLETED 상태로 전환
+        - 도착 시간에 Celery Beat 배치 태스크가 COMPLETED 상태로 전환 및 체크인 처리
     """
 
     def __init__(
@@ -33,7 +31,6 @@ class PurchaseTicketUseCase:
         airship_service: AirshipService,
         ticket_service: TicketService,
         point_transaction_service: PointTransactionService,
-        task_scheduler: TaskScheduler,
     ):
         self._session = session
         self._user_service = user_service
@@ -41,7 +38,6 @@ class PurchaseTicketUseCase:
         self._airship_service = airship_service
         self._ticket_service = ticket_service
         self._point_transaction_service = point_transaction_service
-        self._task_scheduler = task_scheduler
 
     async def execute(
         self,
@@ -93,10 +89,7 @@ class PurchaseTicketUseCase:
         # 5. 트랜잭션 커밋
         await self._session.commit()
 
-        # 6. 도착 시간에 티켓 완료 처리 작업 예약 (Celery)
-        self._task_scheduler.schedule_ticket_completion(
-            ticket_id=ticket.ticket_id.to_hex(),
-            eta=ticket.arrival_datetime,
-        )
+        # 도착 시간에 Celery Beat 배치 태스크가 자동으로 완료 처리 및 체크인을 수행합니다.
+        # (task_complete_tickets_and_check_in_batch - 1분마다 실행)
 
         return TicketResult.create_from(ticket)

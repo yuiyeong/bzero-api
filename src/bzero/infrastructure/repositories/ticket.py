@@ -1,6 +1,9 @@
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from bzero.core.settings import get_settings
 from bzero.domain.entities import Ticket
 from bzero.domain.repositories.ticket import TicketRepository, TicketSyncRepository
 from bzero.domain.value_objects import Id, TicketStatus
@@ -151,3 +154,20 @@ class SqlAlchemyTicketSyncRepository(TicketSyncRepository):
             NotFoundTicketError: 티켓을 찾을 수 없는 경우
         """
         return TicketRepositoryCore.update(self._session, ticket)
+
+    def find_ids_due_for_completion(self, limit: int) -> list[Id]:
+        """완료 처리 대상 티켓 ID 목록을 조회합니다 (배치용).
+
+        조건:
+        - status = BOARDING
+        - arrival_datetime <= 현재 시간
+        - deleted_at IS NULL
+
+        Args:
+            limit: 조회할 최대 개수
+
+        Returns:
+            완료 대상 티켓 ID 목록
+        """
+        now = datetime.now(get_settings().timezone)
+        return TicketRepositoryCore.find_ids_due_for_completion(self._session, limit, now)

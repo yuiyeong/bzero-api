@@ -25,7 +25,6 @@ from bzero.domain.errors import (
     NotFoundTicketError,
     NotFoundUserError,
 )
-from bzero.domain.ports import TaskScheduler
 from bzero.domain.repositories.point_transaction import TransactionFilter
 from bzero.domain.services import AirshipService, CityService, PointTransactionService, TicketService, UserService
 from bzero.domain.value_objects import (
@@ -53,22 +52,6 @@ from bzero.infrastructure.repositories.user_identity import SqlAlchemyUserIdenti
 
 
 # =============================================================================
-# Mock TaskScheduler
-# =============================================================================
-
-
-class MockTaskScheduler(TaskScheduler):
-    """테스트용 Mock TaskScheduler."""
-
-    def __init__(self):
-        self.scheduled_tasks: list[dict] = []
-
-    def schedule_ticket_completion(self, ticket_id: str, eta: datetime) -> None:
-        """티켓 완료 작업을 기록합니다 (실제 스케줄링하지 않음)."""
-        self.scheduled_tasks.append({"ticket_id": ticket_id, "eta": eta})
-
-
-# =============================================================================
 # Fixtures
 # =============================================================================
 
@@ -77,12 +60,6 @@ class MockTaskScheduler(TaskScheduler):
 def timezone() -> ZoneInfo:
     """Seoul timezone"""
     return get_settings().timezone
-
-
-@pytest.fixture
-def mock_task_scheduler() -> MockTaskScheduler:
-    """MockTaskScheduler fixture를 생성합니다."""
-    return MockTaskScheduler()
 
 
 @pytest.fixture
@@ -313,7 +290,6 @@ def purchase_ticket_use_case(
     airship_service: AirshipService,
     ticket_service: TicketService,
     point_transaction_service: PointTransactionService,
-    mock_task_scheduler: MockTaskScheduler,
 ) -> PurchaseTicketUseCase:
     """PurchaseTicketUseCase fixture를 생성합니다."""
     return PurchaseTicketUseCase(
@@ -323,7 +299,6 @@ def purchase_ticket_use_case(
         airship_service,
         ticket_service,
         point_transaction_service,
-        mock_task_scheduler,
     )
 
 

@@ -10,7 +10,6 @@ from bzero.core.database import get_async_db_session
 from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.errors import UnauthorizedError
-from bzero.domain.ports import TaskScheduler
 from bzero.domain.repositories.user import UserRepository
 from bzero.domain.services import (
     AirshipService,
@@ -29,7 +28,7 @@ from bzero.domain.services.direct_message_room import DirectMessageRoomService
 from bzero.domain.services.point_transaction import PointTransactionService
 from bzero.domain.services.questionnaire import QuestionnaireService
 from bzero.domain.services.user import UserService
-from bzero.infrastructure.adapters import CeleryTaskScheduler, RedisRateLimiter
+from bzero.infrastructure.adapters import RedisRateLimiter
 from bzero.infrastructure.auth.jwt_utils import verify_supabase_jwt
 from bzero.infrastructure.repositories.airship import SqlAlchemyAirshipRepository
 from bzero.infrastructure.repositories.chat_message import SqlAlchemyChatMessageRepository
@@ -226,11 +225,6 @@ def get_questionnaire_service(
     return QuestionnaireService(questionnaire_repository, settings.timezone)
 
 
-def get_task_scheduler() -> TaskScheduler:
-    """Create TaskScheduler instance."""
-    return CeleryTaskScheduler()
-
-
 def get_chat_message_service(
     session: Annotated[AsyncSession, Depends(get_async_db_session)],
 ) -> ChatMessageService:
@@ -390,6 +384,5 @@ CurrentCheckoutService = Annotated[CheckoutService, Depends(get_checkout_service
 CurrentDiaryService = Annotated[DiaryService, Depends(get_diary_service)]
 CurrentCityQuestionService = Annotated[CityQuestionService, Depends(get_city_question_service)]
 CurrentQuestionnaireService = Annotated[QuestionnaireService, Depends(get_questionnaire_service)]
-CurrentTaskScheduler = Annotated[TaskScheduler, Depends(get_task_scheduler)]
 CurrentChatMessageService = Annotated[ChatMessageService, Depends(get_chat_message_service)]
 AdminKeyVerified = Annotated[bool, Depends(verify_admin_key)]

@@ -11,6 +11,8 @@
     (run_sync)     (직접 호출)
 """
 
+from datetime import datetime
+
 from sqlalchemy import Select, Update, func, select, update
 from sqlalchemy.orm import Session
 
@@ -100,6 +102,25 @@ class TicketRepositoryCore:
             )
             .values(status=ticket.status.value)
             .returning(TicketModel)
+        )
+
+    @staticmethod
+    def _query_find_ids_due_for_completion(limit: int, now: datetime) -> Select[tuple[str]]:
+        """완료 처리 대상 티켓 ID를 조회하는 쿼리를 생성합니다.
+
+        조건:
+        - status = BOARDING
+        - arrival_datetime <= 현재 시간
+        - deleted_at IS NULL
+        """
+        return (
+            select(TicketModel.ticket_id)
+            .where(
+                TicketModel.arrival_datetime <= now,
+                TicketModel.status == TicketStatus.BOARDING.value,
+                TicketModel.deleted_at.is_(None),
+            )
+            .limit(limit)
         )
 
     # ==================== Entity/Model 변환 ====================
@@ -243,3 +264,24 @@ class TicketRepositoryCore:
         stmt = TicketRepositoryCore._query_count_by(user_id, status)
         result = session.execute(stmt)
         return result.scalar_one()
+
+    @staticmethod
+    def find_ids_due_for_completion(session: Session, limit: int, now: datetime) -> list[Id]:
+        """완료 처리 대상 티켓 ID 목록을 조회합니다 (배치용).
+
+        조건:
+        - status = BOARDING
+        - arrival_datetime <= 현재 시간
+        - deleted_at IS NULL
+
+        Args:
+            session: SQLAlchemy Session 인스턴스
+            limit: 조회할 최대 개수
+            now: 현재 시간 (타임존 포함)
+
+        Returns:
+            완료 대상 티켓 ID 목록
+        """
+        stmt = TicketRepositoryCore._query_find_ids_due_for_completion(limit, now)
+        result = session.execute(stmt)
+        return [Id(row) for row in result.scalars().all()]
