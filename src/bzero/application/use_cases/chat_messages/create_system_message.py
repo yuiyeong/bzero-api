@@ -36,26 +36,29 @@ class CreateSystemMessageUseCase:
         self,
         room_id: str,
         content: str,
-    ) -> ChatMessageResult:
+        roomstays_id: str | None = None,
+    ) -> tuple[ChatMessageResult, bool]:
         """시스템 메시지 생성을 실행합니다.
 
         Args:
             room_id: 메시지를 전송할 룸 ID (hex 문자열)
             content: 시스템 메시지 내용
+            roomstays_id: 체류 ID (중복 체크용, optional hex string)
 
         Returns:
-            생성된 시스템 메시지 정보
+            (생성된 시스템 메시지 정보, 생성 여부) 튜플
 
         Raises:
             InvalidMessageContentError: 메시지 내용이 1-300자가 아닌 경우
         """
         # 1. 시스템 메시지 생성
-        message = await self._chat_message_service.create_system_message(
+        message, is_created = await self._chat_message_service.create_system_message(
             room_id=Id.from_hex(room_id),
             content=MessageContent(content),
+            roomstays_id=Id.from_hex(roomstays_id) if roomstays_id else None,
         )
 
         # 2. 트랜잭션 커밋
         await self._session.commit()
 
-        return ChatMessageResult.create_from(message)
+        return ChatMessageResult.create_from(message), is_created

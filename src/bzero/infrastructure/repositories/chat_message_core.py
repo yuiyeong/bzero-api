@@ -83,6 +83,15 @@ class ChatMessageRepositoryCore:
             ChatMessageModel.deleted_at.is_(None),
         )
 
+    @staticmethod
+    def _query_find_system_message_by_room_stay_id(room_stay_id: Id) -> Select[tuple[ChatMessageModel]]:
+        """특정 체류의 시스템 메시지(체크인 등)를 조회하는 쿼리를 생성합니다."""
+        return select(ChatMessageModel).where(
+            ChatMessageModel.roomstays_id == room_stay_id.value,
+            ChatMessageModel.is_system.is_(True),
+            ChatMessageModel.deleted_at.is_(None),
+        )
+
     # ==================== Entity/Model 변환 ====================
 
     @staticmethod
@@ -94,6 +103,7 @@ class ChatMessageRepositoryCore:
             user_id=entity.user_id.value if entity.user_id else None,
             content=entity.content.value,
             card_id=entity.card_id.value if entity.card_id else None,
+            roomstays_id=entity.roomstays_id.value if entity.roomstays_id else None,
             message_type=entity.message_type.value,
             is_system=entity.is_system,
             expires_at=entity.expires_at,
@@ -111,6 +121,7 @@ class ChatMessageRepositoryCore:
             user_id=Id(model.user_id) if model.user_id else None,
             content=MessageContent(model.content),
             card_id=Id(model.card_id) if model.card_id else None,
+            roomstays_id=Id(model.roomstays_id) if model.roomstays_id else None,
             message_type=MessageType(model.message_type),
             is_system=model.is_system,
             expires_at=model.expires_at,
@@ -136,6 +147,14 @@ class ChatMessageRepositoryCore:
         stmt = ChatMessageRepositoryCore._query_find_by_id(message_id)
         result = session.execute(stmt)
         model = result.scalar_one_or_none()
+        return ChatMessageRepositoryCore.to_entity(model) if model else None
+
+    @staticmethod
+    def find_system_message_by_room_stay_id(session: Session, room_stay_id: Id) -> ChatMessage | None:
+        """특정 체류의 시스템 메시지를 조회합니다 (중복 방지용)."""
+        stmt = ChatMessageRepositoryCore._query_find_system_message_by_room_stay_id(room_stay_id)
+        result = session.execute(stmt)
+        model = result.scalars().first()
         return ChatMessageRepositoryCore.to_entity(model) if model else None
 
     @staticmethod

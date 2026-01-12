@@ -48,6 +48,13 @@ class SqlAlchemyChatMessageRepository(ChatMessageRepository):
             limit,
         )
 
+    async def find_system_message_by_room_stay_id(self, room_stay_id: Id) -> ChatMessage | None:
+        """특정 체류의 시스템 메시지를 조회합니다."""
+        return await self._session.run_sync(
+            ChatMessageRepositoryCore.find_system_message_by_room_stay_id,
+            room_stay_id,
+        )
+
 
 class SqlAlchemyChatMessageSyncRepository(ChatMessageSyncRepository):
     """SqlAlchemy 기반 채팅 메시지 리포지토리 (동기).

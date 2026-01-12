@@ -61,7 +61,16 @@ class ChatMessageRepository(ABC):
         Returns:
             메시지 목록 (최신순)
         """
+    @abstractmethod
+    async def find_system_message_by_room_stay_id(self, room_stay_id: Id) -> ChatMessage | None:
+        """특정 체류의 시스템 메시지를 조회합니다 (중복 방지용).
 
+        Args:
+            room_stay_id: 체류 ID
+
+        Returns:
+            조회된 시스템 메시지 또는 None
+        """
 
 class ChatMessageSyncRepository(ABC):
     """채팅 메시지 리포지토리 인터페이스 (동기).

@@ -34,6 +34,7 @@ class ChatMessage:
     user_id: Id | None
     content: MessageContent
     card_id: Id | None
+    roomstays_id: Id | None
     message_type: MessageType
     is_system: bool
     created_at: datetime
@@ -72,6 +73,7 @@ class ChatMessage:
             user_id=user_id,
             content=content,
             card_id=card_id,
+            roomstays_id=None,
             message_type=MessageType.TEXT,
             is_system=False,
             created_at=created_at,
@@ -88,10 +90,12 @@ class ChatMessage:
         created_at: datetime,
         updated_at: datetime,
         expires_at: datetime,
+        roomstays_id: Id | None = None,
     ) -> "ChatMessage":
         """시스템 메시지를 생성합니다.
 
         입장/퇴장 알림 등의 시스템 메시지를 생성할 때 사용합니다.
+        체크인 메시지의 경우 roomstays_id를 포함하여 중복 생성을 방지합니다.
 
         Args:
             room_id: 메시지가 전송될 룸 ID
@@ -99,6 +103,7 @@ class ChatMessage:
             created_at: 생성 일시
             updated_at: 수정 일시
             expires_at: 만료 일시
+            roomstays_id: 체류 ID (중복 체크용, optional)
 
         Returns:
             새로 생성된 시스템 메시지 (message_type: SYSTEM, user_id: None)
@@ -109,6 +114,7 @@ class ChatMessage:
             user_id=None,  # 시스템 메시지는 user_id 없음
             content=content,
             card_id=None,
+            roomstays_id=roomstays_id,
             message_type=MessageType.SYSTEM,
             is_system=True,
             created_at=created_at,
@@ -148,6 +154,7 @@ class ChatMessage:
             user_id=user_id,
             content=content,
             card_id=card_id,
+            roomstays_id=None,
             message_type=MessageType.CARD_SHARED,
             is_system=False,
             created_at=created_at,
