@@ -207,9 +207,6 @@ class ChatMessageRepositoryCore:
             return 0
 
         message_id_values = [msg_id.value for msg_id in message_ids]
-        stmt = (
-            delete(ChatMessageModel)
-            .where(ChatMessageModel.message_id.in_(message_id_values))
-        )
+        stmt = delete(ChatMessageModel).where(ChatMessageModel.message_id.in_(message_id_values))
         result = session.execute(stmt)
         return result.rowcount  # type: ignore[attr-defined]

@@ -235,9 +235,6 @@ class DirectMessageRepositoryCore:
             return 0
 
         dm_id_values = [dm_id.value for dm_id in dm_ids]
-        stmt = (
-            delete(DirectMessageModel)
-            .where(DirectMessageModel.dm_id.in_(dm_id_values))
-        )
+        stmt = delete(DirectMessageModel).where(DirectMessageModel.dm_id.in_(dm_id_values))
         result = session.execute(stmt)
         return result.rowcount  # type: ignore[attr-defined]

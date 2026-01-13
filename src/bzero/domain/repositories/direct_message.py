@@ -109,6 +109,7 @@ class DirectMessageRepository(ABC):
             최근 메시지 또는 None
         """
 
+
 class DirectMessageSyncRepository(ABC):
     """DirectMessage 리포지토리 인터페이스 (동기).
 
