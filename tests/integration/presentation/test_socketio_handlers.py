@@ -78,7 +78,7 @@ async def sample_city(test_session: AsyncSession) -> CityModel:
         description="테스트 설명",
         image_url="https://example.com/city.jpg",
         base_cost_points=100,
-        base_duration_hours=24,
+        base_duration_minutes=24,
         is_active=True,
         display_order=1,
         created_at=now,
@@ -167,7 +167,7 @@ async def sample_ticket(
         city_description=sample_city.description,
         city_image_url=sample_city.image_url,
         city_base_cost_points=sample_city.base_cost_points,
-        city_base_duration_hours=sample_city.base_duration_hours,
+        city_base_duration_minutes=sample_city.base_duration_minutes,
         # Airship snapshot fields
         airship_id=sample_airship.airship_id,
         airship_name=sample_airship.name,

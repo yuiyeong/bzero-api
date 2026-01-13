@@ -43,7 +43,7 @@ async def setup_dependencies(test_session):
         description="Desc",
         image_url="url",
         base_cost_points=100,
-        base_duration_hours=2,
+        base_duration_minutes=2,
         is_active=True,
         display_order=1,
     )
@@ -79,7 +79,7 @@ async def setup_dependencies(test_session):
         city_description="Desc",
         city_image_url="url",
         city_base_cost_points=100,
-        city_base_duration_hours=2,
+        city_base_duration_minutes=2,
         airship_id=airship_id,
         airship_name="Test Airship",
         airship_description="Test Desc",

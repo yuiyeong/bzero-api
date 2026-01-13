@@ -66,7 +66,7 @@ async def sample_dm_room(
         theme="테스트",
         description="테스트용 도시",
         base_cost_points=100,
-        base_duration_hours=24,
+        base_duration_minutes=24,
         is_active=True,
         display_order=1,
         created_at=now,

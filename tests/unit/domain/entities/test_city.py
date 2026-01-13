@@ -18,7 +18,7 @@ class TestCity:
         description = "사람과의 연결을 회복하는 공간"
         image_url = "https://example.com/serencia.jpg"
         base_cost_points = 100
-        base_duration_hours = 1
+        base_duration_minutes = 1
         is_active = True
         display_order = 1
         now = datetime.now()
@@ -31,7 +31,7 @@ class TestCity:
             description=description,
             image_url=image_url,
             base_cost_points=base_cost_points,
-            base_duration_hours=base_duration_hours,
+            base_duration_minutes=base_duration_minutes,
             is_active=is_active,
             display_order=display_order,
             created_at=now,
@@ -45,7 +45,7 @@ class TestCity:
         assert city.description == description
         assert city.image_url == image_url
         assert city.base_cost_points == base_cost_points
-        assert city.base_duration_hours == base_duration_hours
+        assert city.base_duration_minutes == base_duration_minutes
         assert city.is_active is True
         assert city.display_order == display_order
         assert city.deleted_at is None
@@ -60,7 +60,7 @@ class TestCity:
             description=None,
             image_url=None,
             base_cost_points=100,
-            base_duration_hours=1,
+            base_duration_minutes=1,
             is_active=False,
             display_order=1,
             created_at=datetime.now(),
@@ -83,7 +83,7 @@ class TestCity:
             description=None,
             image_url=None,
             base_cost_points=100,
-            base_duration_hours=1,
+            base_duration_minutes=1,
             is_active=True,
             display_order=1,
             created_at=datetime.now(),
@@ -106,7 +106,7 @@ class TestCity:
             description=None,
             image_url=None,
             base_cost_points=150,
-            base_duration_hours=2,
+            base_duration_minutes=2,
             is_active=False,
             display_order=2,
             created_at=datetime.now(),
@@ -117,5 +117,5 @@ class TestCity:
         assert city.description is None
         assert city.image_url is None
         assert city.base_cost_points == 150
-        assert city.base_duration_hours == 2
+        assert city.base_duration_minutes == 2
         assert city.is_active is False

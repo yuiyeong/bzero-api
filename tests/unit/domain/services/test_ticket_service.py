@@ -86,7 +86,7 @@ def sample_city() -> City:
         image_url="https://example.com/serencia.jpg",
         description="노을빛 항구 마을",
         base_cost_points=300,
-        base_duration_hours=24,
+        base_duration_minutes=1440,  # 24시간 = 1440분
         display_order=1,
         is_active=True,
         created_at=now,
@@ -105,7 +105,7 @@ def sample_inactive_city() -> City:
         image_url=None,
         description="비활성화된 도시",
         base_cost_points=300,
-        base_duration_hours=24,
+        base_duration_minutes=1440,  # 24시간 = 1440분
         display_order=10,
         is_active=False,
         created_at=now,

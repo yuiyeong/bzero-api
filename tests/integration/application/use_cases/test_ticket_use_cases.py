@@ -216,7 +216,7 @@ async def test_city(test_session: AsyncSession, timezone: ZoneInfo) -> City:
         description="노을빛 항구 마을",
         image_url="https://example.com/serentia.jpg",
         base_cost_points=300,
-        base_duration_hours=24,
+        base_duration_minutes=24,
         is_active=True,
         display_order=1,
         created_at=now,
@@ -233,7 +233,7 @@ async def test_city(test_session: AsyncSession, timezone: ZoneInfo) -> City:
         description=city_model.description,
         image_url=city_model.image_url,
         base_cost_points=city_model.base_cost_points,
-        base_duration_hours=city_model.base_duration_hours,
+        base_duration_minutes=city_model.base_duration_minutes,
         is_active=city_model.is_active,
         display_order=city_model.display_order,
         created_at=city_model.created_at,
@@ -383,7 +383,7 @@ async def purchased_ticket(
         airship_snapshot=test_airship.snapshot(),
         cost_points=test_city.base_cost_points * test_airship.cost_factor,
         departure_datetime=now,
-        arrival_datetime=now + timedelta(hours=test_city.base_duration_hours),
+        arrival_datetime=now + timedelta(minutes=test_city.base_duration_minutes),
         created_at=now,
         updated_at=now,
     )
@@ -545,7 +545,7 @@ class TestPurchaseTicketUseCase:
             description="비활성화된 도시입니다",
             image_url="https://example.com/inactive.jpg",
             base_cost_points=300,
-            base_duration_hours=24,
+            base_duration_minutes=24,
             is_active=False,  # 비활성화
             display_order=99,
             created_at=now,
@@ -770,7 +770,7 @@ class TestGetTicketsByUserUseCase:
                 airship_snapshot=test_airship.snapshot(),
                 cost_points=test_city.base_cost_points * test_airship.cost_factor,
                 departure_datetime=now + timedelta(hours=i),
-                arrival_datetime=now + timedelta(hours=i + test_city.base_duration_hours),
+                arrival_datetime=now + timedelta(hours=i, minutes=test_city.base_duration_minutes),
                 created_at=now,
                 updated_at=now,
             )
@@ -846,7 +846,7 @@ class TestGetCurrentBoardingTicketUseCase:
             airship_snapshot=test_airship.snapshot(),
             cost_points=test_city.base_cost_points * test_airship.cost_factor,
             departure_datetime=now,
-            arrival_datetime=now + timedelta(hours=test_city.base_duration_hours),
+            arrival_datetime=now + timedelta(minutes=test_city.base_duration_minutes),
             created_at=now,
             updated_at=now,
         )
