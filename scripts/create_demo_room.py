@@ -38,7 +38,7 @@ async def create_demo_room():
                     theme="테스트",
                     description="채팅 데모를 위한 테스트용 도시입니다.",
                     base_cost_points=0,
-                    base_duration_hours=24,
+                    base_duration_minutes=1440,
                     is_active=True,
                     display_order=999,
                     created_at=now,

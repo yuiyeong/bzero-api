@@ -93,7 +93,7 @@ async def seed_cities():
                 "description": city_data["description"],
                 "image_url": city_data.get("image_url", DEFAULT_IMAGE_URL),
                 "base_cost_points": 300,
-                "base_duration_hours": 3,
+                "base_duration_minutes": 180,
                 "is_active": False,  # Coming Soon
                 "display_order": total_active_cities + i,  # 기존 도시 뒤에 순차 배치
             }
