@@ -17,7 +17,7 @@ class City:
     description: str | None  # 도시 설명
     image_url: str | None  # 도시 이미지 URL
     base_cost_points: int  # 기준 가격 (포인트)
-    base_duration_hours: int  # 기준 비행 시간 (시간)
+    base_duration_minutes: int  # 기준 비행 시간 (분)
     is_active: bool  # 활성화 여부
     display_order: int  # 도시 표시 순서
 
@@ -41,7 +41,7 @@ class City:
             image_url=self.image_url,
             description=self.description,
             base_cost_points=self.base_cost_points,
-            base_duration_hours=self.base_duration_hours,
+            base_duration_minutes=self.base_duration_minutes,
         )
 
     @classmethod
@@ -52,7 +52,7 @@ class City:
         description: str | None,
         image_url: str | None,
         base_cost_points: int,
-        base_duration_hours: int,
+        base_duration_minutes: int,
         is_active: bool,
         display_order: int,
         created_at: datetime,
@@ -66,7 +66,7 @@ class City:
             description=description,
             image_url=image_url,
             base_cost_points=base_cost_points,
-            base_duration_hours=base_duration_hours,
+            base_duration_minutes=base_duration_minutes,
             is_active=is_active,
             display_order=display_order,
             created_at=created_at,

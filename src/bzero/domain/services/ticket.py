@@ -27,7 +27,7 @@ class TicketService:
     Attributes:
         _ticket_repository: 티켓 저장소 (비동기)
         _timezone: 시간대 정보 (출발/도착 시간 계산에 사용)
-        _is_hyper_fast: 도착 시간을 매우 빠르게 앞 당길 것인지(분 단위, 시간 단위 선택지)
+        _is_hyper_fast: 도착 시간을 매우 빠르게 앞 당길 것인지(초 단위, 분 단위 선택지)
     """
 
     def __init__(self, ticket_repository: TicketRepository, timezone: ZoneInfo, is_hyper_fast: bool = False):
@@ -36,7 +36,7 @@ class TicketService:
         Args:
             ticket_repository: 티켓 저장소 인터페이스
             timezone: 사용할 시간대 (예: ZoneInfo("Asia/Seoul"))
-            is_hyper_fast: 도착 시간을 매우 빠르게 앞 당길 것인지(분 단위, 시간 단위 선택지)
+            is_hyper_fast: 도착 시간을 매우 빠르게 앞 당길 것인지(초 단위, 분 단위 선택지)
         """
         self._ticket_repository = ticket_repository
         self._timezone = timezone
@@ -62,7 +62,7 @@ class TicketService:
             InvalidAirshipStatusError: 비행선이 비활성화된 경우
         """
         total_cost = city.base_cost_points * airship.cost_factor
-        total_duration = city.base_duration_hours * airship.duration_factor
+        total_duration_minutes = city.base_duration_minutes * airship.duration_factor
 
         if user.current_points.less_than(total_cost):
             raise InsufficientBalanceError
@@ -75,9 +75,9 @@ class TicketService:
 
         departure_datetime = datetime.now(self._timezone)
         arrival_datetime = (
-            departure_datetime + timedelta(minutes=total_duration)
+            departure_datetime + timedelta(seconds=total_duration_minutes)
             if self._is_hyper_fast
-            else departure_datetime + timedelta(hours=total_duration)
+            else departure_datetime + timedelta(minutes=total_duration_minutes)
         )
         ticket = Ticket.create(
             user_id=user.user_id,
