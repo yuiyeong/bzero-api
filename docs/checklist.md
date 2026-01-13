@@ -150,9 +150,9 @@
   - [x] get_airship_by_id() 메서드
 
 ### City 모델 수정 ✅
-- [x] City 엔티티에 base_cost_points, base_duration_hours 속성 추가
+- [x] City 엔티티에 base_cost_points, base_duration_minutes 속성 추가
 - [x] City 테이블 마이그레이션 (ALTER TABLE)
-- [x] 도시 시드 데이터 업데이트 (base_cost_points, base_duration_hours 설정)
+- [x] 도시 시드 데이터 업데이트 (base_cost_points, base_duration_minutes 설정)
 
 ### Airship 시드 데이터 생성 ✅
 - [x] 일반 비행선 (cost_factor: 1.0, duration_factor: 3.0)
@@ -176,7 +176,7 @@
 ### TicketService 구현 ✅
 - [x] TicketService 도메인 서비스 (domain/services/ticket.py)
   - [x] calculate_cost() 메서드: City.base_cost_points × Airship.cost_factor
-  - [x] calculate_duration() 메서드: City.base_duration_hours × Airship.duration_factor
+  - [x] calculate_duration() 메서드: City.base_duration_minutes × Airship.duration_factor
   - [x] purchase_ticket() 메서드
   - [x] cancel_ticket() 메서드
 
@@ -184,7 +184,7 @@
 - [x] 포인트 잔액 확인
 - [x] 비용 계산: City.base_cost_points × Airship.cost_factor
 - [x] 포인트 차감 (PointTransactionService)
-- [x] 시간 계산: City.base_duration_hours × Airship.duration_factor
+- [x] 시간 계산: City.base_duration_minutes × Airship.duration_factor
 - [x] 티켓 발급 (구매 즉시 BOARDING 상태)
 - [x] 도착 시 자동 완료 스케줄링 (Celery 태스크)
 
@@ -217,7 +217,7 @@
 ### 완료 조건 ✅
 - [x] 비행선 목록 API가 작동함
 - [x] 비용이 City.base_cost_points × Airship.cost_factor로 계산됨
-- [x] 이동 시간이 City.base_duration_hours × Airship.duration_factor로 계산됨
+- [x] 이동 시간이 City.base_duration_minutes × Airship.duration_factor로 계산됨
 - [x] 포인트 결제가 정상 작동함
 - [x] 포인트 부족 시 에러 반환
 - [x] 티켓이 제대로 발급됨
