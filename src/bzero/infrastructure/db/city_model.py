@@ -16,6 +16,6 @@ class CityModel(Base, AuditMixin, SoftDeleteMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     base_cost_points: Mapped[int] = mapped_column(Integer, nullable=False)
-    base_duration_hours: Mapped[int] = mapped_column(Integer, nullable=False)
+    base_duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False)
