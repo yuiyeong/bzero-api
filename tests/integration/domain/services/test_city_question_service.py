@@ -37,7 +37,7 @@ async def sample_city(test_session: AsyncSession) -> CityModel:
         description="노을빛 항구 마을",
         image_url="https://example.com/serentia.jpg",
         base_cost_points=300,
-        base_duration_hours=24,
+        base_duration_minutes=24,
         is_active=True,
         display_order=1,
         created_at=now,

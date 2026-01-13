@@ -44,7 +44,7 @@ class CitySnapshot:
         image_url: 도시 이미지 URL (선택)
         description: 도시 설명 (선택)
         base_cost_points: 기본 비용 포인트
-        base_duration_hours: 기본 여행 시간 (시간 단위)
+        base_duration_minutes: 기본 여행 시간 (분 단위)
     """
 
     city_id: Id
@@ -53,7 +53,7 @@ class CitySnapshot:
     image_url: str | None
     description: str | None
     base_cost_points: int
-    base_duration_hours: int
+    base_duration_minutes: int
 
 
 @dataclass(frozen=True)

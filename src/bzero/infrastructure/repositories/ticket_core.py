@@ -143,7 +143,7 @@ class TicketRepositoryCore:
             city_image_url=entity.city_snapshot.image_url,
             city_description=entity.city_snapshot.description,
             city_base_cost_points=entity.city_snapshot.base_cost_points,
-            city_base_duration_hours=entity.city_snapshot.base_duration_hours,
+            city_base_duration_minutes=entity.city_snapshot.base_duration_minutes,
             # Airship 스냅샷 펼치기
             airship_id=entity.airship_snapshot.airship_id.value,
             airship_name=entity.airship_snapshot.name,
@@ -172,7 +172,7 @@ class TicketRepositoryCore:
                 image_url=model.city_image_url,
                 description=model.city_description,
                 base_cost_points=model.city_base_cost_points,
-                base_duration_hours=model.city_base_duration_hours,
+                base_duration_minutes=model.city_base_duration_minutes,
             ),
             # Airship 스냅샷 조립
             airship_snapshot=AirshipSnapshot(

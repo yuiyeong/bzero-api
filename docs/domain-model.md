@@ -236,14 +236,14 @@ graph TB
 
 **비용/시간 계산**:
 - 티켓 비용 = City.base_cost_points × Airship.cost_factor
-- 이동 시간 = City.base_duration_hours × Airship.duration_factor
-- 예: 세렌시아(100P, 1h) + 일반 비행선(×1, ×3) = 100P, 3시간
-- 예: 세렌시아(100P, 1h) + 고속 비행선(×2, ×1) = 200P, 1시간
+- 이동 시간 = City.base_duration_minutes × Airship.duration_factor
+- 예: 세렌시아(100P, 60분) + 일반 비행선(×1, ×3) = 100P, 180분
+- 예: 세렌시아(100P, 60분) + 고속 비행선(×2, ×1) = 200P, 60분
 
 **스냅샷 패턴**:
 - 티켓 구매 시 도시와 비행선 정보를 스냅샷으로 저장
 - 원본 데이터가 변경되어도 티켓의 정보는 구매 당시 그대로 유지
-- CitySnapshot: city_id, name, theme, image_url, description, base_cost_points, base_duration_hours
+- CitySnapshot: city_id, name, theme, image_url, description, base_cost_points, base_duration_minutes
 - AirshipSnapshot: airship_id, name, image_url, description, cost_factor, duration_factor
 
 **불변식**:
@@ -533,7 +533,7 @@ graph TB
 - description: Text
 - image_url: String
 - base_cost_points: Integer (기준 가격, 예: 100P)
-- base_duration_hours: Integer (기준 비행 시간, 예: 1시간)
+- base_duration_minutes: Integer (기준 비행 시간, 예: 60분)
 - is_active: Boolean
 - display_order: Integer (도시 표시 순서)
 
@@ -576,7 +576,7 @@ graph TB
 - ticket_number: String (형식: "B0-{년도}-{user_id_timestamp}{ticket_id_timestamp}")
 - cost_points: Integer (계산됨: City.base_cost_points × Airship.cost_factor)
 - departure_datetime: DateTime (구매 즉시)
-- arrival_datetime: DateTime (계산됨: departure_datetime + City.base_duration_hours × Airship.duration_factor)
+- arrival_datetime: DateTime (계산됨: departure_datetime + City.base_duration_minutes × Airship.duration_factor)
 - status: TicketStatus (VO)
 - created_at: DateTime
 - updated_at: DateTime
@@ -929,7 +929,7 @@ PURCHASED → BOARDING → COMPLETED
 - image_url: String (nullable)
 - description: Text (nullable)
 - base_cost_points: Integer
-- base_duration_hours: Integer
+- base_duration_minutes: Integer
 
 **설명**: 티켓 구매 시점의 도시 정보를 불변으로 저장하는 값 객체
 
@@ -1148,7 +1148,7 @@ PURCHASED → BOARDING → COMPLETED
   - 도시 활성화 상태 검증 (InvalidCityStatusError)
   - 비행선 활성화 상태 검증 (InvalidAirshipStatusError)
   - 비용 계산: City.base_cost_points × Airship.cost_factor
-  - 시간 계산: City.base_duration_hours × Airship.duration_factor
+  - 시간 계산: City.base_duration_minutes × Airship.duration_factor
   - 티켓 생성 및 즉시 BOARDING 상태로 전환
   - CitySnapshot/AirshipSnapshot으로 구매 시점 정보 저장
 - **티켓 취소** (`cancel`):

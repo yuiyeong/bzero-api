@@ -19,7 +19,7 @@ class TicketModel(Base, AuditMixin, SoftDeleteMixin):
     city_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     city_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     city_base_cost_points: Mapped[int] = mapped_column(Integer, nullable=False)
-    city_base_duration_hours: Mapped[int] = mapped_column(Integer, nullable=False)
+    city_base_duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
 
     airship_id: Mapped[UUID] = mapped_column(UUID, ForeignKey("airships.airship_id"), nullable=False)
     airship_name: Mapped[str] = mapped_column(String(100), nullable=False)

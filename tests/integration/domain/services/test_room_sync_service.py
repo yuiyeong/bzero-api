@@ -39,7 +39,7 @@ def sync_sample_city(test_sync_session: Session) -> CityModel:
         image_url="https://example.com/serencia.jpg",
         description="노을빛 항구 마을",
         base_cost_points=300,
-        base_duration_hours=24,
+        base_duration_minutes=24,
         display_order=1,
         is_active=True,
         created_at=now,

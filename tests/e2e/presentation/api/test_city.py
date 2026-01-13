@@ -22,7 +22,7 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             description="관계에 대해 생각하는 도시",
             image_url="https://example.com/serencia.jpg",
             base_cost_points=100,
-            base_duration_hours=1,
+            base_duration_minutes=1,
             is_active=True,
             display_order=1,
             created_at=datetime.now(get_settings().timezone),
@@ -35,7 +35,7 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             description="성장에 대해 생각하는 도시",
             image_url="https://example.com/flora.jpg",
             base_cost_points=150,
-            base_duration_hours=2,
+            base_duration_minutes=2,
             is_active=True,
             display_order=2,
             created_at=datetime.now(get_settings().timezone),
@@ -48,7 +48,7 @@ async def sample_cities(test_session: AsyncSession) -> list[CityModel]:
             description="비활성 테스트 도시",
             image_url=None,
             base_cost_points=200,
-            base_duration_hours=3,
+            base_duration_minutes=3,
             is_active=False,
             display_order=3,
             created_at=datetime.now(get_settings().timezone),
@@ -105,7 +105,7 @@ class TestGetActiveCities:
         assert "description" in first_city
         assert "image_url" in first_city
         assert "base_cost_points" in first_city
-        assert "base_duration_hours" in first_city
+        assert "base_duration_minutes" in first_city
         assert "is_active" in first_city
         assert "display_order" in first_city
         assert "created_at" in first_city
@@ -226,7 +226,7 @@ class TestCreateCity:
             "description": "테스트 설명",
             "image_url": "https://example.com/test.jpg",
             "base_cost_points": 500,
-            "base_duration_hours": 5,
+            "base_duration_minutes": 5,
             "is_active": False,
             "display_order": 99,
         }

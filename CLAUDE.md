@@ -240,7 +240,7 @@ uv run dev
 **마이그레이션** (10개)
 
 - 0001_create_user.py
-- 0002_create_city.py (base_cost_points, base_duration_hours 포함)
+- 0002_create_city.py (base_cost_points, base_duration_minutes 포함)
 - 0003_create_pointtransaction.py
 - 0004_create_useridentity.py
 - 0005_create_airship.py

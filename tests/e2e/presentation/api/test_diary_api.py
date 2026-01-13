@@ -39,7 +39,7 @@ async def sample_city(test_session: AsyncSession) -> CityModel:
         description="관계에 대해 생각하는 도시",
         image_url="https://example.com/serencia.jpg",
         base_cost_points=100,
-        base_duration_hours=1,
+        base_duration_minutes=1,
         is_active=True,
         display_order=1,
         created_at=now,
@@ -141,7 +141,7 @@ async def create_user_with_room_stay(
         city_description=sample_city.description,
         city_image_url=sample_city.image_url,
         city_base_cost_points=sample_city.base_cost_points,
-        city_base_duration_hours=sample_city.base_duration_hours,
+        city_base_duration_minutes=sample_city.base_duration_minutes,
         # Airship snapshot fields
         airship_id=sample_airship.airship_id,
         airship_name=sample_airship.name,

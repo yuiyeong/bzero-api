@@ -30,7 +30,7 @@ class TestTicket:
             image_url="https://example.com/serencia.jpg",
             description="노을빛 항구 마을",
             base_cost_points=300,
-            base_duration_hours=24,
+            base_duration_minutes=24,
         )
 
     @pytest.fixture
