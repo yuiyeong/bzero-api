@@ -14,7 +14,7 @@ class CityResponse(BaseModel):
     description: str | None = Field(None, description="도시 설명")
     image_url: str | None = Field(None, description="도시 이미지 URL")
     base_cost_points: int = Field(..., description="기준 가격 (포인트)")
-    base_duration_hours: int = Field(..., description="기준 비행 시간 (시간)")
+    base_duration_minutes: int = Field(..., description="기준 비행 시간 (분)")
     is_active: bool = Field(..., description="활성화 여부")
     display_order: int = Field(..., description="표시 순서")
     created_at: datetime = Field(..., description="생성일시")
@@ -31,7 +31,7 @@ class CityResponse(BaseModel):
             description=result.description,
             image_url=result.image_url,
             base_cost_points=result.base_cost_points,
-            base_duration_hours=result.base_duration_hours,
+            base_duration_minutes=result.base_duration_minutes,
             is_active=result.is_active,
             display_order=result.display_order,
             created_at=result.created_at,
@@ -47,6 +47,6 @@ class CityCreateRequest(BaseModel):
     description: str | None = Field(None, max_length=200, description="도시 설명")
     image_url: str | None = Field(None, description="도시 이미지 URL")
     base_cost_points: int = Field(default=300, ge=0, description="기준 가격 (포인트)")
-    base_duration_hours: int = Field(default=3, ge=1, description="기준 비행 시간 (시간)")
+    base_duration_minutes: int = Field(default=180, ge=1, description="기준 비행 시간 (분)")
     is_active: bool = Field(default=False, description="활성화 여부 (Coming Soon은 false)")
     display_order: int = Field(default=0, ge=0, description="표시 순서")

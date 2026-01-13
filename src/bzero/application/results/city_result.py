@@ -14,7 +14,7 @@ class CityResult:
     description: str | None
     image_url: str | None
     base_cost_points: int
-    base_duration_hours: int
+    base_duration_minutes: int
     is_active: bool
     display_order: int
     created_at: datetime
@@ -29,7 +29,7 @@ class CityResult:
             description=entity.description,
             image_url=entity.image_url,
             base_cost_points=entity.base_cost_points,
-            base_duration_hours=entity.base_duration_hours,
+            base_duration_minutes=entity.base_duration_minutes,
             is_active=entity.is_active,
             display_order=entity.display_order,
             created_at=entity.created_at,

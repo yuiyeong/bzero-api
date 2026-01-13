@@ -46,7 +46,7 @@ async def create_city(
         description=request.description,
         image_url=request.image_url,
         base_cost_points=request.base_cost_points,
-        base_duration_hours=request.base_duration_hours,
+        base_duration_minutes=request.base_duration_minutes,
         is_active=request.is_active,
         display_order=request.display_order,
     )
