@@ -15,6 +15,7 @@ from bzero.infrastructure.db.city_question_model import CityQuestionModel  # noq
 from bzero.infrastructure.db.conversation_card_model import ConversationCardModel  # noqa: F401
 from bzero.infrastructure.db.diary_model import DiaryModel  # noqa: F401
 from bzero.infrastructure.db.guest_house_model import GuestHouseModel  # noqa: F401
+from bzero.infrastructure.db.notification_model import NotificationModel  # noqa: F401
 from bzero.infrastructure.db.point_transaction_model import PointTransactionModel  # noqa: F401
 from bzero.infrastructure.db.questionnaire_model import QuestionnaireModel  # noqa: F401
 from bzero.infrastructure.db.reward_model import RewardModel  # noqa: F401
