@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results.dm import DirectMessageRoomResult
 from bzero.domain.services.direct_message_room import DirectMessageRoomService
+from bzero.domain.services.notification import NotificationService
 from bzero.domain.services.user import UserService
-from bzero.domain.value_objects import AuthProvider, Id
+from bzero.domain.value_objects import AuthProvider, Id, NotificationType
 
 
 class RequestDMUseCase:
@@ -23,6 +24,7 @@ class RequestDMUseCase:
         session: AsyncSession,
         dm_room_service: DirectMessageRoomService,
         user_service: UserService,
+        notification_service: NotificationService,
     ):
         """RequestDMUseCase를 초기화합니다.
 
@@ -30,10 +32,12 @@ class RequestDMUseCase:
             session: 데이터베이스 세션
             dm_room_service: 대화방 도메인 서비스
             user_service: 사용자 도메인 서비스
+            notification_service: 알림 도메인 서비스
         """
         self._session = session
         self._dm_room_service = dm_room_service
         self._user_service = user_service
+        self._notification_service = notification_service
 
     async def execute(
         self,
@@ -68,7 +72,15 @@ class RequestDMUseCase:
             target_id=Id.from_hex(target_id),
         )
 
-        # 2. 트랜잭션 커밋
+        # 2. 알림 생성
+        await self._notification_service.create_notification(
+            user_id=Id.from_hex(target_id),
+            notification_type=NotificationType.DM_REQUEST,
+            title="새로운 대화 요청",
+            message=f"{requester.nickname.value}님이 대화를 요청했습니다.",
+        )
+
+        # 3. 트랜잭션 커밋
         await self._session.commit()
 
         return DirectMessageRoomResult.create_from(dm_room)

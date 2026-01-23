@@ -1,99 +1,63 @@
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from bzero.domain.entities.notification import Notification
 from bzero.domain.repositories.notification import NotificationRepository, NotificationSyncRepository
-from bzero.domain.value_objects import Id, NotificationType
-from bzero.infrastructure.db.notification_model import NotificationModel
+from bzero.domain.value_objects import Id
+from bzero.infrastructure.repositories.notification_core import NotificationRepositoryCore
 
 
 class SqlAlchemyNotificationRepository(NotificationRepository):
-    """SQLAlchemy 기반 Notification Repository."""
+    """SQLAlchemy 기반 Notification Repository (비동기).
+
+    NotificationRepositoryCore를 위임하여 구현합니다.
+    """
 
     def __init__(self, session: AsyncSession):
-        """리포지토리를 초기화합니다.
-
-        Args:
-            session: SQLAlchemy AsyncSession 인스턴스
-        """
         self._session = session
 
     async def create(self, notification: Notification) -> Notification:
-        """알림을 생성합니다."""
-        model = self._to_model(notification)
-        self._session.add(model)
-        await self._session.flush()
-        await self._session.refresh(model)
-        return self._to_entity(model)
+        return await self._session.run_sync(NotificationRepositoryCore.create, notification)
 
     async def find_by_user_id(self, user_id: Id, limit: int = 20) -> list[Notification]:
-        """사용자의 알림 목록을 최신순으로 조회합니다."""
-        stmt = (
-            select(NotificationModel)
-            .where(NotificationModel.user_id == user_id.value)
-            .order_by(NotificationModel.created_at.desc())
-            .limit(limit)
+        # 하위 호환성 (find_all_by_user_id로 대체 가능하지만 인터페이스 유지)
+        result, _ = await self._session.run_sync(
+            NotificationRepositoryCore.find_all_by_user_id,
+            user_id,
+            0,
+            limit,
         )
-        result = await self._session.execute(stmt)
-        models = result.scalars().all()
-        return [self._to_entity(model) for model in models]
+        return result
 
-    def _to_model(self, entity: Notification) -> NotificationModel:
-        return NotificationModel(
-            notification_id=entity.notification_id.value,
-            user_id=entity.user_id.value,
-            type=entity.type.value,
-            title=entity.title,
-            message=entity.message,
-            is_read=entity.is_read,
-            created_at=entity.created_at,
+    async def find_all_by_user_id(self, user_id: Id, offset: int, limit: int) -> tuple[list[Notification], int]:
+        return await self._session.run_sync(
+            NotificationRepositoryCore.find_all_by_user_id,
+            user_id,
+            offset,
+            limit,
         )
 
-    def _to_entity(self, model: NotificationModel) -> Notification:
-        return Notification(
-            notification_id=Id(model.notification_id),
-            user_id=Id(model.user_id),
-            type=NotificationType(model.type),
-            title=model.title,
-            message=model.message,
-            is_read=model.is_read,
-            created_at=model.created_at,
-        )
+    async def count_unread_by_user_id(self, user_id: Id) -> int:
+        return await self._session.run_sync(NotificationRepositoryCore.count_unread_by_user_id, user_id)
+
+    async def find_by_id(self, notification_id: Id) -> Notification | None:
+        return await self._session.run_sync(NotificationRepositoryCore.find_by_id, notification_id)
+
+    async def update(self, notification: Notification) -> Notification:
+        return await self._session.run_sync(NotificationRepositoryCore.update, notification)
+
+    async def mark_all_as_read(self, user_id: Id) -> int:
+        return await self._session.run_sync(NotificationRepositoryCore.mark_all_as_read, user_id)
 
 
 class SqlAlchemyNotificationSyncRepository(NotificationSyncRepository):
-    """SQLAlchemy 기반 Notification Repository (동기)."""
+    """SQLAlchemy 기반 Notification Repository (동기).
+
+    Celery 등 동기 환경에서 사용합니다.
+    """
 
     def __init__(self, session: Session):
         self._session = session
 
     def create(self, notification: Notification) -> Notification:
-        """알림을 생성합니다."""
-        model = self._to_model(notification)
-        self._session.add(model)
-        self._session.flush()
-        self._session.refresh(model)
-        return self._to_entity(model)
-
-    def _to_model(self, entity: Notification) -> NotificationModel:
-        return NotificationModel(
-            notification_id=entity.notification_id.value,
-            user_id=entity.user_id.value,
-            type=entity.type.value,
-            title=entity.title,
-            message=entity.message,
-            is_read=entity.is_read,
-            created_at=entity.created_at,
-        )
-
-    def _to_entity(self, model: NotificationModel) -> Notification:
-        return Notification(
-            notification_id=Id(model.notification_id),
-            user_id=Id(model.user_id),
-            type=NotificationType(model.type),
-            title=model.title,
-            message=model.message,
-            is_read=model.is_read,
-            created_at=model.created_at,
-        )
+        return NotificationRepositoryCore.create(self._session, notification)

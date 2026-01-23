@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bzero.application.results.user_result import UserResult
@@ -73,6 +74,10 @@ class CreateUserUseCase:
 
             # 3. UserResult 반환
             return UserResult.create_from(updated_user)
+        except IntegrityError:
+            # 이메일 등 고유 제약 조건 위반 시
+            await self._session.rollback()
+            raise DuplicatedUserError
         except Exception:
             await self._session.rollback()
             raise

@@ -11,6 +11,7 @@ from bzero.presentation.api.city import router as city_router
 from bzero.presentation.api.city_question import router as city_question_router
 from bzero.presentation.api.diary import router as diary_router
 from bzero.presentation.api.dm import router as dm_router
+from bzero.presentation.api.notification import router as notification_router
 from bzero.presentation.api.questionnaire import router as questionnaire_router
 from bzero.presentation.api.reward import router as reward_router
 from bzero.presentation.api.room import router as room_router
@@ -33,3 +34,4 @@ router.include_router(city_question_router)
 router.include_router(questionnaire_router)
 router.include_router(reward_router)
 router.include_router(dm_router)
+router.include_router(notification_router)

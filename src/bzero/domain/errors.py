@@ -30,6 +30,7 @@ class ErrorCode(str, Enum):
     FORBIDDEN_ROOM_FOR_USER = "사용자가 접근할 수 없는 방입니다."
     FORBIDDEN_DIARY_ACCESS = "본인의 일기가 아닙니다."
     FORBIDDEN_QUESTIONNAIRE_ACCESS = "본인의 문답지가 아닙니다."
+    FORBIDDEN = "접근 권한이 없습니다."
 
     CITY_NOT_FOUND = "찾을 수 없는 도시입니다."
     NOT_FOUND_USER = "찾을 수 없는 사용자입니다."
@@ -43,6 +44,7 @@ class ErrorCode(str, Enum):
     NOT_FOUND_DIARY = "일기를 찾을 수 없습니다."
     NOT_FOUND_CITY_QUESTION = "도시 질문을 찾을 수 없습니다."
     NOT_FOUND_QUESTIONNAIRE = "문답지를 찾을 수 없습니다."
+    NOT_FOUND_NOTIFICATION = "알림을 찾을 수 없습니다."
 
     DUPLICATED_REWARD = "이미 지급된 보상입니다."
     DUPLICATED_DIARY = "이미 해당 체류에 일기가 존재합니다."
@@ -75,6 +77,13 @@ class AuthError(BeZeroError):
 
 class AccessDeniedError(AuthError):
     """인가 관련 에러의 기본 클래스"""
+
+
+class ForbiddenError(AccessDeniedError):
+    """권한이 없을 때 발생하는 에러 (Generic)."""
+
+    def __init__(self, message: str = "접근 권한이 없습니다."):
+        super().__init__(ErrorCode.FORBIDDEN)
 
 
 class BadRequestError(BeZeroError):
@@ -306,6 +315,11 @@ class NotFoundCityQuestionError(NotFoundError):
 class NotFoundQuestionnaireError(NotFoundError):
     def __init__(self):
         super().__init__(ErrorCode.NOT_FOUND_QUESTIONNAIRE)
+
+
+class NotFoundNotificationError(NotFoundError):
+    def __init__(self):
+        super().__init__(ErrorCode.NOT_FOUND_NOTIFICATION)
 
 
 class DuplicatedQuestionnaireError(DuplicatedError):
