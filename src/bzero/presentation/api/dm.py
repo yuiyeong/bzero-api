@@ -17,6 +17,7 @@ from bzero.presentation.api.dependencies import (
     DBSession,
     create_dm_room_service,
     create_dm_service,
+    create_notification_service,
 )
 from bzero.presentation.schemas.common import ListResponse, Pagination
 from bzero.presentation.schemas.dm import (
@@ -66,8 +67,9 @@ async def request_dm(
         DuplicatedDMRequestError: 이미 활성 대화방이 존재하는 경우
     """
     dm_room_service: DirectMessageRoomService = create_dm_room_service(session)
+    notification_service = create_notification_service(session)
 
-    use_case = RequestDMUseCase(session, dm_room_service, user_service)
+    use_case = RequestDMUseCase(session, dm_room_service, user_service, notification_service)
     result = await use_case.execute(
         provider=jwt_payload.provider,
         provider_user_id=jwt_payload.provider_user_id,

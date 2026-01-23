@@ -10,6 +10,7 @@ from bzero.core.database import get_async_db_session
 from bzero.core.redis import get_redis_client
 from bzero.core.settings import get_settings
 from bzero.domain.errors import UnauthorizedError
+from bzero.domain.repositories.notification import NotificationRepository
 from bzero.domain.repositories.user import UserRepository
 from bzero.domain.services import (
     AirshipService,
@@ -25,6 +26,7 @@ from bzero.domain.services.city import CityService
 from bzero.domain.services.city_question import CityQuestionService
 from bzero.domain.services.direct_message import DirectMessageService
 from bzero.domain.services.direct_message_room import DirectMessageRoomService
+from bzero.domain.services.notification import NotificationService
 from bzero.domain.services.point_transaction import PointTransactionService
 from bzero.domain.services.questionnaire import QuestionnaireService
 from bzero.domain.services.user import UserService
@@ -38,6 +40,7 @@ from bzero.infrastructure.repositories.conversation_card import SqlAlchemyConver
 from bzero.infrastructure.repositories.diary import SqlAlchemyDiaryRepository
 from bzero.infrastructure.repositories.direct_message import SqlAlchemyDirectMessageRepository
 from bzero.infrastructure.repositories.direct_message_room import SqlAlchemyDirectMessageRoomRepository
+from bzero.infrastructure.repositories.notification import SqlAlchemyNotificationRepository
 from bzero.infrastructure.repositories.point_transaction import SqlAlchemyPointTransactionRepository
 from bzero.infrastructure.repositories.questionnaire import SqlAlchemyQuestionnaireRepository
 from bzero.infrastructure.repositories.room import SqlAlchemyRoomRepository
@@ -237,6 +240,22 @@ def get_chat_message_service(
     )
 
 
+def get_notification_repository(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+) -> NotificationRepository:
+    """Create NotificationRepository instance."""
+    return SqlAlchemyNotificationRepository(session)
+
+
+def get_notification_service(
+    session: Annotated[AsyncSession, Depends(get_async_db_session)],
+    notification_repository: Annotated[NotificationRepository, Depends(get_notification_repository)],
+) -> NotificationService:
+    """Create NotificationService instance."""
+    settings = get_settings()
+    return NotificationService(notification_repository, settings.timezone)
+
+
 # =============================================================================
 # Socket.IO용 팩토리 함수 (세션 직접 전달)
 # =============================================================================
@@ -349,6 +368,18 @@ def create_dm_service(session: AsyncSession) -> "DirectMessageService":
     )
 
 
+def create_notification_service(session: AsyncSession) -> NotificationService:
+    """세션을 직접 받아 NotificationService를 생성합니다.
+
+    Socket.IO 핸들러 및 REST API에서 사용합니다.
+    """
+    settings = get_settings()
+    return NotificationService(
+        notification_repository=SqlAlchemyNotificationRepository(session),
+        timezone=settings.timezone,
+    )
+
+
 def verify_admin_key(
     x_admin_key: Annotated[str, Header(description="Admin API Key")] = "",
 ) -> bool:
@@ -385,4 +416,5 @@ CurrentDiaryService = Annotated[DiaryService, Depends(get_diary_service)]
 CurrentCityQuestionService = Annotated[CityQuestionService, Depends(get_city_question_service)]
 CurrentQuestionnaireService = Annotated[QuestionnaireService, Depends(get_questionnaire_service)]
 CurrentChatMessageService = Annotated[ChatMessageService, Depends(get_chat_message_service)]
+CurrentNotificationService = Annotated[NotificationService, Depends(get_notification_service)]
 AdminKeyVerified = Annotated[bool, Depends(verify_admin_key)]
